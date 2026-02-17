@@ -10,6 +10,7 @@ import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import ReviewForm from "@/components/ReviewForm";
 import ReviewList from "@/components/ReviewList";
+import FavoriteButton from "@/components/FavoriteButton";
 
 const priceTierLabel = (tier: number) => "$".repeat(tier);
 
@@ -93,6 +94,7 @@ const LoungePage = () => {
                       ({lounge.review_count} reviews)
                     </span>
                   </div>
+                  <FavoriteButton loungeId={lounge.id} />
                 </div>
               </div>
             </section>

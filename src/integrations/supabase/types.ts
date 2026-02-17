@@ -44,6 +44,35 @@ export type Database = {
         }
         Relationships: []
       }
+      favorites: {
+        Row: {
+          created_at: string
+          id: string
+          lounge_id: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          lounge_id: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          lounge_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "favorites_lounge_id_fkey"
+            columns: ["lounge_id"]
+            isOneToOne: false
+            referencedRelation: "lounges"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       lounges: {
         Row: {
           address: string | null

@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { Search, Menu, X, User, LogOut } from "lucide-react";
+import { Search, Menu, X, User, LogOut, Heart } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useAuth } from "@/hooks/useAuth";
@@ -52,6 +52,11 @@ const Navbar = () => {
           </Link>
           {user ? (
             <div className="flex items-center gap-3">
+              <Link to="/favorites">
+                <Button variant="ghost" size="icon" className="text-muted-foreground hover:text-foreground">
+                  <Heart className="h-4 w-4" />
+                </Button>
+              </Link>
               <div className="h-8 w-8 rounded-full bg-primary/20 flex items-center justify-center text-sm font-body font-medium text-primary">
                 {(user.email || "?")[0].toUpperCase()}
               </div>
@@ -91,9 +96,14 @@ const Navbar = () => {
               Explore Cities
             </Link>
             {user ? (
-              <button onClick={handleSignOut} className="text-sm text-muted-foreground hover:text-foreground transition-colors text-left">
-                Log Out
-              </button>
+              <>
+                <Link to="/favorites" onClick={() => setIsOpen(false)} className="text-sm text-muted-foreground hover:text-foreground transition-colors">
+                  My Favorites
+                </Link>
+                <button onClick={handleSignOut} className="text-sm text-muted-foreground hover:text-foreground transition-colors text-left">
+                  Log Out
+                </button>
+              </>
             ) : (
               <Link to="/auth" onClick={() => setIsOpen(false)} className="text-sm text-muted-foreground hover:text-foreground transition-colors">
                 Log In
