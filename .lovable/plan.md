@@ -1,89 +1,85 @@
 
 
-# Firecrawl Scraping Pipeline
+# Bulk Actions and Batch Import for Admin Lounges
 
-## Overview
+## Problem
+Right now you have to approve/reject each lounge individually, and scrape one city at a time. With dozens or hundreds of results, this is painfully slow.
 
-Build the Firecrawl-based scraping edge function and admin UI so you can import cigar lounge data from directories, review it, and approve listings -- all without needing a Google API key.
+## What Changes
 
-## Step 1: Connect Firecrawl
+### 1. Bulk Actions on Pending Lounges
+- Add a "Select All" checkbox at the top of each city group
+- Add individual checkboxes on each lounge card
+- Show a floating action bar when items are selected with:
+  - "Approve Selected (N)" button
+  - "Reject Selected (N)" button
+- All selected items process in parallel
 
-Before any code runs, we need to link the Firecrawl connector to your project. You'll be prompted to set up the connection, which gives the backend access to a `FIRECRAWL_API_KEY` automatically.
+### 2. "Approve All" / "Reject All" Per City Group
+- Each city group header gets quick "Approve All" and "Reject All" buttons
+- One click handles every pending lounge in that city
 
-## Step 2: Create the Scrape Edge Function
+### 3. Batch City Scraping
+- Replace the single city/country input with a multi-city input
+- Let you paste or type multiple cities at once (e.g. "Miami, FL | New York, NY | London, UK")
+- The edge function processes them sequentially and returns combined results
+- A progress indicator shows which city is currently being scraped
 
-Create `supabase/functions/scrape-lounges/index.ts` that:
+### 4. Auto-Approve Option
+- Add a toggle on the import form: "Auto-approve results"
+- When enabled, scraped lounges skip the pending queue and go directly into the lounges table
+- Useful when you trust the search results for well-known cities
 
-- Accepts `{ city: string, country: string }` as input
-- Uses Firecrawl's **search** endpoint to find cigar lounges/shops in that city across the web
-- Also uses Firecrawl's **scrape** endpoint with JSON extraction to pull structured data from known cigar directories (cigaraficionado.com, cigarplaces.com, etc.)
-- Maps results to the `pending_lounges` schema (name, address, description, type, etc.)
-- Generates slugs from business names
-- Deduplicates by matching on name + city_name before inserting
-- Inserts into `pending_lounges` with `source = 'firecrawl'` and `status = 'pending'`
-- Uses the service role key to bypass RLS
-- Returns a count of new results found
-
-## Step 3: Build the Admin Pages
-
-### Admin Pending Review Page (`/admin/pending`)
-
-- Protected route: checks if the logged-in user has the "admin" role, redirects otherwise
-- Lists all pending lounges, grouped by city
-- Each card shows: name, address, type, source, rating, description
-- Three action buttons per card:
-  - **Approve**: creates the city (if needed), inserts into `lounges`, increments `lounge_count`, marks pending as "approved"
-  - **Edit**: opens a dialog/form pre-filled with scraped data for corrections before approving
-  - **Reject**: updates status to "rejected"
-- Search/filter bar to filter by city or name
-- Status filter tabs: Pending / Approved / Rejected
-
-### Import Trigger Section
-
-- At the top of the admin page, a form with:
-  - City name input
-  - Country input
-  - "Scrape Directories" button (Google Places button shown but disabled with "Coming Soon" label)
-- Shows loading state during scraping
-- Displays result count when complete
-
-## Step 4: Wire Up Routing
-
-- Add `/admin/pending` route to `App.tsx`
-- Create an `AdminLayout` or guard component that checks for admin role
+---
 
 ## Technical Details
 
-### Edge Function: scrape-lounges
-
-```text
-Input: { city: string, country: string }
-Flow:
-  1. Firecrawl Search: "cigar lounge {city} {country}"
-  2. Firecrawl Search: "cigar shop {city} {country}"  
-  3. Firecrawl Search: "tobacco shop {city} {country}"
-  4. For each result with a URL, optionally scrape for more details
-  5. Map to pending_lounges columns
-  6. Deduplicate against existing pending + approved lounges
-  7. Insert new entries with source = 'firecrawl'
-  8. Return { count: N, results: [...] }
-```
-
-### Admin Role Check
-
-Uses the existing `has_role` database function and `user_roles` table. The admin page will query `user_roles` to verify the current user has the admin role before rendering.
-
-### New Files
-
-- `supabase/functions/scrape-lounges/index.ts` -- edge function
-- `src/pages/AdminPendingPage.tsx` -- admin review + import UI
-- `src/hooks/useAdminRole.tsx` -- hook to check admin status
-- `src/components/admin/PendingLoungeCard.tsx` -- card component for pending listings
-- `src/components/admin/ImportForm.tsx` -- city search trigger form
-- `src/components/admin/EditPendingDialog.tsx` -- edit dialog for pending lounges
-
 ### Modified Files
 
-- `src/App.tsx` -- add admin route
-- `supabase/config.toml` -- add `verify_jwt = false` for scrape-lounges function
+**`src/pages/AdminPendingPage.tsx`**
+- Add selection state (`selectedIds: Set<string>`)
+- Add bulk approve/reject mutations that process all selected items
+- Add "Select All" per group and global select
+- Floating action bar at bottom of screen when selection is active
+
+**`src/components/admin/PendingLoungeCard.tsx`**
+- Add checkbox prop and selection state
+- Visual highlight when selected
+
+**`src/components/admin/ImportForm.tsx`**
+- Replace single city/country inputs with a textarea for multiple entries (one per line, format: "City, Country")
+- Add "Auto-approve" toggle switch
+- Show per-city progress during batch scrape
+- Call the edge function once per city entry
+
+**`supabase/functions/scrape-lounges/index.ts`**
+- Add optional `auto_approve: boolean` parameter
+- When auto-approve is true: create the city if needed, insert directly into `lounges` table, increment `lounge_count`
+- Keep existing pending flow as default
+
+### Bulk Approve Flow (Client-Side)
+```text
+For each selected lounge (in parallel, batches of 5):
+  1. Find or create city
+  2. Insert into lounges table
+  3. Update lounge_count on city
+  4. Mark pending_lounges status = "approved"
+Invalidate queries on completion
+Show toast: "Approved N lounges"
+```
+
+### Batch Scrape Flow
+```text
+User enters:
+  Miami, US
+  New York, US
+  London, UK
+
+For each line (sequential to avoid rate limits):
+  1. Call scrape-lounges edge function with { city, country, auto_approve }
+  2. Update progress: "Scraping 2/3: New York..."
+  3. Accumulate results count
+
+Show final summary: "Found 47 new lounges across 3 cities"
+```
 
