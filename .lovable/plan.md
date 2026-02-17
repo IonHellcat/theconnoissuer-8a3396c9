@@ -1,146 +1,89 @@
 
 
-# Global Lounge & Shop Data Pipeline
+# Firecrawl Scraping Pipeline
 
 ## Overview
 
-Build a two-pronged data ingestion system that uses **Google Places API** for verified business data (name, address, hours, phone, ratings, photos, coordinates) and **Firecrawl web scraping** for cigar-specific details from niche directories. An admin-facing tool lets you trigger searches by city and review/approve results before they go live.
+Build the Firecrawl-based scraping edge function and admin UI so you can import cigar lounge data from directories, review it, and approve listings -- all without needing a Google API key.
 
----
+## Step 1: Connect Firecrawl
 
-## How It Works
+Before any code runs, we need to link the Firecrawl connector to your project. You'll be prompted to set up the connection, which gives the backend access to a `FIRECRAWL_API_KEY` automatically.
 
-1. **You enter a city name** (e.g., "Barcelona") in an admin tool
-2. The system searches Google Places for cigar lounges/shops in that city
-3. It also scrapes popular cigar directories (e.g., cigaraficionado.com, cigarplaces.com) for that city
-4. Results are merged and saved as **pending listings** for your review
-5. You approve, edit, or reject each listing -- approved ones go live
+## Step 2: Create the Scrape Edge Function
 
----
+Create `supabase/functions/scrape-lounges/index.ts` that:
 
-## Step 1: Database Changes
-
-Add a `pending_lounges` table to hold scraped/fetched data before approval:
-
-- Same columns as `lounges` plus:
-  - `status` (text): "pending", "approved", "rejected"
-  - `source` (text): "google_places", "firecrawl", "manual"
-  - `google_place_id` (text, nullable): to avoid duplicates
-  - `raw_data` (jsonb, nullable): store the original API response for reference
-- Add a `google_place_id` column to the existing `lounges` table for deduplication
-- RLS: only accessible to admin users (or service role)
-
----
-
-## Step 2: Google Places Edge Function
-
-Create `supabase/functions/fetch-places/index.ts`:
-
-- Accepts a city name + country and search terms like "cigar lounge", "cigar shop", "tobacco shop"
-- Calls the Google Places API (Text Search) to find matching businesses
-- For each result, fetches Place Details (hours, phone, website, photos)
-- Saves results to `pending_lounges` with `source = 'google_places'`
-- Skips any place already in `lounges` (matched by `google_place_id`) or already pending
+- Accepts `{ city: string, country: string }` as input
+- Uses Firecrawl's **search** endpoint to find cigar lounges/shops in that city across the web
+- Also uses Firecrawl's **scrape** endpoint with JSON extraction to pull structured data from known cigar directories (cigaraficionado.com, cigarplaces.com, etc.)
+- Maps results to the `pending_lounges` schema (name, address, description, type, etc.)
+- Generates slugs from business names
+- Deduplicates by matching on name + city_name before inserting
+- Inserts into `pending_lounges` with `source = 'firecrawl'` and `status = 'pending'`
+- Uses the service role key to bypass RLS
 - Returns a count of new results found
 
-**Requires**: A Google Places API key (you will need to provide this)
+## Step 3: Build the Admin Pages
 
----
+### Admin Pending Review Page (`/admin/pending`)
 
-## Step 3: Firecrawl Scraping Edge Function
+- Protected route: checks if the logged-in user has the "admin" role, redirects otherwise
+- Lists all pending lounges, grouped by city
+- Each card shows: name, address, type, source, rating, description
+- Three action buttons per card:
+  - **Approve**: creates the city (if needed), inserts into `lounges`, increments `lounge_count`, marks pending as "approved"
+  - **Edit**: opens a dialog/form pre-filled with scraped data for corrections before approving
+  - **Reject**: updates status to "rejected"
+- Search/filter bar to filter by city or name
+- Status filter tabs: Pending / Approved / Rejected
 
-Create `supabase/functions/scrape-lounges/index.ts`:
+### Import Trigger Section
 
-- Accepts a city name and scrapes known cigar directories for listings in that city
-- Uses Firecrawl (already available as a connector) to scrape pages
-- Extracts lounge names, addresses, and descriptions
-- Saves to `pending_lounges` with `source = 'firecrawl'`
-- Attempts deduplication by matching on name + city
+- At the top of the admin page, a form with:
+  - City name input
+  - Country input
+  - "Scrape Directories" button (Google Places button shown but disabled with "Coming Soon" label)
+- Shows loading state during scraping
+- Displays result count when complete
 
----
+## Step 4: Wire Up Routing
 
-## Step 4: Admin Review Page
-
-Create `/admin/pending` page:
-
-- Lists all pending lounges grouped by city
-- Each card shows the scraped data with an "Approve", "Edit", or "Reject" button
-- **Approve**: moves the listing to the `lounges` table and auto-creates the city if needed, incrementing `lounge_count`
-- **Edit**: opens a form pre-filled with the scraped data so you can correct details before approving
-- **Reject**: marks as rejected (stays in pending for reference)
-- Search/filter bar at the top to find specific pending entries
-
----
-
-## Step 5: Admin Trigger UI
-
-Add a simple "Import Data" section on the admin page:
-
-- Text input for city name + country
-- Two buttons: "Search Google Places" and "Scrape Directories"
-- Shows progress/results after each run
-- Can run both at once for a comprehensive search
-
----
+- Add `/admin/pending` route to `App.tsx`
+- Create an `AdminLayout` or guard component that checks for admin role
 
 ## Technical Details
 
-### Google Places API Integration
+### Edge Function: scrape-lounges
 
 ```text
-Edge Function: fetch-places
-  Input: { city: string, country: string }
-  Flow:
-    1. Text Search: "cigar lounge in {city}, {country}"
-    2. Text Search: "cigar shop in {city}, {country}"
-    3. Text Search: "tobacco store in {city}, {country}"
-    4. For each unique result -> Place Details API
-    5. Map to pending_lounges schema
-    6. Insert with source = 'google_places'
+Input: { city: string, country: string }
+Flow:
+  1. Firecrawl Search: "cigar lounge {city} {country}"
+  2. Firecrawl Search: "cigar shop {city} {country}"  
+  3. Firecrawl Search: "tobacco shop {city} {country}"
+  4. For each result with a URL, optionally scrape for more details
+  5. Map to pending_lounges columns
+  6. Deduplicate against existing pending + approved lounges
+  7. Insert new entries with source = 'firecrawl'
+  8. Return { count: N, results: [...] }
 ```
 
-### Data Mapping (Google Places to Lounges)
+### Admin Role Check
 
-```text
-Google Places Field     ->  Lounges Column
-displayName             ->  name
-formattedAddress        ->  address
-location.lat/lng        ->  latitude / longitude
-rating                  ->  rating
-userRatingCount         ->  review_count
-currentOpeningHours     ->  hours (as JSON)
-nationalPhoneNumber     ->  phone
-websiteUri              ->  website
-photos[0]               ->  image_url
-photos[1:]              ->  gallery
-place_id                ->  google_place_id
-```
+Uses the existing `has_role` database function and `user_roles` table. The admin page will query `user_roles` to verify the current user has the admin role before rendering.
 
-The `type` field will default to "lounge" or "shop" based on the search term that found it. `price_tier` will be inferred from Google's `priceLevel` if available.
+### New Files
 
-### Firecrawl Scraping
+- `supabase/functions/scrape-lounges/index.ts` -- edge function
+- `src/pages/AdminPendingPage.tsx` -- admin review + import UI
+- `src/hooks/useAdminRole.tsx` -- hook to check admin status
+- `src/components/admin/PendingLoungeCard.tsx` -- card component for pending listings
+- `src/components/admin/ImportForm.tsx` -- city search trigger form
+- `src/components/admin/EditPendingDialog.tsx` -- edit dialog for pending lounges
 
-Uses the already-available Firecrawl connector to scrape known cigar directories. Results are less structured but can supplement Google data with cigar-specific info (featured cigars, atmosphere descriptions).
+### Modified Files
 
-### Security
-
-- The admin page will be protected -- only your account can access it
-- Edge functions use the service role key to write to `pending_lounges`
-- The `pending_lounges` table has RLS that blocks public access
-- API keys are stored as secrets, never exposed to the client
-
-### Required Secrets
-
-- **GOOGLE_PLACES_API_KEY**: You will need to get this from the Google Cloud Console (Places API must be enabled)
-- **Firecrawl**: Already available via connector
-
----
-
-## What You Get
-
-- A reliable pipeline to populate your database with real, verified business data for any city in the world
-- Deduplication so you never get the same lounge twice
-- Full editorial control -- nothing goes live without your approval
-- The ability to enrich listings with cigar-specific details from niche sources
-- A scalable process: adding a new city takes seconds, not hours of manual data entry
+- `src/App.tsx` -- add admin route
+- `supabase/config.toml` -- add `verify_jwt = false` for scrape-lounges function
 
