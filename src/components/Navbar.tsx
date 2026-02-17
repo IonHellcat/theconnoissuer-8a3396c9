@@ -1,0 +1,99 @@
+import { useState } from "react";
+import { Link, useNavigate } from "react-router-dom";
+import { Search, Menu, X, User } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+
+const Navbar = () => {
+  const [isOpen, setIsOpen] = useState(false);
+  const [searchQuery, setSearchQuery] = useState("");
+  const navigate = useNavigate();
+
+  const handleSearch = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (searchQuery.trim()) {
+      navigate(`/search?q=${encodeURIComponent(searchQuery.trim())}`);
+      setSearchQuery("");
+      setIsOpen(false);
+    }
+  };
+
+  return (
+    <nav className="fixed top-0 left-0 right-0 z-50 bg-background/80 backdrop-blur-xl border-b border-border/50">
+      <div className="container mx-auto px-4 h-16 flex items-center justify-between gap-4">
+        {/* Logo */}
+        <Link to="/" className="flex-shrink-0">
+          <span className="font-display text-xl font-bold text-gradient-gold">
+            The Connoisseur
+          </span>
+        </Link>
+
+        {/* Desktop Search */}
+        <form onSubmit={handleSearch} className="hidden md:flex flex-1 max-w-md mx-4">
+          <div className="relative w-full">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+            <Input
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              placeholder="Search cities, lounges..."
+              className="pl-10 bg-secondary border-border/50 focus:border-primary h-9 text-sm"
+            />
+          </div>
+        </form>
+
+        {/* Desktop Links */}
+        <div className="hidden md:flex items-center gap-6">
+          <Link to="/explore" className="text-sm text-muted-foreground hover:text-foreground transition-colors">
+            Explore Cities
+          </Link>
+          <Button variant="ghost" size="icon" className="text-muted-foreground hover:text-foreground">
+            <User className="h-5 w-5" />
+          </Button>
+        </div>
+
+        {/* Mobile Menu Toggle */}
+        <button
+          onClick={() => setIsOpen(!isOpen)}
+          className="md:hidden text-foreground"
+        >
+          {isOpen ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
+        </button>
+      </div>
+
+      {/* Mobile Menu */}
+      {isOpen && (
+        <div className="md:hidden bg-background border-b border-border/50 px-4 pb-4 space-y-4">
+          <form onSubmit={handleSearch}>
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              <Input
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                placeholder="Search cities, lounges..."
+                className="pl-10 bg-secondary border-border/50"
+              />
+            </div>
+          </form>
+          <div className="flex flex-col gap-3">
+            <Link
+              to="/explore"
+              onClick={() => setIsOpen(false)}
+              className="text-sm text-muted-foreground hover:text-foreground transition-colors"
+            >
+              Explore Cities
+            </Link>
+            <Link
+              to="/login"
+              onClick={() => setIsOpen(false)}
+              className="text-sm text-muted-foreground hover:text-foreground transition-colors"
+            >
+              Log In
+            </Link>
+          </div>
+        </div>
+      )}
+    </nav>
+  );
+};
+
+export default Navbar;
