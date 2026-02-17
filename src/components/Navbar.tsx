@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
+import logo from "@/assets/logo.png";
 import { Search, Menu, X, User, LogOut, Heart } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -28,7 +29,8 @@ const Navbar = () => {
   return (
     <nav className="fixed top-0 left-0 right-0 z-50 bg-background/80 backdrop-blur-xl border-b border-border/50">
       <div className="container mx-auto px-4 h-16 flex items-center justify-between gap-4">
-        <Link to="/" className="flex-shrink-0">
+        <Link to="/" className="flex-shrink-0 flex items-center gap-2">
+          <img src={logo} alt="The Connoisseur" className="h-8 w-8 object-contain" />
           <span className="font-display text-xl font-bold text-gradient-gold">
             The Connoisseur
           </span>
