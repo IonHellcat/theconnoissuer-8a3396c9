@@ -8,6 +8,8 @@ import {
 } from "lucide-react";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
+import ReviewForm from "@/components/ReviewForm";
+import ReviewList from "@/components/ReviewList";
 
 const priceTierLabel = (tier: number) => "$".repeat(tier);
 
@@ -159,6 +161,15 @@ const LoungePage = () => {
                       </div>
                     </div>
                   )}
+
+                  {/* Reviews */}
+                  <div>
+                    <h2 className="font-display text-xl font-semibold text-foreground mb-4">Reviews</h2>
+                    <ReviewList loungeId={lounge.id} />
+                    <div className="mt-6">
+                      <ReviewForm loungeId={lounge.id} />
+                    </div>
+                  </div>
                 </div>
 
                 {/* Sidebar */}
