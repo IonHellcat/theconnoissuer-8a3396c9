@@ -187,7 +187,7 @@ Deno.serve(async (req) => {
       );
     }
 
-    const { city, country } = await req.json();
+    const { city, country, auto_approve } = await req.json();
     if (!city || !country) {
       return new Response(
         JSON.stringify({ success: false, error: "city and country are required" }),
@@ -270,23 +270,69 @@ Deno.serve(async (req) => {
       );
     }
 
-    // Insert new pending lounges
-    const { error: insertError } = await serviceClient
-      .from("pending_lounges")
-      .insert(newLounges);
+    if (auto_approve) {
+      // Auto-approve: insert directly into lounges table
+      for (const lounge of newLounges) {
+        // Find or create city
+        let { data: cityRow } = await serviceClient
+          .from("cities")
+          .select("id")
+          .eq("name", lounge.city_name)
+          .maybeSingle();
 
-    if (insertError) {
-      console.error("Insert error:", insertError);
-      return new Response(
-        JSON.stringify({ success: false, error: insertError.message }),
-        { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
+        if (!cityRow) {
+          const citySlug = lounge.city_name.toLowerCase().replace(/\s+/g, "-").replace(/[^\w-]/g, "");
+          const { data: newCity, error: cityErr } = await serviceClient
+            .from("cities")
+            .insert({ name: lounge.city_name, country: lounge.country, slug: citySlug })
+            .select("id")
+            .single();
+          if (cityErr) {
+            console.error("City create error:", cityErr);
+            continue;
+          }
+          cityRow = newCity;
+        }
+
+        const { error: lErr } = await serviceClient.from("lounges").insert({
+          name: lounge.name, slug: lounge.slug, city_id: cityRow!.id, type: lounge.type,
+          address: lounge.address, description: lounge.description, phone: lounge.phone,
+          website: lounge.website, rating: lounge.rating || 0, review_count: 0, price_tier: 2,
+        });
+        if (lErr) {
+          console.error("Lounge insert error:", lErr);
+          continue;
+        }
+
+        // Update city lounge count
+        const { count: loungeCount } = await serviceClient
+          .from("lounges")
+          .select("id", { count: "exact", head: true })
+          .eq("city_id", cityRow!.id);
+        await serviceClient.from("cities").update({ lounge_count: loungeCount || 0 }).eq("id", cityRow!.id);
+      }
+
+      console.log(`Auto-approved ${newLounges.length} lounges`);
+    } else {
+      // Standard: insert into pending_lounges
+      const { error: insertError } = await serviceClient
+        .from("pending_lounges")
+        .insert(newLounges);
+
+      if (insertError) {
+        console.error("Insert error:", insertError);
+        return new Response(
+          JSON.stringify({ success: false, error: insertError.message }),
+          { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
     }
 
     return new Response(
       JSON.stringify({
         success: true,
         count: newLounges.length,
+        auto_approved: !!auto_approve,
         results: newLounges.map((l) => ({ name: l.name, address: l.address })),
       }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } }
