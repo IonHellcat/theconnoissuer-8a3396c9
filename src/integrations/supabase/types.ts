@@ -14,7 +14,193 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      cities: {
+        Row: {
+          country: string
+          created_at: string
+          id: string
+          image_url: string | null
+          lounge_count: number
+          name: string
+          slug: string
+        }
+        Insert: {
+          country: string
+          created_at?: string
+          id?: string
+          image_url?: string | null
+          lounge_count?: number
+          name: string
+          slug: string
+        }
+        Update: {
+          country?: string
+          created_at?: string
+          id?: string
+          image_url?: string | null
+          lounge_count?: number
+          name?: string
+          slug?: string
+        }
+        Relationships: []
+      }
+      lounges: {
+        Row: {
+          address: string | null
+          cigar_highlights: string[] | null
+          city_id: string
+          created_at: string
+          description: string | null
+          features: string[] | null
+          gallery: string[] | null
+          hours: Json | null
+          id: string
+          image_url: string | null
+          latitude: number | null
+          longitude: number | null
+          name: string
+          phone: string | null
+          price_tier: number
+          rating: number
+          review_count: number
+          slug: string
+          type: string
+          updated_at: string
+          website: string | null
+        }
+        Insert: {
+          address?: string | null
+          cigar_highlights?: string[] | null
+          city_id: string
+          created_at?: string
+          description?: string | null
+          features?: string[] | null
+          gallery?: string[] | null
+          hours?: Json | null
+          id?: string
+          image_url?: string | null
+          latitude?: number | null
+          longitude?: number | null
+          name: string
+          phone?: string | null
+          price_tier?: number
+          rating?: number
+          review_count?: number
+          slug: string
+          type?: string
+          updated_at?: string
+          website?: string | null
+        }
+        Update: {
+          address?: string | null
+          cigar_highlights?: string[] | null
+          city_id?: string
+          created_at?: string
+          description?: string | null
+          features?: string[] | null
+          gallery?: string[] | null
+          hours?: Json | null
+          id?: string
+          image_url?: string | null
+          latitude?: number | null
+          longitude?: number | null
+          name?: string
+          phone?: string | null
+          price_tier?: number
+          rating?: number
+          review_count?: number
+          slug?: string
+          type?: string
+          updated_at?: string
+          website?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "lounges_city_id_fkey"
+            columns: ["city_id"]
+            isOneToOne: false
+            referencedRelation: "cities"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      profiles: {
+        Row: {
+          avatar_url: string | null
+          bio: string | null
+          created_at: string
+          display_name: string | null
+          id: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          avatar_url?: string | null
+          bio?: string | null
+          created_at?: string
+          display_name?: string | null
+          id?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          avatar_url?: string | null
+          bio?: string | null
+          created_at?: string
+          display_name?: string | null
+          id?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      reviews: {
+        Row: {
+          cigar_smoked: string | null
+          created_at: string
+          drink_pairing: string | null
+          id: string
+          lounge_id: string
+          photos: string[] | null
+          rating: number
+          review_text: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          cigar_smoked?: string | null
+          created_at?: string
+          drink_pairing?: string | null
+          id?: string
+          lounge_id: string
+          photos?: string[] | null
+          rating: number
+          review_text?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          cigar_smoked?: string | null
+          created_at?: string
+          drink_pairing?: string | null
+          id?: string
+          lounge_id?: string
+          photos?: string[] | null
+          rating?: number
+          review_text?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "reviews_lounge_id_fkey"
+            columns: ["lounge_id"]
+            isOneToOne: false
+            referencedRelation: "lounges"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never
