@@ -1,0 +1,225 @@
+import { useSearchParams, Link } from "react-router-dom";
+import { useQuery } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
+import { motion } from "framer-motion";
+import { Search, MapPin, Star, ArrowLeft } from "lucide-react";
+import { useState } from "react";
+import Navbar from "@/components/Navbar";
+import Footer from "@/components/Footer";
+import CityCard from "@/components/CityCard";
+
+const priceTierLabel = (tier: number) => "$".repeat(tier);
+
+const SearchPage = () => {
+  const [searchParams, setSearchParams] = useSearchParams();
+  const q = searchParams.get("q") || "";
+  const [localQuery, setLocalQuery] = useState(q);
+
+  const { data: cities, isLoading: citiesLoading } = useQuery({
+    queryKey: ["search-cities", q],
+    queryFn: async () => {
+      if (!q) return [];
+      const { data, error } = await supabase
+        .from("cities")
+        .select("*")
+        .or(`name.ilike.%${q}%,country.ilike.%${q}%`)
+        .order("lounge_count", { ascending: false });
+      if (error) throw error;
+      return data;
+    },
+    enabled: !!q,
+  });
+
+  const { data: lounges, isLoading: loungesLoading } = useQuery({
+    queryKey: ["search-lounges", q],
+    queryFn: async () => {
+      if (!q) return [];
+      const { data, error } = await supabase
+        .from("lounges")
+        .select("*, cities!inner(name, slug)")
+        .or(`name.ilike.%${q}%,description.ilike.%${q}%,address.ilike.%${q}%`)
+        .order("rating", { ascending: false });
+      if (error) throw error;
+      return data;
+    },
+    enabled: !!q,
+  });
+
+  const isLoading = citiesLoading || loungesLoading;
+  const hasResults = (cities && cities.length > 0) || (lounges && lounges.length > 0);
+
+  const handleSearch = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (localQuery.trim()) {
+      setSearchParams({ q: localQuery.trim() });
+    }
+  };
+
+  return (
+    <div className="min-h-screen bg-background">
+      <Navbar />
+      <main className="pt-24 pb-16">
+        <div className="container mx-auto px-4">
+          {/* Back + Search bar */}
+          <Link
+            to="/"
+            className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors mb-6"
+          >
+            <ArrowLeft className="h-4 w-4" />
+            Home
+          </Link>
+
+          <form onSubmit={handleSearch} className="max-w-2xl mb-10">
+            <div className="relative flex items-center bg-secondary rounded-lg border border-border/50">
+              <Search className="ml-4 h-5 w-5 text-muted-foreground flex-shrink-0" />
+              <input
+                type="text"
+                value={localQuery}
+                onChange={(e) => setLocalQuery(e.target.value)}
+                placeholder="Search by city, country, or lounge name..."
+                className="flex-1 bg-transparent px-4 py-4 text-foreground placeholder:text-muted-foreground focus:outline-none text-base font-body"
+              />
+              <button
+                type="submit"
+                className="mr-2 px-6 py-2 bg-primary text-primary-foreground rounded-md text-sm font-medium hover:bg-primary/90 transition-colors"
+              >
+                Search
+              </button>
+            </div>
+          </form>
+
+          {q && (
+            <motion.h1
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="font-display text-2xl md:text-3xl font-bold text-foreground mb-8"
+            >
+              Results for "<span className="text-primary">{q}</span>"
+            </motion.h1>
+          )}
+
+          {isLoading ? (
+            <div className="space-y-4">
+              {Array.from({ length: 4 }).map((_, i) => (
+                <div key={i} className="h-32 rounded-xl bg-secondary animate-pulse" />
+              ))}
+            </div>
+          ) : !q ? (
+            <div className="text-center py-20">
+              <Search className="h-12 w-12 text-muted-foreground/30 mx-auto mb-4" />
+              <p className="text-muted-foreground font-body">Enter a search term to find cigar lounges</p>
+            </div>
+          ) : !hasResults ? (
+            <div className="text-center py-20">
+              <p className="text-muted-foreground font-body text-lg">
+                No results found for "{q}"
+              </p>
+              <p className="text-muted-foreground/60 font-body text-sm mt-2">
+                Try searching for a city, country, or lounge name
+              </p>
+            </div>
+          ) : (
+            <div className="space-y-12">
+              {/* City results */}
+              {cities && cities.length > 0 && (
+                <section>
+                  <h2 className="font-display text-xl font-semibold text-foreground mb-5">
+                    Cities ({cities.length})
+                  </h2>
+                  <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-5">
+                    {cities.map((city, index) => (
+                      <CityCard
+                        key={city.id}
+                        name={city.name}
+                        country={city.country}
+                        loungeCount={city.lounge_count}
+                        imageUrl={city.image_url || "/placeholder.svg"}
+                        slug={city.slug}
+                        index={index}
+                      />
+                    ))}
+                  </div>
+                </section>
+              )}
+
+              {/* Lounge results */}
+              {lounges && lounges.length > 0 && (
+                <section>
+                  <h2 className="font-display text-xl font-semibold text-foreground mb-5">
+                    Lounges ({lounges.length})
+                  </h2>
+                  <div className="space-y-4">
+                    {lounges.map((lounge, index) => (
+                      <motion.div
+                        key={lounge.id}
+                        initial={{ opacity: 0, y: 15 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ delay: index * 0.05 }}
+                      >
+                        <Link
+                          to={`/lounge/${lounge.slug}`}
+                          className="group block bg-card rounded-xl border border-border/50 overflow-hidden hover:border-primary/30 transition-colors"
+                        >
+                          <div className="flex flex-col sm:flex-row">
+                            <div className="sm:w-56 h-40 sm:h-auto flex-shrink-0 overflow-hidden">
+                              <img
+                                src={lounge.image_url || "/placeholder.svg"}
+                                alt={lounge.name}
+                                loading="lazy"
+                                className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
+                              />
+                            </div>
+                            <div className="flex-1 p-4 sm:p-5">
+                              <div className="flex items-start justify-between gap-3">
+                                <div>
+                                  <div className="flex items-center gap-2 mb-1">
+                                    <span className="text-xs font-medium font-body px-2 py-0.5 rounded-full bg-primary/10 text-primary capitalize">
+                                      {lounge.type}
+                                    </span>
+                                    <span className="text-xs text-muted-foreground font-body">
+                                      {priceTierLabel(lounge.price_tier)}
+                                    </span>
+                                  </div>
+                                  <h3 className="font-display text-lg font-bold text-foreground group-hover:text-primary transition-colors">
+                                    {lounge.name}
+                                  </h3>
+                                  <p className="text-xs text-muted-foreground font-body mt-0.5">
+                                    {(lounge as any).cities?.name}
+                                  </p>
+                                </div>
+                                <div className="flex items-center gap-1 flex-shrink-0">
+                                  <Star className="h-4 w-4 fill-primary text-primary" />
+                                  <span className="text-sm font-semibold text-foreground font-body">
+                                    {Number(lounge.rating).toFixed(1)}
+                                  </span>
+                                </div>
+                              </div>
+                              {lounge.description && (
+                                <p className="mt-2 text-sm text-muted-foreground font-body line-clamp-2">
+                                  {lounge.description}
+                                </p>
+                              )}
+                              {lounge.address && (
+                                <div className="flex items-center gap-1.5 mt-2 text-xs text-muted-foreground">
+                                  <MapPin className="h-3.5 w-3.5" />
+                                  <span className="font-body">{lounge.address}</span>
+                                </div>
+                              )}
+                            </div>
+                          </div>
+                        </Link>
+                      </motion.div>
+                    ))}
+                  </div>
+                </section>
+              )}
+            </div>
+          )}
+        </div>
+      </main>
+      <Footer />
+    </div>
+  );
+};
+
+export default SearchPage;
