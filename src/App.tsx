@@ -12,6 +12,7 @@ import AuthPage from "./pages/AuthPage";
 import ResetPasswordPage from "./pages/ResetPasswordPage";
 import ExplorePage from "./pages/ExplorePage";
 import FavoritesPage from "./pages/FavoritesPage";
+import AdminPendingPage from "./pages/AdminPendingPage";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -32,6 +33,7 @@ const App = () => (
             <Route path="/reset-password" element={<ResetPasswordPage />} />
             <Route path="/explore" element={<ExplorePage />} />
             <Route path="/favorites" element={<FavoritesPage />} />
+            <Route path="/admin/pending" element={<AdminPendingPage />} />
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />
           </Routes>
