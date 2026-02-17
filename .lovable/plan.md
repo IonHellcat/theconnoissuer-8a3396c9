@@ -1,69 +1,52 @@
 
 
-# The Connoisseur — Cigar Lounge & Shop Discovery Platform
+## Next Steps: Search Results Page and Lounge Detail Page
 
-## Overview
-A premium, mobile-first web app that helps cigar enthusiasts discover the best lounges and shops wherever they travel. Dark, luxurious aesthetic with warm amber/gold accents.
+Based on the plan and current progress, here are the two highest-impact features to build next. They complete the core browsing flow: **Search -> Results -> Lounge Detail**.
 
 ---
 
-## Phase 1: Foundation & Design System
+### 1. Search Results Page (`/search?q=...`)
 
-- Set up the luxury dark theme: charcoal (#1a1a1a), amber/gold (#D4A853), cream (#F5F0E8)
-- Import Playfair Display (headings) and Inter (body) fonts
-- Configure smooth page transitions and animations
-- Build responsive navigation (top navbar + mobile hamburger menu)
-- Build the footer (About, Contact, Add a Lounge, social links)
+Right now, the search bar on the home page likely navigates to `/search?q=dubai` but that page doesn't exist yet (you're seeing a 404).
 
-## Phase 2: Landing / Home Page
+**What gets built:**
+- A new `/search` route that reads the `q` query parameter
+- Queries both the `cities` and `lounges` tables using text search (matching name, country, description)
+- Displays matching cities as cards and matching lounges as list items
+- Links to `/city/:slug` for cities and `/lounge/:slug` for lounges
+- Shows a "no results" state when nothing matches
+- Inherits the same dark luxury styling
 
-- Full-screen moody hero section with headline, subheadline, and a prominent central search bar
-- "Popular Cities" section with 6-8 beautifully styled city cards (Dubai, London, New York, Havana, Miami, Madrid, Hong Kong, Istanbul)
-- Each card shows city name, image, and lounge count
-- Search bar supports city, country, or lounge name queries
+---
 
-## Phase 3: Backend Setup (Supabase / Lovable Cloud)
+### 2. Individual Lounge Detail Page (`/lounge/:slug`)
 
-- **Database tables**: lounges, reviews, profiles, cities
-- **Storage bucket** for venue photos
-- **Authentication**: Email + Google sign-in
-- **RLS policies** so users can only edit their own reviews/profiles
-- **Seed data**: ~5 lounges per city for Dubai, London, New York, Miami, and Havana with realistic details (names, descriptions, features, ratings)
+When a user clicks a lounge card on the city page, they should land on a rich detail page.
 
-## Phase 4: Search Results / City Page
-
-- List view of lounges/shops with rich cards showing: name, type tag, star rating, description, address, price tier, and feature tags (Outdoor Terrace, Full Bar, Walk-in Humidor, etc.)
-- Filter bar: type (Lounge/Shop/Both), vibe, features, "Open Now" toggle
-- Map view toggle with pins for each venue (using a free map library)
-- Smooth transitions between list and map views
-
-## Phase 5: Individual Lounge/Shop Page
-
-- Hero image with venue name, rating, price tier overlay
-- Full description, contact details, hours, "Get Directions" link
-- Features/amenities displayed as elegant tags
+**What gets built:**
+- A new `/lounge/:slug` route
+- Hero image with venue name, rating, and price tier overlay
+- Full description, address, phone, website, hours
+- Features displayed as elegant tags
 - "Cigar Selection Highlights" section
-- Photo gallery grid
-- Reviews section with rating breakdown bar chart and individual review cards
-- "Write a Review" button (triggers modal, requires login)
+- Photo gallery grid (using the `gallery` column)
+- Placeholder reviews section (functional reviews come later with auth)
+- "Get Directions" link using lat/lng coordinates
 
-## Phase 6: Reviews & Authentication
+---
 
-- Clean, dark-themed sign-up/login screens (email + Google)
-- Write a Review modal: star rating, review text, optional cigar smoked, optional drink pairing, photo upload
-- Reviews appear on lounge pages with user name, date, rating, and text
+### Technical Details
 
-## Phase 7: User Profile & Cigar Passport
+**New files:**
+- `src/pages/SearchPage.tsx` -- search results page
+- `src/pages/LoungePage.tsx` -- individual lounge detail page
 
-- Profile page with avatar, name, join date
-- "Cigar Passport" — visual display of cities/countries visited
-- Review history list
-- Stats: lounges visited count, cities explored count
+**Modified files:**
+- `src/App.tsx` -- add `/search` and `/lounge/:slug` routes
+- `src/components/HeroSection.tsx` -- ensure the search bar navigates to `/search?q=...` (verify current behavior)
 
-## Phase 8: Polish & Performance
+**Database:** No changes needed. Existing `cities` and `lounges` tables have all required data.
 
-- Lazy loading for all images
-- Smooth scroll animations and hover effects
-- Mobile responsiveness pass on all pages
-- Fast search experience — goal: "landed in Dubai" to "know where I'm going" in under 30 seconds
+**Search approach:** Use Supabase `.ilike()` or `.or()` filters to match the query against city names, country names, and lounge names/descriptions. This keeps it simple without needing full-text search indexes for now.
 
