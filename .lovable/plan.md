@@ -1,62 +1,146 @@
 
 
-## Next Feature: User Authentication + Reviews
+# Global Lounge & Shop Data Pipeline
 
-The most impactful next step is adding **user authentication** and **review submission**, which brings the app to life with user-generated content. Here's the plan:
+## Overview
 
----
-
-### Phase 1: Authentication Pages
-
-**New files:**
-- `src/pages/AuthPage.tsx` -- Combined login/signup page with tab switching, matching the dark luxury theme
-- `src/pages/ResetPasswordPage.tsx` -- Password reset page for the recovery flow
-
-**Modified files:**
-- `src/App.tsx` -- Add `/auth` and `/reset-password` routes
-- `src/components/Navbar.tsx` -- Update the User icon and "Log In" link to navigate to `/auth`; show user avatar and logout option when authenticated
-
-**Implementation details:**
-- Email/password authentication using the built-in auth system
-- Email verification required before sign-in (no auto-confirm)
-- Auth state managed via `onAuthStateChange` listener
-- Create a shared `useAuth` hook (`src/hooks/useAuth.tsx`) that provides session/user state across the app
-- Protected actions (submitting reviews) check for auth and redirect to `/auth` if not logged in
+Build a two-pronged data ingestion system that uses **Google Places API** for verified business data (name, address, hours, phone, ratings, photos, coordinates) and **Firecrawl web scraping** for cigar-specific details from niche directories. An admin-facing tool lets you trigger searches by city and review/approve results before they go live.
 
 ---
 
-### Phase 2: Review Submission on Lounge Page
+## How It Works
 
-**New file:**
-- `src/components/ReviewForm.tsx` -- Form for rating (1-5 stars), review text, cigar smoked, and drink pairing fields
-- `src/components/ReviewList.tsx` -- Displays existing reviews with user display names, ratings, and timestamps
-
-**Modified file:**
-- `src/pages/LoungePage.tsx` -- Add ReviewList and ReviewForm sections below the gallery; show "Log in to leave a review" prompt for unauthenticated users
-
-**Implementation details:**
-- Star rating selector component (clickable stars)
-- Submits to the `reviews` table (RLS already configured for authenticated users)
-- Fetches reviews joined with `profiles` to show display names
-- Optimistic UI update after submission using React Query cache invalidation
+1. **You enter a city name** (e.g., "Barcelona") in an admin tool
+2. The system searches Google Places for cigar lounges/shops in that city
+3. It also scrapes popular cigar directories (e.g., cigaraficionado.com, cigarplaces.com) for that city
+4. Results are merged and saved as **pending listings** for your review
+5. You approve, edit, or reject each listing -- approved ones go live
 
 ---
 
-### Phase 3: Explore Cities Page
+## Step 1: Database Changes
 
-**New file:**
-- `src/pages/ExplorePage.tsx` -- Grid of all cities from the database, reusing the existing `CityCard` component
+Add a `pending_lounges` table to hold scraped/fetched data before approval:
 
-**Modified file:**
-- `src/App.tsx` -- Add `/explore` route
-- `src/components/Navbar.tsx` -- Update "Explore Cities" link to `/explore`
+- Same columns as `lounges` plus:
+  - `status` (text): "pending", "approved", "rejected"
+  - `source` (text): "google_places", "firecrawl", "manual"
+  - `google_place_id` (text, nullable): to avoid duplicates
+  - `raw_data` (jsonb, nullable): store the original API response for reference
+- Add a `google_place_id` column to the existing `lounges` table for deduplication
+- RLS: only accessible to admin users (or service role)
 
 ---
 
-### Technical Notes
+## Step 2: Google Places Edge Function
 
-- **No database changes needed** -- all tables (profiles, reviews) and RLS policies already exist
-- **Auth trigger** already set up to auto-create a profile row on signup via `handle_new_user()`
-- The `useAuth` hook will wrap `supabase.auth.onAuthStateChange` and `getSession` for consistent session handling across components
-- Password reset flow: forgot password sends email with redirect to `/reset-password`, where users set a new password via `updateUser()`
+Create `supabase/functions/fetch-places/index.ts`:
+
+- Accepts a city name + country and search terms like "cigar lounge", "cigar shop", "tobacco shop"
+- Calls the Google Places API (Text Search) to find matching businesses
+- For each result, fetches Place Details (hours, phone, website, photos)
+- Saves results to `pending_lounges` with `source = 'google_places'`
+- Skips any place already in `lounges` (matched by `google_place_id`) or already pending
+- Returns a count of new results found
+
+**Requires**: A Google Places API key (you will need to provide this)
+
+---
+
+## Step 3: Firecrawl Scraping Edge Function
+
+Create `supabase/functions/scrape-lounges/index.ts`:
+
+- Accepts a city name and scrapes known cigar directories for listings in that city
+- Uses Firecrawl (already available as a connector) to scrape pages
+- Extracts lounge names, addresses, and descriptions
+- Saves to `pending_lounges` with `source = 'firecrawl'`
+- Attempts deduplication by matching on name + city
+
+---
+
+## Step 4: Admin Review Page
+
+Create `/admin/pending` page:
+
+- Lists all pending lounges grouped by city
+- Each card shows the scraped data with an "Approve", "Edit", or "Reject" button
+- **Approve**: moves the listing to the `lounges` table and auto-creates the city if needed, incrementing `lounge_count`
+- **Edit**: opens a form pre-filled with the scraped data so you can correct details before approving
+- **Reject**: marks as rejected (stays in pending for reference)
+- Search/filter bar at the top to find specific pending entries
+
+---
+
+## Step 5: Admin Trigger UI
+
+Add a simple "Import Data" section on the admin page:
+
+- Text input for city name + country
+- Two buttons: "Search Google Places" and "Scrape Directories"
+- Shows progress/results after each run
+- Can run both at once for a comprehensive search
+
+---
+
+## Technical Details
+
+### Google Places API Integration
+
+```text
+Edge Function: fetch-places
+  Input: { city: string, country: string }
+  Flow:
+    1. Text Search: "cigar lounge in {city}, {country}"
+    2. Text Search: "cigar shop in {city}, {country}"
+    3. Text Search: "tobacco store in {city}, {country}"
+    4. For each unique result -> Place Details API
+    5. Map to pending_lounges schema
+    6. Insert with source = 'google_places'
+```
+
+### Data Mapping (Google Places to Lounges)
+
+```text
+Google Places Field     ->  Lounges Column
+displayName             ->  name
+formattedAddress        ->  address
+location.lat/lng        ->  latitude / longitude
+rating                  ->  rating
+userRatingCount         ->  review_count
+currentOpeningHours     ->  hours (as JSON)
+nationalPhoneNumber     ->  phone
+websiteUri              ->  website
+photos[0]               ->  image_url
+photos[1:]              ->  gallery
+place_id                ->  google_place_id
+```
+
+The `type` field will default to "lounge" or "shop" based on the search term that found it. `price_tier` will be inferred from Google's `priceLevel` if available.
+
+### Firecrawl Scraping
+
+Uses the already-available Firecrawl connector to scrape known cigar directories. Results are less structured but can supplement Google data with cigar-specific info (featured cigars, atmosphere descriptions).
+
+### Security
+
+- The admin page will be protected -- only your account can access it
+- Edge functions use the service role key to write to `pending_lounges`
+- The `pending_lounges` table has RLS that blocks public access
+- API keys are stored as secrets, never exposed to the client
+
+### Required Secrets
+
+- **GOOGLE_PLACES_API_KEY**: You will need to get this from the Google Cloud Console (Places API must be enabled)
+- **Firecrawl**: Already available via connector
+
+---
+
+## What You Get
+
+- A reliable pipeline to populate your database with real, verified business data for any city in the world
+- Deduplication so you never get the same lounge twice
+- Full editorial control -- nothing goes live without your approval
+- The ability to enrich listings with cigar-specific details from niche sources
+- A scalable process: adding a new city takes seconds, not hours of manual data entry
 
