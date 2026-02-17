@@ -82,6 +82,7 @@ export type Database = {
           description: string | null
           features: string[] | null
           gallery: string[] | null
+          google_place_id: string | null
           hours: Json | null
           id: string
           image_url: string | null
@@ -105,6 +106,7 @@ export type Database = {
           description?: string | null
           features?: string[] | null
           gallery?: string[] | null
+          google_place_id?: string | null
           hours?: Json | null
           id?: string
           image_url?: string | null
@@ -128,6 +130,7 @@ export type Database = {
           description?: string | null
           features?: string[] | null
           gallery?: string[] | null
+          google_place_id?: string | null
           hours?: Json | null
           id?: string
           image_url?: string | null
@@ -152,6 +155,93 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      pending_lounges: {
+        Row: {
+          address: string | null
+          cigar_highlights: string[] | null
+          city_name: string
+          country: string
+          created_at: string
+          description: string | null
+          features: string[] | null
+          gallery: string[] | null
+          google_place_id: string | null
+          hours: Json | null
+          id: string
+          image_url: string | null
+          latitude: number | null
+          longitude: number | null
+          name: string
+          phone: string | null
+          price_tier: number | null
+          rating: number | null
+          raw_data: Json | null
+          review_count: number | null
+          slug: string
+          source: string
+          status: string
+          type: string
+          updated_at: string
+          website: string | null
+        }
+        Insert: {
+          address?: string | null
+          cigar_highlights?: string[] | null
+          city_name: string
+          country: string
+          created_at?: string
+          description?: string | null
+          features?: string[] | null
+          gallery?: string[] | null
+          google_place_id?: string | null
+          hours?: Json | null
+          id?: string
+          image_url?: string | null
+          latitude?: number | null
+          longitude?: number | null
+          name: string
+          phone?: string | null
+          price_tier?: number | null
+          rating?: number | null
+          raw_data?: Json | null
+          review_count?: number | null
+          slug: string
+          source?: string
+          status?: string
+          type?: string
+          updated_at?: string
+          website?: string | null
+        }
+        Update: {
+          address?: string | null
+          cigar_highlights?: string[] | null
+          city_name?: string
+          country?: string
+          created_at?: string
+          description?: string | null
+          features?: string[] | null
+          gallery?: string[] | null
+          google_place_id?: string | null
+          hours?: Json | null
+          id?: string
+          image_url?: string | null
+          latitude?: number | null
+          longitude?: number | null
+          name?: string
+          phone?: string | null
+          price_tier?: number | null
+          rating?: number | null
+          raw_data?: Json | null
+          review_count?: number | null
+          slug?: string
+          source?: string
+          status?: string
+          type?: string
+          updated_at?: string
+          website?: string | null
+        }
+        Relationships: []
       }
       profiles: {
         Row: {
@@ -230,15 +320,39 @@ export type Database = {
           },
         ]
       }
+      user_roles: {
+        Row: {
+          id: string
+          role: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Insert: {
+          id?: string
+          role: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Update: {
+          id?: string
+          role?: Database["public"]["Enums"]["app_role"]
+          user_id?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      has_role: {
+        Args: {
+          _role: Database["public"]["Enums"]["app_role"]
+          _user_id: string
+        }
+        Returns: boolean
+      }
     }
     Enums: {
-      [_ in never]: never
+      app_role: "admin" | "moderator" | "user"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -365,6 +479,8 @@ export type CompositeTypes<
 
 export const Constants = {
   public: {
-    Enums: {},
+    Enums: {
+      app_role: ["admin", "moderator", "user"],
+    },
   },
 } as const
