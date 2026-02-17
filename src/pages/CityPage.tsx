@@ -5,6 +5,7 @@ import { motion } from "framer-motion";
 import { MapPin, Star, ArrowLeft } from "lucide-react";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
+import FavoriteButton from "@/components/FavoriteButton";
 
 const priceTierLabel = (tier: number) => "$".repeat(tier);
 
@@ -101,14 +102,17 @@ const CityPage = () => {
                   >
                     <div className="flex flex-col md:flex-row">
                       {/* Image */}
-                      <div className="md:w-72 h-48 md:h-auto flex-shrink-0 overflow-hidden">
-                        <img
-                          src={lounge.image_url || "/placeholder.svg"}
-                          alt={lounge.name}
-                          loading="lazy"
-                          className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
-                        />
-                      </div>
+                       <div className="md:w-72 h-48 md:h-auto flex-shrink-0 overflow-hidden relative">
+                         <img
+                           src={lounge.image_url || "/placeholder.svg"}
+                           alt={lounge.name}
+                           loading="lazy"
+                           className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
+                         />
+                         <div className="absolute top-3 right-3 z-10">
+                           <FavoriteButton loungeId={lounge.id} />
+                         </div>
+                       </div>
 
                       {/* Content */}
                       <div className="flex-1 p-5 md:p-6">
