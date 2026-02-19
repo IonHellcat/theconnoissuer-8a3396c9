@@ -1,6 +1,7 @@
 import { Link } from "react-router-dom";
 import { motion } from "framer-motion";
 import { MapPin } from "lucide-react";
+import { getOptimizedImageUrl, getImageSrcSet } from "@/lib/imageUtils";
 
 interface CityCardProps {
   name: string;
@@ -25,9 +26,14 @@ const CityCard = ({ name, country, loungeCount, imageUrl, slug, index }: CityCar
       >
         {/* Image */}
         <img
-          src={imageUrl}
+          src={getOptimizedImageUrl(imageUrl, 640)}
+          srcSet={getImageSrcSet(imageUrl, [320, 640, 960])}
+          sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 25vw"
           alt={`${name} cigar lounges`}
           loading="lazy"
+          decoding="async"
+          width={640}
+          height={853}
           className="absolute inset-0 w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
         />
 
