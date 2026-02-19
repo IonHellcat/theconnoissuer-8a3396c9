@@ -8,3 +8,6 @@ verify_jwt = false
 
 [functions.search-places]
 verify_jwt = false
+
+[functions.generate-city-images]
+verify_jwt = false
