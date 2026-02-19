@@ -1,114 +1,106 @@
 
 
-# Country-First Data Population with Google Places
+# Accuracy and Deduplication Layer
 
-## Overview
+## Current State
+- Database has 0 lounges and 0 pending lounges (fresh start)
+- The `search-places` edge function already deduplicates by `google_place_id` against both `lounges` and `pending_lounges` before inserting
+- However, there are gaps that will cause problems as data grows
 
-A two-step pipeline: first discover cigar-friendly cities in a country using Firecrawl + AI, then pull verified lounge data for each city using Google Places API. The admin works at the country level -- one click per country, not per city.
+## Gaps to Fix
 
-## How It Works
-
-**Step 1 -- Enter Countries**
-Type country names (or click a region preset like "North America") in the admin panel.
-
-**Step 2 -- Discover Cities**
-For each country, Firecrawl searches for "best cigar cities in [country]" and an AI model extracts a clean list of city names from the results.
-
-**Step 3 -- Review and Scrape**
-The discovered cities appear as a checklist. Uncheck any you don't want, then hit "Scrape All" which calls Google Places for each city to pull verified business data (address, phone, hours, rating, photos, coordinates).
-
-**Step 4 -- Approve or Auto-Approve**
-Results land in pending review (or go directly live if auto-approve is on).
+1. **No database-level uniqueness** -- if two requests run simultaneously or a place comes from Firecrawl (no Place ID) and Google Places, duplicates can slip through
+2. **No relevance filtering** -- Google Places returns hookah bars, vape shops, and general tobacco stores that aren't cigar lounges
+3. **No fuzzy name matching** -- same business with slightly different names (e.g., "The Cigar Bar" vs "Cigar Bar") won't be caught
+4. **No reporting** -- admin doesn't see how many were skipped or why
 
 ## What Gets Built
 
-### 1. New Edge Function: `discover-cities`
-- Accepts `{ countries: string[] }`
-- For each country, runs Firecrawl search: "best cities for cigars in [country]", "top cigar lounge cities [country]"
-- Sends combined search results to Gemini Flash with a prompt to extract city names as JSON
-- Returns `{ country, cities: string[] }[]`
-- No database writes -- just returns suggestions
+### 1. Database: Unique Indexes (safety net)
+Add partial unique indexes so duplicates are impossible even if application logic fails:
+- `lounges.google_place_id` (where not null) -- unique
+- `pending_lounges.google_place_id` (where not null) -- unique
 
-### 2. New Edge Function: `search-places`
-- Accepts `{ city, country, auto_approve }`
-- Calls Google Places Text Search API for "cigar lounge in {city}, {country}" and "cigar shop in {city}, {country}"
-- Uses field masks to get: name, address, phone, rating, review count, hours, coordinates, photos, website, Place ID
-- Deduplicates against existing lounges using `google_place_id` column
-- If auto-approve: creates city + inserts directly into `lounges` table
-- If not: inserts into `pending_lounges` table
-- Returns structured results with count
+These are partial indexes so rows without a Place ID (e.g., manually added lounges) are unaffected.
 
-### 3. New Component: `DiscoverCitiesForm`
-- Textarea for country names (one per line)
-- Region preset buttons: "North America", "Europe", "Caribbean", "Middle East", "All Major"
-- "Discover" button that calls the edge function
-- Results shown as checkable city lists grouped by country
-- "Send to Scraper" button that passes selected cities to ImportForm
+### 2. AI Relevance Filter in `search-places`
+After collecting Google Places results, batch all business names into a single AI call (Gemini Flash Lite via Lovable AI) that answers: "Is each business a cigar lounge, cigar bar, or cigar shop?"
+- Non-cigar businesses (hookah bars, vape shops, general tobacco) get filtered out
+- A confidence flag is stored in the `raw_data` column for admin reference
+- Only one AI call per city (all names batched together), so it's fast and cheap
 
-### 4. Updated: `ImportForm`
-- Accepts optional `initialCities` prop to be pre-populated from discovery step
-- Adds a source toggle: "Firecrawl" (existing) vs "Google Places" (new)
-- When Google Places is selected, calls `search-places` instead of `scrape-lounges`
-- Enables the currently-disabled Google Places button
+### 3. Fuzzy Name Dedup in `search-places`
+Before inserting, check for existing lounges with similar names in the same city:
+- Normalize names: lowercase, strip "the", remove punctuation
+- Query existing lounges in the same city and compare normalized names
+- Skip matches and log them as "probable duplicate"
 
-### 5. Updated: `AdminPendingPage`
-- Adds DiscoverCitiesForm above ImportForm
-- Wires up city list transfer between the two components via shared state
+### 4. Enhanced Response Stats
+Update the `search-places` response to return:
+- `count` -- new lounges inserted
+- `total_found` -- raw count from Google Places
+- `skipped_duplicates` -- skipped due to dedup
+- `skipped_irrelevant` -- filtered by AI relevance check
 
-## Prerequisite: Google Places API Key
+### 5. Admin UI: Better Feedback
+- Show detailed stats in the Import Form results: "8 new, 4 duplicates skipped, 3 non-cigar filtered"
+- Add a "Possible Duplicate" warning badge on pending lounge cards when a similar name exists in the approved lounges table
 
-A `GOOGLE_PLACES_API_KEY` secret is required. You will need:
-1. A Google Cloud project with the "Places API (New)" enabled
-2. An API key from that project
-3. You'll be prompted to add this secret before implementation proceeds
+## Technical Details
 
-## Data Mapping (Google Places to Database)
+### Database Migration
+```sql
+CREATE UNIQUE INDEX IF NOT EXISTS idx_lounges_google_place_id 
+  ON public.lounges (google_place_id) 
+  WHERE google_place_id IS NOT NULL;
 
-| Google Places Field | Database Column |
-|---|---|
-| displayName.text | name |
-| formattedAddress | address |
-| nationalPhoneNumber | phone |
-| websiteUri | website |
-| rating | rating |
-| userRatingCount | review_count |
-| regularOpeningHours | hours (JSONB) |
-| location.latitude | latitude |
-| location.longitude | longitude |
-| id | google_place_id |
-| photos[0] via Photo API | image_url |
-
-## Admin Workflow Summary
-
-```text
-Admin enters: "United States" (or clicks "North America")
-                |
-                v
-    discover-cities edge function
-    (Firecrawl + Gemini Flash)
-                |
-                v
-    Shows: Miami, New York, Las Vegas, Dallas, Tampa... (checkboxes)
-    Admin unchecks irrelevant cities
-                |
-                v
-    "Send to Scraper" populates Import Form
-                |
-                v
-    Google Places scrape with auto-approve ON
-    (processes each city sequentially)
-                |
-                v
-    Verified lounges appear in the directory
+CREATE UNIQUE INDEX IF NOT EXISTS idx_pending_lounges_google_place_id 
+  ON public.pending_lounges (google_place_id) 
+  WHERE google_place_id IS NOT NULL;
 ```
+
+### AI Relevance Filter (added to `search-places`)
+- Uses Lovable AI gateway (no extra API key needed) with Gemini Flash Lite
+- Single batch prompt: "Given these business names and addresses, mark each YES/NO for whether it is a cigar lounge, cigar bar, or cigar shop. Return JSON."
+- Places marked NO are excluded from insertion
+- Keeps the pipeline fast (one call per city, not per place)
+
+### Fuzzy Name Matching Logic
+```text
+normalize("The Cigar Lounge & Bar") -> "cigar lounge bar"
+normalize("Cigar Lounge and Bar")   -> "cigar lounge bar"
+-> MATCH, skip as duplicate
+```
+- Applied after Google Place ID dedup
+- Only compares within the same city to avoid false positives
+
+### Updated Response Format
+```json
+{
+  "success": true,
+  "count": 8,
+  "total_found": 15,
+  "skipped_duplicates": 4,
+  "skipped_irrelevant": 3
+}
+```
+
+### Updated Import Form Results Display
+Instead of: "8 new lounge(s)"
+Shows: "8 new | 4 duplicates skipped | 3 non-cigar filtered | 15 total found"
+
+### Pending Lounge Card: Duplicate Warning
+- `AdminPendingPage` fetches all existing lounge names on load
+- Each `PendingLoungeCard` checks if a normalized version of its name matches an existing lounge
+- Shows a small orange "Possible Duplicate" badge if found
 
 ## Files Changed / Created
 
 | File | Action |
 |---|---|
-| `supabase/functions/discover-cities/index.ts` | New |
-| `supabase/functions/search-places/index.ts` | New |
-| `src/components/admin/DiscoverCitiesForm.tsx` | New |
-| `src/components/admin/ImportForm.tsx` | Modified (initialCities prop, source toggle) |
-| `src/pages/AdminPendingPage.tsx` | Modified (add DiscoverCitiesForm, wire state) |
+| Database migration | New (unique indexes) |
+| `supabase/functions/search-places/index.ts` | Modified (AI filter, fuzzy dedup, enhanced response) |
+| `src/components/admin/ImportForm.tsx` | Modified (show detailed stats) |
+| `src/components/admin/PendingLoungeCard.tsx` | Modified (duplicate warning badge) |
+| `src/pages/AdminPendingPage.tsx` | Modified (fetch lounge names for comparison) |
 
