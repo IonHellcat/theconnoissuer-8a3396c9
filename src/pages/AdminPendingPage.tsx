@@ -71,6 +71,24 @@ const AdminPendingPage = () => {
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [discoveredCities, setDiscoveredCities] = useState<{ city: string; country: string }[] | undefined>();
 
+  // Fetch existing lounge names for duplicate detection
+  const { data: existingLoungeNames = [] } = useQuery({
+    queryKey: ["existing-lounge-names"],
+    queryFn: async () => {
+      const { data, error } = await supabase.from("lounges").select("name");
+      if (error) throw error;
+      return (data || []).map((l) =>
+        l.name.toLowerCase().replace(/^the\s+/, "").replace(/\band\b/g, "").replace(/[^a-z0-9\s]/g, "").replace(/\s+/g, " ").trim()
+      );
+    },
+    enabled: !!isAdmin,
+  });
+
+  const isPossibleDuplicate = useCallback((name: string) => {
+    const normalized = name.toLowerCase().replace(/^the\s+/, "").replace(/\band\b/g, "").replace(/[^a-z0-9\s]/g, "").replace(/\s+/g, " ").trim();
+    return existingLoungeNames.includes(normalized);
+  }, [existingLoungeNames]);
+
   const { data: lounges = [], isLoading } = useQuery({
     queryKey: ["pending-lounges", statusFilter],
     queryFn: async () => {
@@ -302,6 +320,7 @@ const AdminPendingPage = () => {
                       onApprove={(l) => approveMutation.mutate(l)}
                       onReject={(l) => rejectMutation.mutate(l)}
                       onEdit={(l) => setEditLounge(l)}
+                      isPossibleDuplicate={isPossibleDuplicate(lounge.name)}
                     />
                   ))}
                 </div>

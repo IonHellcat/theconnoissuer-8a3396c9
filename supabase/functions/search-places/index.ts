@@ -26,6 +26,188 @@ interface PlaceResult {
   photos?: { name: string }[];
 }
 
+// ── Helpers ──
+
+function normalizeName(name: string): string {
+  return name
+    .toLowerCase()
+    .replace(/^the\s+/, "")
+    .replace(/\band\b/g, "")
+    .replace(/[^a-z0-9\s]/g, "")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+async function filterRelevantPlaces(
+  places: Map<string, PlaceResult>
+): Promise<{ relevant: Map<string, PlaceResult>; skippedCount: number }> {
+  const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
+  if (!LOVABLE_API_KEY) {
+    console.warn("LOVABLE_API_KEY not set, skipping AI relevance filter");
+    return { relevant: places, skippedCount: 0 };
+  }
+
+  const entries = [...places.entries()];
+  const businessList = entries
+    .map(([id, p], i) => `${i + 1}. "${p.displayName?.text || "Unknown"}" - ${p.formattedAddress || "no address"}`)
+    .join("\n");
+
+  try {
+    const res = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${LOVABLE_API_KEY}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        model: "google/gemini-2.5-flash-lite",
+        messages: [
+          {
+            role: "system",
+            content:
+              "You classify businesses. For each numbered business, answer YES if it is a cigar lounge, cigar bar, cigar shop, or tobacconist that sells cigars. Answer NO for hookah bars, vape shops, smoke shops that don't specialize in cigars, or unrelated businesses.",
+          },
+          {
+            role: "user",
+            content: `Classify each business. Return ONLY a JSON array of objects with "index" (1-based) and "relevant" (boolean). No extra text.\n\n${businessList}`,
+          },
+        ],
+        tools: [
+          {
+            type: "function",
+            function: {
+              name: "classify_businesses",
+              description: "Return relevance classification for each business",
+              parameters: {
+                type: "object",
+                properties: {
+                  classifications: {
+                    type: "array",
+                    items: {
+                      type: "object",
+                      properties: {
+                        index: { type: "number" },
+                        relevant: { type: "boolean" },
+                      },
+                      required: ["index", "relevant"],
+                      additionalProperties: false,
+                    },
+                  },
+                },
+                required: ["classifications"],
+                additionalProperties: false,
+              },
+            },
+          },
+        ],
+        tool_choice: { type: "function", function: { name: "classify_businesses" } },
+      }),
+    });
+
+    if (!res.ok) {
+      console.error("AI filter request failed:", res.status, await res.text());
+      return { relevant: places, skippedCount: 0 };
+    }
+
+    const data = await res.json();
+    const toolCall = data.choices?.[0]?.message?.tool_calls?.[0];
+    if (!toolCall) {
+      console.warn("No tool call in AI response, keeping all places");
+      return { relevant: places, skippedCount: 0 };
+    }
+
+    const parsed = JSON.parse(toolCall.function.arguments);
+    const classifications: { index: number; relevant: boolean }[] = parsed.classifications;
+
+    const irrelevantIndexes = new Set(
+      classifications.filter((c) => !c.relevant).map((c) => c.index - 1)
+    );
+
+    const relevant = new Map<string, PlaceResult>();
+    let skippedCount = 0;
+    entries.forEach(([id, place], i) => {
+      if (irrelevantIndexes.has(i)) {
+        console.log(`Filtered out (irrelevant): "${place.displayName?.text}"`);
+        skippedCount++;
+      } else {
+        relevant.set(id, place);
+      }
+    });
+
+    return { relevant, skippedCount };
+  } catch (err) {
+    console.error("AI relevance filter error:", err);
+    return { relevant: places, skippedCount: 0 };
+  }
+}
+
+async function fuzzyDedup(
+  places: Map<string, PlaceResult>,
+  city: string,
+  supabase: any
+): Promise<{ dedupedPlaces: Map<string, PlaceResult>; skippedCount: number }> {
+  // Fetch existing lounge names in this city
+  const { data: cityRow } = await supabase
+    .from("cities")
+    .select("id")
+    .eq("name", city)
+    .maybeSingle();
+
+  const existingNames: string[] = [];
+
+  if (cityRow) {
+    const { data: existingLounges } = await supabase
+      .from("lounges")
+      .select("name")
+      .eq("city_id", cityRow.id);
+    if (existingLounges) {
+      existingLounges.forEach((l: any) => existingNames.push(normalizeName(l.name)));
+    }
+  }
+
+  // Also check pending lounges in same city
+  const { data: existingPending } = await supabase
+    .from("pending_lounges")
+    .select("name")
+    .eq("city_name", city);
+  if (existingPending) {
+    existingPending.forEach((l: any) => existingNames.push(normalizeName(l.name)));
+  }
+
+  const dedupedPlaces = new Map<string, PlaceResult>();
+  let skippedCount = 0;
+
+  for (const [id, place] of places) {
+    const normalized = normalizeName(place.displayName?.text || "");
+    if (existingNames.includes(normalized)) {
+      console.log(`Fuzzy dedup: "${place.displayName?.text}" matches existing name`);
+      skippedCount++;
+    } else {
+      dedupedPlaces.set(id, place);
+      existingNames.push(normalized); // prevent dupes within same batch
+    }
+  }
+
+  return { dedupedPlaces, skippedCount };
+}
+
+// ── Shared helpers ──
+
+function getPhotoUrl(place: PlaceResult, apiKey: string): string | null {
+  if (!place.photos || place.photos.length === 0) return null;
+  return `https://places.googleapis.com/v1/${place.photos[0].name}/media?maxWidthPx=800&key=${apiKey}`;
+}
+
+function buildHours(place: PlaceResult): any {
+  if (!place.regularOpeningHours) return null;
+  return {
+    weekday_descriptions: place.regularOpeningHours.weekdayDescriptions || [],
+    periods: place.regularOpeningHours.periods || [],
+  };
+}
+
+// ── Main handler ──
+
 serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
@@ -55,7 +237,7 @@ serve(async (req) => {
 
     console.log(`Searching Google Places for: ${city}, ${country}`);
 
-    // Search for cigar lounges and shops
+    // ── 1. Fetch from Google Places ──
     const queries = [
       `cigar lounge in ${city}, ${country}`,
       `cigar shop in ${city}, ${country}`,
@@ -75,8 +257,7 @@ serve(async (req) => {
       });
 
       if (!res.ok) {
-        const errText = await res.text();
-        console.error(`Google Places error for "${query}":`, errText);
+        console.error(`Google Places error for "${query}":`, await res.text());
         continue;
       }
 
@@ -90,76 +271,75 @@ serve(async (req) => {
       }
     }
 
-    console.log(`Found ${allPlaces.size} unique places`);
+    const totalFound = allPlaces.size;
+    console.log(`Found ${totalFound} unique places`);
 
-    if (allPlaces.size === 0) {
+    if (totalFound === 0) {
       return new Response(
-        JSON.stringify({ success: true, count: 0, message: "No places found" }),
+        JSON.stringify({ success: true, count: 0, total_found: 0, skipped_duplicates: 0, skipped_irrelevant: 0 }),
         { headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
 
-    // Check for existing google_place_ids in both tables
-    const placeIds = [...allPlaces.keys()];
+    // ── 2. AI Relevance Filter ──
+    const { relevant: relevantPlaces, skippedCount: skippedIrrelevant } =
+      await filterRelevantPlaces(allPlaces);
+    console.log(`${relevantPlaces.size} relevant after AI filter (${skippedIrrelevant} filtered)`);
 
+    // ── 3. Google Place ID dedup ──
+    const placeIds = [...relevantPlaces.keys()];
     const { data: existingLounges } = await supabase
       .from("lounges")
       .select("google_place_id")
       .in("google_place_id", placeIds);
-
     const { data: existingPending } = await supabase
       .from("pending_lounges")
       .select("google_place_id")
       .in("google_place_id", placeIds);
 
     const existingIds = new Set([
-      ...(existingLounges || []).map((l) => l.google_place_id),
-      ...(existingPending || []).map((l) => l.google_place_id),
+      ...(existingLounges || []).map((l: any) => l.google_place_id),
+      ...(existingPending || []).map((l: any) => l.google_place_id),
     ]);
 
-    const newPlaces = [...allPlaces.entries()].filter(([id]) => !existingIds.has(id));
-    console.log(`${newPlaces.length} new places after dedup`);
+    const afterIdDedup = new Map<string, PlaceResult>();
+    let skippedByPlaceId = 0;
+    for (const [id, place] of relevantPlaces) {
+      if (existingIds.has(id)) {
+        skippedByPlaceId++;
+      } else {
+        afterIdDedup.set(id, place);
+      }
+    }
 
-    if (newPlaces.length === 0) {
+    // ── 4. Fuzzy name dedup ──
+    const { dedupedPlaces: newPlaces, skippedCount: skippedByName } =
+      await fuzzyDedup(afterIdDedup, city, supabase);
+
+    const skippedDuplicates = skippedByPlaceId + skippedByName;
+    console.log(`${newPlaces.size} new places after all dedup (${skippedDuplicates} dupes total)`);
+
+    if (newPlaces.size === 0) {
       return new Response(
-        JSON.stringify({ success: true, count: 0, message: "All places already exist" }),
+        JSON.stringify({
+          success: true, count: 0, total_found: totalFound,
+          skipped_duplicates: skippedDuplicates, skipped_irrelevant: skippedIrrelevant,
+        }),
         { headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
 
-    // Build photo URL helper
-    const getPhotoUrl = (place: PlaceResult): string | null => {
-      if (!place.photos || place.photos.length === 0) return null;
-      const photoName = place.photos[0].name;
-      return `https://places.googleapis.com/v1/${photoName}/media?maxWidthPx=800&key=${GOOGLE_PLACES_API_KEY}`;
-    };
-
-    // Build hours JSONB
-    const buildHours = (place: PlaceResult): any => {
-      if (!place.regularOpeningHours) return null;
-      return {
-        weekday_descriptions: place.regularOpeningHours.weekdayDescriptions || [],
-        periods: place.regularOpeningHours.periods || [],
-      };
-    };
-
+    // ── 5. Insert ──
     let insertedCount = 0;
 
     if (auto_approve) {
-      // Ensure city exists
       let { data: cityRow } = await supabase
-        .from("cities")
-        .select("id")
-        .eq("name", city)
-        .maybeSingle();
+        .from("cities").select("id").eq("name", city).maybeSingle();
 
       if (!cityRow) {
         const slug = city.toLowerCase().replace(/\s+/g, "-").replace(/[^\w-]/g, "");
         const { data: newCity, error: cityErr } = await supabase
-          .from("cities")
-          .insert({ name: city, country, slug })
-          .select("id")
-          .single();
+          .from("cities").insert({ name: city, country, slug }).select("id").single();
         if (cityErr) throw cityErr;
         cityRow = newCity;
       }
@@ -167,12 +347,8 @@ serve(async (req) => {
       for (const [, place] of newPlaces) {
         const name = place.displayName?.text || "Unknown";
         const slug = name.toLowerCase().replace(/\s+/g, "-").replace(/[^\w-]/g, "") + "-" + place.id.slice(-6);
-
         const { error } = await supabase.from("lounges").insert({
-          name,
-          slug,
-          city_id: cityRow!.id,
-          type: "lounge",
+          name, slug, city_id: cityRow!.id, type: "lounge",
           address: place.formattedAddress || null,
           phone: place.nationalPhoneNumber || null,
           website: place.websiteUri || null,
@@ -181,37 +357,23 @@ serve(async (req) => {
           latitude: place.location?.latitude || null,
           longitude: place.location?.longitude || null,
           hours: buildHours(place),
-          image_url: getPhotoUrl(place),
+          image_url: getPhotoUrl(place, GOOGLE_PLACES_API_KEY),
           google_place_id: place.id,
         });
-
-        if (error) {
-          console.error(`Error inserting lounge "${name}":`, error);
-        } else {
-          insertedCount++;
-        }
+        if (error) console.error(`Error inserting lounge "${name}":`, error);
+        else insertedCount++;
       }
 
-      // Update city lounge count
       const { count } = await supabase
-        .from("lounges")
-        .select("id", { count: "exact", head: true })
-        .eq("city_id", cityRow!.id);
+        .from("lounges").select("id", { count: "exact", head: true }).eq("city_id", cityRow!.id);
       await supabase.from("cities").update({ lounge_count: count || 0 }).eq("id", cityRow!.id);
     } else {
-      // Insert into pending_lounges
       for (const [, place] of newPlaces) {
         const name = place.displayName?.text || "Unknown";
         const slug = name.toLowerCase().replace(/\s+/g, "-").replace(/[^\w-]/g, "") + "-" + place.id.slice(-6);
-
         const { error } = await supabase.from("pending_lounges").insert({
-          name,
-          slug,
-          city_name: city,
-          country,
-          type: "lounge",
-          source: "google_places",
-          status: "pending",
+          name, slug, city_name: city, country, type: "lounge",
+          source: "google_places", status: "pending",
           address: place.formattedAddress || null,
           phone: place.nationalPhoneNumber || null,
           website: place.websiteUri || null,
@@ -220,20 +382,19 @@ serve(async (req) => {
           latitude: place.location?.latitude || null,
           longitude: place.location?.longitude || null,
           hours: buildHours(place),
-          image_url: getPhotoUrl(place),
+          image_url: getPhotoUrl(place, GOOGLE_PLACES_API_KEY),
           google_place_id: place.id,
         });
-
-        if (error) {
-          console.error(`Error inserting pending "${name}":`, error);
-        } else {
-          insertedCount++;
-        }
+        if (error) console.error(`Error inserting pending "${name}":`, error);
+        else insertedCount++;
       }
     }
 
     return new Response(
-      JSON.stringify({ success: true, count: insertedCount }),
+      JSON.stringify({
+        success: true, count: insertedCount, total_found: totalFound,
+        skipped_duplicates: skippedDuplicates, skipped_irrelevant: skippedIrrelevant,
+      }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   } catch (err) {

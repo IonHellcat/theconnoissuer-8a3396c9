@@ -2,7 +2,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Check, X, Pencil, MapPin, Phone, Globe, Star } from "lucide-react";
+import { Check, X, Pencil, MapPin, Phone, Globe, Star, AlertTriangle } from "lucide-react";
 import type { Tables } from "@/integrations/supabase/types";
 
 type PendingLounge = Tables<"pending_lounges">;
@@ -14,9 +14,10 @@ interface Props {
   onEdit: (lounge: PendingLounge) => void;
   selected?: boolean;
   onSelectChange?: (checked: boolean) => void;
+  isPossibleDuplicate?: boolean;
 }
 
-export const PendingLoungeCard = ({ lounge, onApprove, onReject, onEdit, selected, onSelectChange }: Props) => {
+export const PendingLoungeCard = ({ lounge, onApprove, onReject, onEdit, selected, onSelectChange, isPossibleDuplicate }: Props) => {
   const statusColor = {
     pending: "bg-yellow-500/20 text-yellow-400",
     approved: "bg-green-500/20 text-green-400",
@@ -47,6 +48,11 @@ export const PendingLoungeCard = ({ lounge, onApprove, onReject, onEdit, selecte
                 <Badge variant="outline" className="text-xs capitalize">
                   {lounge.type}
                 </Badge>
+                {isPossibleDuplicate && (
+                  <Badge variant="outline" className="bg-orange-500/20 text-orange-400 text-xs">
+                    <AlertTriangle className="h-3 w-3 mr-1" />Possible Duplicate
+                  </Badge>
+                )}
               </div>
               {lounge.address && (
                 <p className="text-sm text-muted-foreground flex items-center gap-1">

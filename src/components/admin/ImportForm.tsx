@@ -13,6 +13,9 @@ interface ScrapeResult {
   city: string;
   country: string;
   count: number;
+  total_found?: number;
+  skipped_duplicates?: number;
+  skipped_irrelevant?: number;
   error?: string;
 }
 
@@ -32,7 +35,6 @@ export const ImportForm = ({ onComplete, initialCities }: Props) => {
   const [results, setResults] = useState<ScrapeResult[]>([]);
   const { toast } = useToast();
 
-  // Pre-populate from discovery step
   useEffect(() => {
     if (initialCities && initialCities.length > 0) {
       const text = initialCities.map((e) => `${e.city}, ${e.country}`).join("\n");
@@ -62,7 +64,7 @@ export const ImportForm = ({ onComplete, initialCities }: Props) => {
     setIsLoading(true);
     setResults([]);
     const scrapeResults: ScrapeResult[] = [];
-    let totalFound = 0;
+    let totalInserted = 0;
 
     for (let i = 0; i < entries.length; i++) {
       const { city, country } = entries[i];
@@ -76,16 +78,19 @@ export const ImportForm = ({ onComplete, initialCities }: Props) => {
         if (error) throw error;
 
         if (data?.success) {
-          scrapeResults.push({ city, country, count: data.count });
-          totalFound += data.count;
+          scrapeResults.push({
+            city, country, count: data.count,
+            total_found: data.total_found,
+            skipped_duplicates: data.skipped_duplicates,
+            skipped_irrelevant: data.skipped_irrelevant,
+          });
+          totalInserted += data.count;
         } else {
           scrapeResults.push({ city, country, count: 0, error: data?.error || "Failed" });
         }
       } catch (err) {
         scrapeResults.push({
-          city,
-          country,
-          count: 0,
+          city, country, count: 0,
           error: err instanceof Error ? err.message : "Unknown error",
         });
       }
@@ -97,13 +102,22 @@ export const ImportForm = ({ onComplete, initialCities }: Props) => {
 
     toast({
       title: "Batch Scrape Complete",
-      description: `Found ${totalFound} new lounge(s) across ${entries.length} cities`,
+      description: `Found ${totalInserted} new lounge(s) across ${entries.length} cities`,
     });
 
-    if (totalFound > 0) onComplete();
+    if (totalInserted > 0) onComplete();
   };
 
   const entries = parseCities(citiesText);
+
+  const formatResult = (r: ScrapeResult) => {
+    if (r.error) return `Error - ${r.error}`;
+    const parts: string[] = [`${r.count} new`];
+    if (r.skipped_duplicates && r.skipped_duplicates > 0) parts.push(`${r.skipped_duplicates} dupes skipped`);
+    if (r.skipped_irrelevant && r.skipped_irrelevant > 0) parts.push(`${r.skipped_irrelevant} non-cigar filtered`);
+    if (r.total_found !== undefined) parts.push(`${r.total_found} total found`);
+    return parts.join(" · ");
+  };
 
   return (
     <Card className="border-border">
@@ -184,7 +198,7 @@ export const ImportForm = ({ onComplete, initialCities }: Props) => {
             <p className="text-sm font-medium mb-2">Results:</p>
             {results.map((r, i) => (
               <p key={i} className={`text-sm ${r.error ? "text-destructive" : "text-muted-foreground"}`}>
-                {r.city}, {r.country}: {r.error ? `Error - ${r.error}` : `${r.count} new lounge(s)`}
+                {r.city}, {r.country}: {formatResult(r)}
               </p>
             ))}
           </div>
