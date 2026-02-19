@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Textarea } from "@/components/ui/textarea";
@@ -16,13 +16,29 @@ interface ScrapeResult {
   error?: string;
 }
 
-export const ImportForm = ({ onComplete }: { onComplete: () => void }) => {
+type Source = "firecrawl" | "google_places";
+
+interface Props {
+  onComplete: () => void;
+  initialCities?: { city: string; country: string }[];
+}
+
+export const ImportForm = ({ onComplete, initialCities }: Props) => {
   const [citiesText, setCitiesText] = useState("");
   const [autoApprove, setAutoApprove] = useState(false);
+  const [source, setSource] = useState<Source>("google_places");
   const [isLoading, setIsLoading] = useState(false);
   const [progress, setProgress] = useState<{ current: number; total: number; cityName: string } | null>(null);
   const [results, setResults] = useState<ScrapeResult[]>([]);
   const { toast } = useToast();
+
+  // Pre-populate from discovery step
+  useEffect(() => {
+    if (initialCities && initialCities.length > 0) {
+      const text = initialCities.map((e) => `${e.city}, ${e.country}`).join("\n");
+      setCitiesText(text);
+    }
+  }, [initialCities]);
 
   const parseCities = (text: string) => {
     return text
@@ -41,6 +57,8 @@ export const ImportForm = ({ onComplete }: { onComplete: () => void }) => {
     const entries = parseCities(citiesText);
     if (entries.length === 0) return;
 
+    const fnName = source === "google_places" ? "search-places" : "scrape-lounges";
+
     setIsLoading(true);
     setResults([]);
     const scrapeResults: ScrapeResult[] = [];
@@ -51,7 +69,7 @@ export const ImportForm = ({ onComplete }: { onComplete: () => void }) => {
       setProgress({ current: i + 1, total: entries.length, cityName: city });
 
       try {
-        const { data, error } = await supabase.functions.invoke("scrape-lounges", {
+        const { data, error } = await supabase.functions.invoke(fnName, {
           body: { city, country, auto_approve: autoApprove },
         });
 
@@ -90,7 +108,7 @@ export const ImportForm = ({ onComplete }: { onComplete: () => void }) => {
   return (
     <Card className="border-border">
       <CardHeader>
-        <CardTitle className="text-lg font-display">Import Lounges</CardTitle>
+        <CardTitle className="text-lg font-display">Step 2: Import Lounges</CardTitle>
       </CardHeader>
       <CardContent>
         <form onSubmit={handleScrape} className="space-y-4">
@@ -99,7 +117,7 @@ export const ImportForm = ({ onComplete }: { onComplete: () => void }) => {
               Enter cities (one per line, format: City, Country)
             </Label>
             <Textarea
-              placeholder={"Miami, US\nNew York, US\nLondon, UK"}
+              placeholder={"Miami, United States\nNew York, United States\nLondon, United Kingdom"}
               value={citiesText}
               onChange={(e) => setCitiesText(e.target.value)}
               disabled={isLoading}
@@ -125,17 +143,29 @@ export const ImportForm = ({ onComplete }: { onComplete: () => void }) => {
           </div>
 
           <div className="flex gap-3">
-            <Button type="submit" disabled={isLoading || entries.length === 0}>
-              {isLoading ? (
+            <Button
+              type="submit"
+              variant={source === "firecrawl" ? "default" : "outline"}
+              disabled={isLoading || entries.length === 0}
+              onClick={() => setSource("firecrawl")}
+            >
+              {isLoading && source === "firecrawl" ? (
                 <><Loader2 className="mr-2 h-4 w-4 animate-spin" />Scraping...</>
               ) : (
-                <><Search className="mr-2 h-4 w-4" />Scrape {entries.length > 1 ? `${entries.length} Cities` : "City"}</>
+                <><Search className="mr-2 h-4 w-4" />Firecrawl</>
               )}
             </Button>
-            <Button type="button" variant="outline" disabled className="opacity-50">
-              <Globe className="mr-2 h-4 w-4" />
-              Google Places
-              <span className="ml-2 text-xs text-muted-foreground">Coming Soon</span>
+            <Button
+              type="submit"
+              variant={source === "google_places" ? "default" : "outline"}
+              disabled={isLoading || entries.length === 0}
+              onClick={() => setSource("google_places")}
+            >
+              {isLoading && source === "google_places" ? (
+                <><Loader2 className="mr-2 h-4 w-4 animate-spin" />Searching...</>
+              ) : (
+                <><Globe className="mr-2 h-4 w-4" />Google Places</>
+              )}
             </Button>
           </div>
         </form>
@@ -143,7 +173,7 @@ export const ImportForm = ({ onComplete }: { onComplete: () => void }) => {
         {progress && (
           <div className="mt-4 space-y-2">
             <p className="text-sm text-muted-foreground">
-              Scraping {progress.current}/{progress.total}: <span className="text-foreground font-medium">{progress.cityName}</span>...
+              {source === "google_places" ? "Searching" : "Scraping"} {progress.current}/{progress.total}: <span className="text-foreground font-medium">{progress.cityName}</span>...
             </p>
             <Progress value={(progress.current / progress.total) * 100} className="h-2" />
           </div>

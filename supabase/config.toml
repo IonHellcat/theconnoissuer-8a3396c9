@@ -2,3 +2,9 @@ project_id = "wgnbrncyobrkbkndqzcv"
 
 [functions.scrape-lounges]
 verify_jwt = false
+
+[functions.discover-cities]
+verify_jwt = false
+
+[functions.search-places]
+verify_jwt = false

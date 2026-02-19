@@ -9,6 +9,7 @@ import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { ImportForm } from "@/components/admin/ImportForm";
+import { DiscoverCitiesForm } from "@/components/admin/DiscoverCitiesForm";
 import { PendingLoungeCard } from "@/components/admin/PendingLoungeCard";
 import { EditPendingDialog } from "@/components/admin/EditPendingDialog";
 import { BulkActionBar } from "@/components/admin/BulkActionBar";
@@ -68,6 +69,7 @@ const AdminPendingPage = () => {
   const [search, setSearch] = useState("");
   const [editLounge, setEditLounge] = useState<PendingLounge | null>(null);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [discoveredCities, setDiscoveredCities] = useState<{ city: string; country: string }[] | undefined>();
 
   const { data: lounges = [], isLoading } = useQuery({
     queryKey: ["pending-lounges", statusFilter],
@@ -215,7 +217,14 @@ const AdminPendingPage = () => {
       <div className="max-w-5xl mx-auto px-4 py-8">
         <h1 className="text-3xl font-display font-bold mb-6">Admin: Pending Lounges</h1>
 
-        <ImportForm onComplete={() => queryClient.invalidateQueries({ queryKey: ["pending-lounges"] })} />
+        <DiscoverCitiesForm onSendToScraper={(cities) => setDiscoveredCities(cities)} />
+
+        <div className="mt-6">
+          <ImportForm
+            onComplete={() => queryClient.invalidateQueries({ queryKey: ["pending-lounges"] })}
+            initialCities={discoveredCities}
+          />
+        </div>
 
         <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3 mt-6 mb-4">
           <Tabs value={statusFilter} onValueChange={(v) => { setStatusFilter(v); setSelectedIds(new Set()); }}>
