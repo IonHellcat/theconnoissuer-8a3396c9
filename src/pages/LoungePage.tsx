@@ -32,7 +32,10 @@ const LoungePage = () => {
   });
 
   const city = (lounge as any)?.cities;
-  const hours = lounge?.hours as Record<string, string> | null;
+  const hoursData = lounge?.hours as { weekday_descriptions?: string[]; periods?: any[] } | Record<string, string> | null;
+  const weekdayDescriptions = hoursData && 'weekday_descriptions' in hoursData 
+    ? (hoursData as { weekday_descriptions?: string[] }).weekday_descriptions 
+    : null;
 
   return (
     <div className="min-h-screen bg-background">
@@ -224,17 +227,16 @@ const LoungePage = () => {
                   </div>
 
                   {/* Hours */}
-                  {hours && Object.keys(hours).length > 0 && (
+                   {weekdayDescriptions && weekdayDescriptions.length > 0 && (
                     <div className="bg-card rounded-xl border border-border/50 p-6">
                       <h3 className="font-display text-lg font-semibold text-foreground mb-4 flex items-center gap-2">
                         <Clock className="h-4 w-4 text-primary" />
                         Hours
                       </h3>
                       <div className="space-y-2">
-                        {Object.entries(hours).map(([day, time]) => (
-                          <div key={day} className="flex justify-between text-sm font-body">
-                            <span className="text-muted-foreground capitalize">{day}</span>
-                            <span className="text-foreground">{time}</span>
+                        {weekdayDescriptions.map((desc, i) => (
+                          <div key={i} className="text-sm font-body text-foreground">
+                            {desc}
                           </div>
                         ))}
                       </div>
