@@ -20,25 +20,61 @@ serve(async (req) => {
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
     );
 
-    // Get cities without images
-    const { data: cities, error: citiesErr } = await supabase
-      .from("cities")
-      .select("id, name, country")
-      .is("image_url", null)
-      .limit(3);
+    // Parse request body for optional params
+    let mode = "missing";
+    let limit = 5;
+    let city_ids: string[] | undefined;
 
+    if (req.method === "POST") {
+      try {
+        const body = await req.json();
+        if (body.mode === "all") mode = "all";
+        if (body.limit && Number(body.limit) >= 1 && Number(body.limit) <= 10) {
+          limit = Number(body.limit);
+        }
+        if (Array.isArray(body.city_ids) && body.city_ids.length > 0) {
+          city_ids = body.city_ids;
+        }
+      } catch {
+        // No body or invalid JSON, use defaults
+      }
+    }
+
+    // Build query
+    let query = supabase.from("cities").select("id, name, country");
+    
+    if (city_ids) {
+      query = query.in("id", city_ids);
+    } else if (mode === "missing") {
+      query = query.is("image_url", null);
+    }
+    
+    query = query.limit(limit);
+
+    const { data: cities, error: citiesErr } = await query;
     if (citiesErr) throw citiesErr;
+
+    // Count total remaining (for progress tracking)
+    let remaining = 0;
+    if (!city_ids) {
+      const countQuery = supabase.from("cities").select("id", { count: "exact", head: true });
+      if (mode === "missing") {
+        countQuery.is("image_url", null);
+      }
+      const { count } = await countQuery;
+      remaining = Math.max(0, (count || 0) - (cities?.length || 0));
+    }
+
     if (!cities || cities.length === 0) {
-      return new Response(JSON.stringify({ message: "All cities have images", processed: 0 }), {
+      return new Response(JSON.stringify({ message: "No cities to process", processed: 0, results: [], remaining: 0 }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
-    const results: string[] = [];
+    const results: { city: string; status: string }[] = [];
 
     for (const city of cities) {
       try {
-        // Search for a photo of the city
         const searchRes = await fetch("https://places.googleapis.com/v1/places:searchText", {
           method: "POST",
           headers: {
@@ -54,14 +90,13 @@ serve(async (req) => {
 
         if (!searchRes.ok) {
           console.error(`Search failed for ${city.name}:`, await searchRes.text());
-          results.push(`${city.name}: search failed`);
+          results.push({ city: city.name, status: "search failed" });
           continue;
         }
 
         const searchData = await searchRes.json();
         const places = searchData.places || [];
 
-        // Find the first place with photos
         let photoName: string | null = null;
         for (const place of places) {
           if (place.photos && place.photos.length > 0) {
@@ -71,15 +106,14 @@ serve(async (req) => {
         }
 
         if (!photoName) {
-          results.push(`${city.name}: no photos found`);
+          results.push({ city: city.name, status: "no photos found" });
           continue;
         }
 
-        // Fetch the photo binary
         const photoUrl = `https://places.googleapis.com/v1/${photoName}/media?maxWidthPx=1200&key=${GOOGLE_PLACES_API_KEY}`;
         const photoRes = await fetch(photoUrl);
         if (!photoRes.ok) {
-          results.push(`${city.name}: photo fetch failed`);
+          results.push({ city: city.name, status: "photo fetch failed" });
           continue;
         }
 
@@ -88,37 +122,34 @@ serve(async (req) => {
         const ext = contentType.includes("png") ? "png" : "jpg";
         const fileName = `${city.id}.${ext}`;
 
-        // Upload to storage
         const { error: uploadErr } = await supabase.storage
           .from("city-images")
           .upload(fileName, photoBytes, { contentType, upsert: true });
 
         if (uploadErr) {
           console.error(`Upload error for ${city.name}:`, uploadErr);
-          results.push(`${city.name}: upload failed`);
+          results.push({ city: city.name, status: "upload failed" });
           continue;
         }
 
-        // Get public URL
         const { data: urlData } = supabase.storage.from("city-images").getPublicUrl(fileName);
 
-        // Update city
         const { error: updateErr } = await supabase
           .from("cities")
           .update({ image_url: urlData.publicUrl })
           .eq("id", city.id);
 
         if (updateErr) {
-          results.push(`${city.name}: db update failed`);
+          results.push({ city: city.name, status: "db update failed" });
         } else {
-          results.push(`${city.name}: ✓`);
+          results.push({ city: city.name, status: "success" });
         }
       } catch (err) {
-        results.push(`${city.name}: ${err.message}`);
+        results.push({ city: city.name, status: err.message });
       }
     }
 
-    return new Response(JSON.stringify({ processed: results.length, results }), {
+    return new Response(JSON.stringify({ processed: results.length, results, remaining }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   } catch (err) {
