@@ -16,6 +16,7 @@ const ResetPasswordPage = lazy(() => import("./pages/ResetPasswordPage"));
 const ExplorePage = lazy(() => import("./pages/ExplorePage"));
 const FavoritesPage = lazy(() => import("./pages/FavoritesPage"));
 const AdminPendingPage = lazy(() => import("./pages/AdminPendingPage"));
+const GenerateDescriptionsPage = lazy(() => import("./pages/GenerateDescriptionsPage"));
 const NotFound = lazy(() => import("./pages/NotFound"));
 
 const queryClient = new QueryClient({
@@ -51,6 +52,7 @@ const App = () => (
               <Route path="/explore" element={<ExplorePage />} />
               <Route path="/favorites" element={<FavoritesPage />} />
               <Route path="/admin/pending" element={<AdminPendingPage />} />
+              <Route path="/admin/generate-descriptions" element={<GenerateDescriptionsPage />} />
               {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
               <Route path="*" element={<NotFound />} />
             </Routes>
