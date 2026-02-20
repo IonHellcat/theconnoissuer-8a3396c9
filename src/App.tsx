@@ -1,3 +1,4 @@
+import { lazy, Suspense } from "react";
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -5,17 +6,32 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { AuthProvider } from "@/hooks/useAuth";
 import Index from "./pages/Index";
-import CityPage from "./pages/CityPage";
-import SearchPage from "./pages/SearchPage";
-import LoungePage from "./pages/LoungePage";
-import AuthPage from "./pages/AuthPage";
-import ResetPasswordPage from "./pages/ResetPasswordPage";
-import ExplorePage from "./pages/ExplorePage";
-import FavoritesPage from "./pages/FavoritesPage";
-import AdminPendingPage from "./pages/AdminPendingPage";
-import NotFound from "./pages/NotFound";
 
-const queryClient = new QueryClient();
+// Lazy-loaded routes for code splitting
+const CityPage = lazy(() => import("./pages/CityPage"));
+const SearchPage = lazy(() => import("./pages/SearchPage"));
+const LoungePage = lazy(() => import("./pages/LoungePage"));
+const AuthPage = lazy(() => import("./pages/AuthPage"));
+const ResetPasswordPage = lazy(() => import("./pages/ResetPasswordPage"));
+const ExplorePage = lazy(() => import("./pages/ExplorePage"));
+const FavoritesPage = lazy(() => import("./pages/FavoritesPage"));
+const AdminPendingPage = lazy(() => import("./pages/AdminPendingPage"));
+const NotFound = lazy(() => import("./pages/NotFound"));
+
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      staleTime: 5 * 60 * 1000, // 5 min — avoid refetching on every mount
+      gcTime: 10 * 60 * 1000,
+    },
+  },
+});
+
+const PageLoader = () => (
+  <div className="min-h-screen bg-background flex items-center justify-center">
+    <div className="h-8 w-8 rounded-full border-2 border-primary border-t-transparent animate-spin" />
+  </div>
+);
 
 const App = () => (
   <QueryClientProvider client={queryClient}>
@@ -24,19 +40,21 @@ const App = () => (
         <Toaster />
         <Sonner />
         <BrowserRouter>
-          <Routes>
-            <Route path="/" element={<Index />} />
-            <Route path="/city/:slug" element={<CityPage />} />
-            <Route path="/search" element={<SearchPage />} />
-            <Route path="/lounge/:slug" element={<LoungePage />} />
-            <Route path="/auth" element={<AuthPage />} />
-            <Route path="/reset-password" element={<ResetPasswordPage />} />
-            <Route path="/explore" element={<ExplorePage />} />
-            <Route path="/favorites" element={<FavoritesPage />} />
-            <Route path="/admin/pending" element={<AdminPendingPage />} />
-            {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
-            <Route path="*" element={<NotFound />} />
-          </Routes>
+          <Suspense fallback={<PageLoader />}>
+            <Routes>
+              <Route path="/" element={<Index />} />
+              <Route path="/city/:slug" element={<CityPage />} />
+              <Route path="/search" element={<SearchPage />} />
+              <Route path="/lounge/:slug" element={<LoungePage />} />
+              <Route path="/auth" element={<AuthPage />} />
+              <Route path="/reset-password" element={<ResetPasswordPage />} />
+              <Route path="/explore" element={<ExplorePage />} />
+              <Route path="/favorites" element={<FavoritesPage />} />
+              <Route path="/admin/pending" element={<AdminPendingPage />} />
+              {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
+              <Route path="*" element={<NotFound />} />
+            </Routes>
+          </Suspense>
         </BrowserRouter>
       </TooltipProvider>
     </AuthProvider>

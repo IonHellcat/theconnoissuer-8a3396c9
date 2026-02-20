@@ -6,6 +6,7 @@ import { MapPin, Star, ArrowLeft } from "lucide-react";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import FavoriteButton from "@/components/FavoriteButton";
+import OptimizedImage from "@/components/OptimizedImage";
 
 const priceTierLabel = (tier: number) => "$".repeat(tier);
 
@@ -49,9 +50,14 @@ const CityPage = () => {
         {/* Hero */}
         <section className="relative h-64 md:h-80 overflow-hidden">
           {city?.image_url && (
-            <img
+            <OptimizedImage
               src={city.image_url}
               alt={city.name}
+              width={1280}
+              height={400}
+              sizes="100vw"
+              widths={[640, 960, 1280]}
+              loading="eager"
               className="absolute inset-0 w-full h-full object-cover"
             />
           )}
@@ -103,10 +109,13 @@ const CityPage = () => {
                     <div className="flex flex-col md:flex-row">
                       {/* Image */}
                        <div className="md:w-72 h-48 md:h-auto flex-shrink-0 overflow-hidden relative">
-                         <img
+                         <OptimizedImage
                            src={lounge.image_url || "/placeholder.svg"}
                            alt={lounge.name}
-                           loading="lazy"
+                           width={480}
+                           height={320}
+                           sizes="(max-width: 768px) 100vw, 288px"
+                           widths={[320, 480]}
                            className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
                          />
                          <div className="absolute top-3 right-3 z-10">

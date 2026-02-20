@@ -11,6 +11,7 @@ import Footer from "@/components/Footer";
 import ReviewForm from "@/components/ReviewForm";
 import ReviewList from "@/components/ReviewList";
 import FavoriteButton from "@/components/FavoriteButton";
+import OptimizedImage from "@/components/OptimizedImage";
 
 const priceTierLabel = (tier: number) => "$".repeat(tier);
 
@@ -58,9 +59,14 @@ const LoungePage = () => {
           <>
             {/* Hero */}
             <section className="relative h-72 md:h-96 overflow-hidden">
-              <img
+              <OptimizedImage
                 src={lounge.image_url || "/placeholder.svg"}
                 alt={lounge.name}
+                width={1280}
+                height={480}
+                sizes="100vw"
+                widths={[640, 960, 1280]}
+                loading="eager"
                 className="absolute inset-0 w-full h-full object-cover"
               />
               <div className="absolute inset-0 bg-gradient-to-t from-background via-background/60 to-background/20" />
@@ -160,7 +166,15 @@ const LoungePage = () => {
                       <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
                         {lounge.gallery.map((img, i) => (
                           <div key={i} className="aspect-square rounded-lg overflow-hidden bg-secondary">
-                            <img src={img} alt={`${lounge.name} photo ${i + 1}`} className="w-full h-full object-cover" />
+                            <OptimizedImage
+                              src={img}
+                              alt={`${lounge.name} photo ${i + 1}`}
+                              width={480}
+                              height={480}
+                              sizes="(max-width: 768px) 50vw, 33vw"
+                              widths={[240, 480]}
+                              className="w-full h-full object-cover"
+                            />
                           </div>
                         ))}
                       </div>
