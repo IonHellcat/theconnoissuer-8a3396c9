@@ -53,37 +53,39 @@ export const DiscoverCitiesForm = ({ onSendToScraper }: Props) => {
     setSelectedCities(new Set());
 
     try {
-      const { data, error } = await supabase.functions.invoke("discover-cities", {
-        body: { countries },
-      });
+      // Process in chunks of 5 countries to avoid edge function timeout
+      const CHUNK_SIZE = 5;
+      const allResults: DiscoveredCities[] = [];
 
-      if (error) throw error;
+      for (let i = 0; i < countries.length; i += CHUNK_SIZE) {
+        const chunk = countries.slice(i, i + CHUNK_SIZE);
+        const { data, error } = await supabase.functions.invoke("discover-cities", {
+          body: { countries: chunk },
+        });
 
-      if (data?.success && data.results) {
-        setResults(data.results);
-        // Auto-select all discovered cities
-        const allKeys = new Set<string>();
-        for (const r of data.results) {
-          for (const city of r.cities) {
-            allKeys.add(`${city}|${r.country}`);
+        if (error) throw error;
+
+        if (data?.success && data.results) {
+          allResults.push(...data.results);
+          // Show incremental results
+          setResults([...allResults]);
+          const allKeys = new Set<string>();
+          for (const r of allResults) {
+            for (const city of r.cities) {
+              allKeys.add(`${city}|${r.country}`);
+            }
           }
+          setSelectedCities(allKeys);
         }
-        setSelectedCities(allKeys);
-
-        const totalCities = data.results.reduce(
-          (sum: number, r: DiscoveredCities) => sum + r.cities.length, 0
-        );
-        toast({
-          title: "Discovery Complete",
-          description: `Found ${totalCities} cities across ${countries.length} countries`,
-        });
-      } else {
-        toast({
-          title: "Error",
-          description: data?.error || "Discovery failed",
-          variant: "destructive",
-        });
       }
+
+      const totalCities = allResults.reduce(
+        (sum: number, r: DiscoveredCities) => sum + r.cities.length, 0
+      );
+      toast({
+        title: "Discovery Complete",
+        description: `Found ${totalCities} cities across ${countries.length} countries`,
+      });
     } catch (err) {
       toast({
         title: "Error",
