@@ -102,22 +102,23 @@ const AdminPendingPage = () => {
   const { toast } = useToast();
   const [exporting, setExporting] = useState(false);
 
-  const handleExportDatabase = async () => {
+  const handleExportDatabase = async (tablesParam?: string) => {
     if (!session?.access_token) return;
     setExporting(true);
     try {
-      const res = await fetch(
-        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/export-database`,
-        { headers: { Authorization: `Bearer ${session.access_token}` } }
-      );
+      const exportUrl = new URL(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/export-database`);
+      if (tablesParam) exportUrl.searchParams.set("tables", tablesParam);
+      const res = await fetch(exportUrl.toString(), {
+        headers: { Authorization: `Bearer ${session.access_token}` },
+      });
       if (!res.ok) throw new Error(await res.text());
       const blob = await res.blob();
-      const url = URL.createObjectURL(blob);
+      const blobUrl = URL.createObjectURL(blob);
       const a = document.createElement("a");
-      a.href = url;
-      a.download = `database-export-${new Date().toISOString().split("T")[0]}.xlsx`;
+      a.href = blobUrl;
+      a.download = `${tablesParam || "database"}-export-${new Date().toISOString().split("T")[0]}.xlsx`;
       a.click();
-      URL.revokeObjectURL(url);
+      URL.revokeObjectURL(blobUrl);
       toast({ title: "Export complete", description: "Database downloaded as Excel file" });
     } catch (err: any) {
       toast({ title: "Export failed", description: err.message, variant: "destructive" });
@@ -301,10 +302,14 @@ const AdminPendingPage = () => {
       <div className="max-w-5xl mx-auto px-4 py-8">
         <h1 className="text-3xl font-display font-bold mb-6">Admin: Pending Lounges</h1>
 
-        <div className="flex justify-end mb-4">
-          <Button variant="outline" onClick={handleExportDatabase} disabled={exporting}>
+        <div className="flex justify-end gap-2 mb-4">
+          <Button variant="outline" onClick={() => handleExportDatabase("lounges")} disabled={exporting}>
             <Download className="h-4 w-4 mr-2" />
-            {exporting ? "Exporting..." : "Export Database (Excel)"}
+            {exporting ? "Exporting..." : "Export Lounges"}
+          </Button>
+          <Button variant="outline" onClick={() => handleExportDatabase()} disabled={exporting}>
+            <Download className="h-4 w-4 mr-2" />
+            {exporting ? "Exporting..." : "Export Full Database"}
           </Button>
         </div>
 

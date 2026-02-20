@@ -48,7 +48,10 @@ Deno.serve(async (req) => {
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
     );
 
-    const tables = ["cities", "lounges", "pending_lounges", "profiles", "reviews", "favorites", "user_roles"];
+    const url = new URL(req.url);
+    const tablesParam = url.searchParams.get("tables");
+    const allTables = ["cities", "lounges", "pending_lounges", "profiles", "reviews", "favorites", "user_roles"];
+    const tables = tablesParam ? tablesParam.split(",").filter(t => allTables.includes(t)) : allTables;
     const wb = XLSX.utils.book_new();
 
     for (const table of tables) {
