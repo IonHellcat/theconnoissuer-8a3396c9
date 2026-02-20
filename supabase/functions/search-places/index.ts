@@ -38,13 +38,15 @@ function normalizeName(name: string): string {
     .trim();
 }
 
-async function filterRelevantPlaces(
+async function filterAndClassifyPlaces(
   places: Map<string, PlaceResult>
-): Promise<{ relevant: Map<string, PlaceResult>; skippedCount: number }> {
+): Promise<{ relevant: Map<string, { place: PlaceResult; type: string }>; skippedCount: number }> {
   const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
   if (!LOVABLE_API_KEY) {
-    console.warn("LOVABLE_API_KEY not set, skipping AI relevance filter");
-    return { relevant: places, skippedCount: 0 };
+    console.warn("LOVABLE_API_KEY not set, skipping AI filter");
+    const result = new Map<string, { place: PlaceResult; type: string }>();
+    for (const [id, p] of places) result.set(id, { place: p, type: "lounge" });
+    return { relevant: result, skippedCount: 0 };
   }
 
   const entries = [...places.entries()];
@@ -65,11 +67,11 @@ async function filterRelevantPlaces(
           {
             role: "system",
             content:
-              "You classify businesses. For each numbered business, answer YES if it is a cigar lounge, cigar bar, cigar shop, or tobacconist that sells cigars. Answer NO for hookah bars, vape shops, smoke shops that don't specialize in cigars, or unrelated businesses.",
+              "You classify cigar businesses. For each numbered business, determine: 1) Is it relevant (a cigar lounge, cigar bar, cigar shop, or tobacconist)? Answer NO for hookah bars, vape shops, smoke shops without cigar focus, or unrelated businesses. 2) If relevant, classify the type: 'lounge' (cigar lounge, cigar bar, or place primarily for smoking cigars on-site), 'shop' (retail cigar shop or tobacconist primarily for purchasing cigars to take away), or 'both' (offers both a lounge experience and retail shop).",
           },
           {
             role: "user",
-            content: `Classify each business. Return ONLY a JSON array of objects with "index" (1-based) and "relevant" (boolean). No extra text.\n\n${businessList}`,
+            content: `Classify each business. Return ONLY via the tool call.\n\n${businessList}`,
           },
         ],
         tools: [
@@ -77,7 +79,7 @@ async function filterRelevantPlaces(
             type: "function",
             function: {
               name: "classify_businesses",
-              description: "Return relevance classification for each business",
+              description: "Return relevance and type classification for each business",
               parameters: {
                 type: "object",
                 properties: {
@@ -88,8 +90,9 @@ async function filterRelevantPlaces(
                       properties: {
                         index: { type: "number" },
                         relevant: { type: "boolean" },
+                        venue_type: { type: "string", enum: ["lounge", "shop", "both"] },
                       },
-                      required: ["index", "relevant"],
+                      required: ["index", "relevant", "venue_type"],
                       additionalProperties: false,
                     },
                   },
@@ -106,47 +109,53 @@ async function filterRelevantPlaces(
 
     if (!res.ok) {
       console.error("AI filter request failed:", res.status, await res.text());
-      return { relevant: places, skippedCount: 0 };
+      const result = new Map<string, { place: PlaceResult; type: string }>();
+      for (const [id, p] of places) result.set(id, { place: p, type: "lounge" });
+      return { relevant: result, skippedCount: 0 };
     }
 
     const data = await res.json();
     const toolCall = data.choices?.[0]?.message?.tool_calls?.[0];
     if (!toolCall) {
       console.warn("No tool call in AI response, keeping all places");
-      return { relevant: places, skippedCount: 0 };
+      const result = new Map<string, { place: PlaceResult; type: string }>();
+      for (const [id, p] of places) result.set(id, { place: p, type: "lounge" });
+      return { relevant: result, skippedCount: 0 };
     }
 
     const parsed = JSON.parse(toolCall.function.arguments);
-    const classifications: { index: number; relevant: boolean }[] = parsed.classifications;
+    const classifications: { index: number; relevant: boolean; venue_type: string }[] = parsed.classifications;
 
-    const irrelevantIndexes = new Set(
-      classifications.filter((c) => !c.relevant).map((c) => c.index - 1)
-    );
+    const classMap = new Map<number, { relevant: boolean; venue_type: string }>();
+    for (const c of classifications) classMap.set(c.index - 1, c);
 
-    const relevant = new Map<string, PlaceResult>();
+    const relevant = new Map<string, { place: PlaceResult; type: string }>();
     let skippedCount = 0;
     entries.forEach(([id, place], i) => {
-      if (irrelevantIndexes.has(i)) {
+      const c = classMap.get(i);
+      if (c && !c.relevant) {
         console.log(`Filtered out (irrelevant): "${place.displayName?.text}"`);
         skippedCount++;
       } else {
-        relevant.set(id, place);
+        const venueType = c?.venue_type || "lounge";
+        relevant.set(id, { place, type: ["lounge", "shop", "both"].includes(venueType) ? venueType : "lounge" });
       }
     });
 
     return { relevant, skippedCount };
   } catch (err) {
     console.error("AI relevance filter error:", err);
-    return { relevant: places, skippedCount: 0 };
+    const result = new Map<string, { place: PlaceResult; type: string }>();
+    for (const [id, p] of places) result.set(id, { place: p, type: "lounge" });
+    return { relevant: result, skippedCount: 0 };
   }
 }
 
 async function fuzzyDedup(
-  places: Map<string, PlaceResult>,
+  places: Map<string, { place: PlaceResult; type: string }>,
   city: string,
   supabase: any
-): Promise<{ dedupedPlaces: Map<string, PlaceResult>; skippedCount: number }> {
-  // Fetch existing lounge names in this city
+): Promise<{ dedupedPlaces: Map<string, { place: PlaceResult; type: string }>; skippedCount: number }> {
   const { data: cityRow } = await supabase
     .from("cities")
     .select("id")
@@ -165,7 +174,6 @@ async function fuzzyDedup(
     }
   }
 
-  // Also check pending lounges in same city
   const { data: existingPending } = await supabase
     .from("pending_lounges")
     .select("name")
@@ -174,17 +182,17 @@ async function fuzzyDedup(
     existingPending.forEach((l: any) => existingNames.push(normalizeName(l.name)));
   }
 
-  const dedupedPlaces = new Map<string, PlaceResult>();
+  const dedupedPlaces = new Map<string, { place: PlaceResult; type: string }>();
   let skippedCount = 0;
 
-  for (const [id, place] of places) {
-    const normalized = normalizeName(place.displayName?.text || "");
+  for (const [id, entry] of places) {
+    const normalized = normalizeName(entry.place.displayName?.text || "");
     if (existingNames.includes(normalized)) {
-      console.log(`Fuzzy dedup: "${place.displayName?.text}" matches existing name`);
+      console.log(`Fuzzy dedup: "${entry.place.displayName?.text}" matches existing name`);
       skippedCount++;
     } else {
-      dedupedPlaces.set(id, place);
-      existingNames.push(normalized); // prevent dupes within same batch
+      dedupedPlaces.set(id, entry);
+      existingNames.push(normalized);
     }
   }
 
@@ -281,9 +289,9 @@ serve(async (req) => {
       );
     }
 
-    // ── 2. AI Relevance Filter ──
+    // ── 2. AI Relevance + Type Classification ──
     const { relevant: relevantPlaces, skippedCount: skippedIrrelevant } =
-      await filterRelevantPlaces(allPlaces);
+      await filterAndClassifyPlaces(allPlaces);
     console.log(`${relevantPlaces.size} relevant after AI filter (${skippedIrrelevant} filtered)`);
 
     // ── 3. Google Place ID dedup ──
@@ -302,13 +310,13 @@ serve(async (req) => {
       ...(existingPending || []).map((l: any) => l.google_place_id),
     ]);
 
-    const afterIdDedup = new Map<string, PlaceResult>();
+    const afterIdDedup = new Map<string, { place: PlaceResult; type: string }>();
     let skippedByPlaceId = 0;
-    for (const [id, place] of relevantPlaces) {
+    for (const [id, entry] of relevantPlaces) {
       if (existingIds.has(id)) {
         skippedByPlaceId++;
       } else {
-        afterIdDedup.set(id, place);
+        afterIdDedup.set(id, entry);
       }
     }
 
@@ -344,11 +352,11 @@ serve(async (req) => {
         cityRow = newCity;
       }
 
-      for (const [, place] of newPlaces) {
+      for (const [placeId, { place, type: venueType }] of newPlaces) {
         const name = place.displayName?.text || "Unknown";
-        const slug = name.toLowerCase().replace(/\s+/g, "-").replace(/[^\w-]/g, "") + "-" + place.id.slice(-6);
+        const slug = name.toLowerCase().replace(/\s+/g, "-").replace(/[^\w-]/g, "") + "-" + placeId.slice(-6);
         const { error } = await supabase.from("lounges").insert({
-          name, slug, city_id: cityRow!.id, type: "lounge",
+          name, slug, city_id: cityRow!.id, type: venueType,
           address: place.formattedAddress || null,
           phone: place.nationalPhoneNumber || null,
           website: place.websiteUri || null,
@@ -358,9 +366,9 @@ serve(async (req) => {
           longitude: place.location?.longitude || null,
           hours: buildHours(place),
           image_url: getPhotoUrl(place, GOOGLE_PLACES_API_KEY),
-          google_place_id: place.id,
+          google_place_id: placeId,
         });
-        if (error) console.error(`Error inserting lounge "${name}":`, error);
+        if (error) console.error(`Error inserting "${name}":`, error);
         else insertedCount++;
       }
 
@@ -368,11 +376,11 @@ serve(async (req) => {
         .from("lounges").select("id", { count: "exact", head: true }).eq("city_id", cityRow!.id);
       await supabase.from("cities").update({ lounge_count: count || 0 }).eq("id", cityRow!.id);
     } else {
-      for (const [, place] of newPlaces) {
+      for (const [placeId, { place, type: venueType }] of newPlaces) {
         const name = place.displayName?.text || "Unknown";
-        const slug = name.toLowerCase().replace(/\s+/g, "-").replace(/[^\w-]/g, "") + "-" + place.id.slice(-6);
+        const slug = name.toLowerCase().replace(/\s+/g, "-").replace(/[^\w-]/g, "") + "-" + placeId.slice(-6);
         const { error } = await supabase.from("pending_lounges").insert({
-          name, slug, city_name: city, country, type: "lounge",
+          name, slug, city_name: city, country, type: venueType,
           source: "google_places", status: "pending",
           address: place.formattedAddress || null,
           phone: place.nationalPhoneNumber || null,
@@ -383,7 +391,7 @@ serve(async (req) => {
           longitude: place.location?.longitude || null,
           hours: buildHours(place),
           image_url: getPhotoUrl(place, GOOGLE_PLACES_API_KEY),
-          google_place_id: place.id,
+          google_place_id: placeId,
         });
         if (error) console.error(`Error inserting pending "${name}":`, error);
         else insertedCount++;

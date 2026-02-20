@@ -15,7 +15,7 @@ import { EditPendingDialog } from "@/components/admin/EditPendingDialog";
 import { BulkActionBar } from "@/components/admin/BulkActionBar";
 import { FetchCityImagesButton } from "@/components/admin/FetchCityImagesButton";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2, ShieldAlert, Check, X, Download } from "lucide-react";
+import { Loader2, ShieldAlert, Check, X, Download, RefreshCw } from "lucide-react";
 import type { Tables } from "@/integrations/supabase/types";
 
 type PendingLounge = Tables<"pending_lounges">;
@@ -102,6 +102,51 @@ const AdminPendingPage = () => {
   const queryClient = useQueryClient();
   const { toast } = useToast();
   const [exporting, setExporting] = useState(false);
+  const [reclassifying, setReclassifying] = useState(false);
+  const [reclassifyProgress, setReclassifyProgress] = useState("");
+
+  const handleReclassifyVenues = async () => {
+    if (!session?.access_token) return;
+    setReclassifying(true);
+    setReclassifyProgress("Starting...");
+    let offset = 0;
+    let totalClassified = 0;
+    let totalReclassified = 0;
+
+    try {
+      while (true) {
+        setReclassifyProgress(`Processing batch at offset ${offset}...`);
+        const res = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/reclassify-venues`, {
+          method: "POST",
+          headers: {
+            Authorization: `Bearer ${session.access_token}`,
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({ table: "lounges", offset }),
+        });
+
+        if (!res.ok) throw new Error(await res.text());
+        const data = await res.json();
+        
+        totalClassified += data.classified || 0;
+        totalReclassified += data.reclassified || 0;
+
+        if (!data.next_offset) break;
+        offset = data.next_offset;
+      }
+
+      toast({
+        title: "Reclassification complete",
+        description: `${totalClassified} venues processed, ${totalReclassified} reclassified as shop/both`,
+      });
+      queryClient.invalidateQueries();
+    } catch (err: any) {
+      toast({ title: "Reclassification failed", description: err.message, variant: "destructive" });
+    } finally {
+      setReclassifying(false);
+      setReclassifyProgress("");
+    }
+  };
 
   const handleExportDatabase = async (tablesParam?: string) => {
     if (!session?.access_token) return;
@@ -304,6 +349,10 @@ const AdminPendingPage = () => {
         <h1 className="text-3xl font-display font-bold mb-6">Admin: Pending Lounges</h1>
 
         <div className="flex flex-wrap justify-end gap-2 mb-4">
+          <Button variant="outline" onClick={handleReclassifyVenues} disabled={reclassifying}>
+            <RefreshCw className={`h-4 w-4 mr-2 ${reclassifying ? "animate-spin" : ""}`} />
+            {reclassifying ? reclassifyProgress : "Reclassify Venue Types"}
+          </Button>
           <FetchCityImagesButton />
           <Button variant="outline" onClick={() => handleExportDatabase("lounges")} disabled={exporting}>
             <Download className="h-4 w-4 mr-2" />
