@@ -14,7 +14,7 @@ import { PendingLoungeCard } from "@/components/admin/PendingLoungeCard";
 import { EditPendingDialog } from "@/components/admin/EditPendingDialog";
 import { BulkActionBar } from "@/components/admin/BulkActionBar";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2, ShieldAlert, Check, X } from "lucide-react";
+import { Loader2, ShieldAlert, Check, X, Download } from "lucide-react";
 import type { Tables } from "@/integrations/supabase/types";
 
 type PendingLounge = Tables<"pending_lounges">;
@@ -95,11 +95,36 @@ async function approveLounge(lounge: PendingLounge, userId: string) {
 }
 
 const AdminPendingPage = () => {
-  const { user, loading: authLoading } = useAuth();
+  const { user, session, loading: authLoading } = useAuth();
   const { data: isAdmin, isLoading: roleLoading } = useAdminRole();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const { toast } = useToast();
+  const [exporting, setExporting] = useState(false);
+
+  const handleExportDatabase = async () => {
+    if (!session?.access_token) return;
+    setExporting(true);
+    try {
+      const res = await fetch(
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/export-database`,
+        { headers: { Authorization: `Bearer ${session.access_token}` } }
+      );
+      if (!res.ok) throw new Error(await res.text());
+      const blob = await res.blob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `database-export-${new Date().toISOString().split("T")[0]}.xlsx`;
+      a.click();
+      URL.revokeObjectURL(url);
+      toast({ title: "Export complete", description: "Database downloaded as Excel file" });
+    } catch (err: any) {
+      toast({ title: "Export failed", description: err.message, variant: "destructive" });
+    } finally {
+      setExporting(false);
+    }
+  };
 
   const [statusFilter, setStatusFilter] = useState("pending");
   const [search, setSearch] = useState("");
@@ -275,6 +300,13 @@ const AdminPendingPage = () => {
     <div className="min-h-screen bg-background">
       <div className="max-w-5xl mx-auto px-4 py-8">
         <h1 className="text-3xl font-display font-bold mb-6">Admin: Pending Lounges</h1>
+
+        <div className="flex justify-end mb-4">
+          <Button variant="outline" onClick={handleExportDatabase} disabled={exporting}>
+            <Download className="h-4 w-4 mr-2" />
+            {exporting ? "Exporting..." : "Export Database (Excel)"}
+          </Button>
+        </div>
 
         <DiscoverCitiesForm onSendToScraper={(cities) => setDiscoveredCities(cities)} />
 
