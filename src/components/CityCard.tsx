@@ -44,11 +44,11 @@ const CityCard = ({ name, country, loungeCount, imageUrl, slug, index }: CityCar
         <div className="absolute inset-0 bg-gradient-to-r from-transparent via-primary/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
 
         {/* Content */}
-        <div className="absolute bottom-0 left-0 right-0 p-5">
-          <h3 className="font-display text-xl font-bold text-foreground">{name}</h3>
-          <p className="text-sm text-muted-foreground mt-1 font-body">{country}</p>
-          <div className="flex items-center gap-1.5 mt-2 text-primary">
-            <MapPin className="h-3.5 w-3.5" />
+        <div className="absolute bottom-0 left-0 right-0 p-3 sm:p-5">
+          <h3 className="font-display text-lg sm:text-xl font-bold text-foreground">{name}</h3>
+          <p className="text-xs sm:text-sm text-muted-foreground mt-0.5 sm:mt-1 font-body">{country}</p>
+          <div className="flex items-center gap-1 sm:gap-1.5 mt-1.5 sm:mt-2 text-primary">
+            <MapPin className="h-3 sm:h-3.5 w-3 sm:w-3.5" />
             <span className="text-xs font-medium font-body">
               {loungeCount} {loungeCount === 1 ? "lounge" : "lounges"}
             </span>

@@ -70,7 +70,7 @@ const LoungePage = () => {
                 className="absolute inset-0 w-full h-full object-cover"
               />
               <div className="absolute inset-0 bg-gradient-to-t from-background via-background/60 to-background/20" />
-              <div className="relative z-10 container mx-auto px-4 h-full flex flex-col justify-end pb-8">
+              <div className="relative z-10 container mx-auto px-4 h-full flex flex-col justify-end pb-4 sm:pb-8">
                 <Link
                   to={`/city/${city?.slug}`}
                   className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors mb-3 w-fit"
@@ -89,7 +89,7 @@ const LoungePage = () => {
                 <motion.h1
                   initial={{ opacity: 0, y: 20 }}
                   animate={{ opacity: 1, y: 0 }}
-                  className="font-display text-3xl md:text-5xl font-bold text-foreground"
+                  className="font-display text-2xl sm:text-3xl md:text-5xl font-bold text-foreground"
                 >
                   {lounge.name}
                 </motion.h1>
@@ -109,8 +109,8 @@ const LoungePage = () => {
             </section>
 
             {/* Content */}
-            <section className="container mx-auto px-4 py-10">
-              <div className="grid grid-cols-1 lg:grid-cols-3 gap-10">
+            <section className="container mx-auto px-4 py-6 sm:py-10">
+              <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 sm:gap-10">
                 {/* Main */}
                 <div className="lg:col-span-2 space-y-10">
                   {/* Description */}
