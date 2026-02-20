@@ -205,68 +205,50 @@ const CityPage = () => {
                 );
 
               return (
-                <div className="space-y-16">
-                  {cigarLounges.length > 0 && (
-                    <div>
-                      <div className="flex items-center gap-2 mb-6">
-                        <Trophy className="h-5 w-5 text-primary" />
-                        <h2 className="font-display text-2xl font-bold text-foreground">
-                          Top Cigar Lounges
-                        </h2>
-                        <span className="text-sm text-muted-foreground font-body">
-                          ({cigarLounges.length})
-                        </span>
-                      </div>
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 lg:gap-12">
+                  {/* Lounges Column */}
+                  <div>
+                    <div className="flex items-center gap-2 mb-6">
+                      <Trophy className="h-5 w-5 text-primary" />
+                      <h2 className="font-display text-2xl font-bold text-foreground">
+                        Lounges
+                      </h2>
+                      <span className="text-sm text-muted-foreground font-body">
+                        ({cigarLounges.length})
+                      </span>
+                    </div>
+                    {cigarLounges.length > 0 ? (
                       <div className="space-y-4">
-                        {cigarLounges.slice(0, 5).map((lounge, index) => (
-                          <RankedLoungeCard key={lounge.id} lounge={lounge} rank={index + 1} />
+                        {cigarLounges.map((lounge, index) => (
+                          <RankedLoungeCard key={lounge.id} lounge={lounge} rank={index + 1} dimmed={index >= 5} />
                         ))}
                       </div>
-                      {cigarLounges.length > 5 && (
-                        <div className="mt-8">
-                          <h3 className="font-display text-xl font-semibold text-muted-foreground mb-6">
-                            More Lounges
-                          </h3>
-                          <div className="space-y-4">
-                            {cigarLounges.slice(5).map((lounge, index) => (
-                              <RankedLoungeCard key={lounge.id} lounge={lounge} rank={index + 6} dimmed />
-                            ))}
-                          </div>
-                        </div>
-                      )}
-                    </div>
-                  )}
+                    ) : (
+                      <p className="text-muted-foreground font-body text-sm">No lounges found yet.</p>
+                    )}
+                  </div>
 
-                  {cigarShops.length > 0 && (
-                    <div>
-                      <div className="flex items-center gap-2 mb-6">
-                        <Trophy className="h-5 w-5 text-primary" />
-                        <h2 className="font-display text-2xl font-bold text-foreground">
-                          Top Cigar Shops
-                        </h2>
-                        <span className="text-sm text-muted-foreground font-body">
-                          ({cigarShops.length})
-                        </span>
-                      </div>
+                  {/* Shops Column */}
+                  <div>
+                    <div className="flex items-center gap-2 mb-6">
+                      <Trophy className="h-5 w-5 text-primary" />
+                      <h2 className="font-display text-2xl font-bold text-foreground">
+                        Shops
+                      </h2>
+                      <span className="text-sm text-muted-foreground font-body">
+                        ({cigarShops.length})
+                      </span>
+                    </div>
+                    {cigarShops.length > 0 ? (
                       <div className="space-y-4">
-                        {cigarShops.slice(0, 5).map((lounge, index) => (
-                          <RankedLoungeCard key={lounge.id} lounge={lounge} rank={index + 1} />
+                        {cigarShops.map((lounge, index) => (
+                          <RankedLoungeCard key={lounge.id} lounge={lounge} rank={index + 1} dimmed={index >= 5} />
                         ))}
                       </div>
-                      {cigarShops.length > 5 && (
-                        <div className="mt-8">
-                          <h3 className="font-display text-xl font-semibold text-muted-foreground mb-6">
-                            More Shops
-                          </h3>
-                          <div className="space-y-4">
-                            {cigarShops.slice(5).map((lounge, index) => (
-                              <RankedLoungeCard key={lounge.id} lounge={lounge} rank={index + 6} dimmed />
-                            ))}
-                          </div>
-                        </div>
-                      )}
-                    </div>
-                  )}
+                    ) : (
+                      <p className="text-muted-foreground font-body text-sm">No shops found yet.</p>
+                    )}
+                  </div>
                 </div>
               );
             })()
