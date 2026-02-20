@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Textarea } from "@/components/ui/textarea";
@@ -7,7 +7,7 @@ import { Label } from "@/components/ui/label";
 import { Progress } from "@/components/ui/progress";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
-import { Search, Loader2, Globe } from "lucide-react";
+import { Search, Loader2, Globe, Pause, Play } from "lucide-react";
 
 interface ScrapeResult {
   city: string;
@@ -31,6 +31,8 @@ export const ImportForm = ({ onComplete, initialCities }: Props) => {
   const [autoApprove, setAutoApprove] = useState(false);
   const [source, setSource] = useState<Source>("google_places");
   const [isLoading, setIsLoading] = useState(false);
+  const [isPaused, setIsPaused] = useState(false);
+  const pausedRef = useRef(false);
   const [progress, setProgress] = useState<{ current: number; total: number; cityName: string } | null>(null);
   const [results, setResults] = useState<ScrapeResult[]>([]);
   const { toast } = useToast();
@@ -66,7 +68,15 @@ export const ImportForm = ({ onComplete, initialCities }: Props) => {
     const scrapeResults: ScrapeResult[] = [];
     let totalInserted = 0;
 
+    pausedRef.current = false;
+    setIsPaused(false);
+
     for (let i = 0; i < entries.length; i++) {
+      // Wait while paused
+      while (pausedRef.current) {
+        await new Promise((r) => setTimeout(r, 300));
+      }
+
       const { city, country } = entries[i];
       setProgress({ current: i + 1, total: entries.length, cityName: city });
 
@@ -94,6 +104,8 @@ export const ImportForm = ({ onComplete, initialCities }: Props) => {
           error: err instanceof Error ? err.message : "Unknown error",
         });
       }
+
+      setResults([...scrapeResults]);
     }
 
     setResults(scrapeResults);
@@ -186,9 +198,19 @@ export const ImportForm = ({ onComplete, initialCities }: Props) => {
 
         {progress && (
           <div className="mt-4 space-y-2">
-            <p className="text-sm text-muted-foreground">
-              {source === "google_places" ? "Searching" : "Scraping"} {progress.current}/{progress.total}: <span className="text-foreground font-medium">{progress.cityName}</span>...
-            </p>
+            <div className="flex items-center justify-between">
+              <p className="text-sm text-muted-foreground">
+                {isPaused ? "Paused at" : (source === "google_places" ? "Searching" : "Scraping")} {progress.current}/{progress.total}: <span className="text-foreground font-medium">{progress.cityName}</span>{isPaused ? "" : "..."}
+              </p>
+              <Button
+                type="button"
+                size="sm"
+                variant="outline"
+                onClick={() => { pausedRef.current = !pausedRef.current; setIsPaused(!isPaused); }}
+              >
+                {isPaused ? <><Play className="mr-1 h-3 w-3" />Resume</> : <><Pause className="mr-1 h-3 w-3" />Pause</>}
+              </Button>
+            </div>
             <Progress value={(progress.current / progress.total) * 100} className="h-2" />
           </div>
         )}
