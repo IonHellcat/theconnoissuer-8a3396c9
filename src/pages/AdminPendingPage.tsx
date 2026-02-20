@@ -1,4 +1,4 @@
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
@@ -192,6 +192,12 @@ const AdminPendingPage = () => {
     },
   });
 
+  useEffect(() => {
+    if (!authLoading && !roleLoading && !user) {
+      navigate("/auth");
+    }
+  }, [user, authLoading, roleLoading, navigate]);
+
   if (authLoading || roleLoading) {
     return (
       <div className="flex items-center justify-center min-h-screen bg-background">
@@ -201,7 +207,6 @@ const AdminPendingPage = () => {
   }
 
   if (!user) {
-    navigate("/auth");
     return null;
   }
 
