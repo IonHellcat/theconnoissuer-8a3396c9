@@ -19,59 +19,73 @@ import type { Tables } from "@/integrations/supabase/types";
 
 type PendingLounge = Tables<"pending_lounges">;
 
-async function approveLounge(lounge: PendingLounge, userId: string) {
-  // Find or create city, handling duplicate slugs gracefully
+// Cache to prevent parallel city creation race conditions
+const cityCache = new Map<string, string>();
+
+async function getOrCreateCity(cityName: string, country: string): Promise<string> {
+  const cacheKey = `${cityName}|${country}`;
+  if (cityCache.has(cacheKey)) return cityCache.get(cacheKey)!;
+
   let { data: city } = await supabase
     .from("cities")
     .select("id")
-    .eq("name", lounge.city_name)
+    .eq("name", cityName)
     .maybeSingle();
 
   if (!city) {
-    const slug = lounge.city_name.toLowerCase().replace(/\s+/g, "-").replace(/[^\w-]/g, "");
-    // Check if slug already exists (different city name, same slug)
-    const { data: existingBySlug } = await supabase
+    const slug = cityName.toLowerCase().replace(/\s+/g, "-").replace(/[^\w-]/g, "");
+    // Try insert, but handle conflict gracefully (race condition)
+    const { data: newCity, error: cityErr } = await supabase
       .from("cities")
+      .insert({ name: cityName, country, slug })
       .select("id")
-      .eq("slug", slug)
-      .maybeSingle();
+      .single();
 
-    if (existingBySlug) {
-      city = existingBySlug;
-    } else {
-      const { data: newCity, error: cityErr } = await supabase
+    if (cityErr) {
+      // If duplicate, just fetch the existing one
+      const { data: existing } = await supabase
         .from("cities")
-        .insert({ name: lounge.city_name, country: lounge.country, slug })
         .select("id")
-        .single();
-      if (cityErr) throw cityErr;
+        .eq("name", cityName)
+        .maybeSingle();
+      if (!existing) {
+        // Try by slug as fallback
+        const { data: bySlug } = await supabase
+          .from("cities")
+          .select("id")
+          .eq("slug", slug)
+          .maybeSingle();
+        if (!bySlug) throw cityErr;
+        city = bySlug;
+      } else {
+        city = existing;
+      }
+    } else {
       city = newCity;
     }
   }
 
-  // Check if lounge with same slug already exists in this city
-  const { data: existingLounge } = await supabase
-    .from("lounges")
-    .select("id")
-    .eq("city_id", city!.id)
-    .eq("slug", lounge.slug)
-    .maybeSingle();
+  cityCache.set(cacheKey, city!.id);
+  return city!.id;
+}
 
-  if (!existingLounge) {
-    const { error: loungeErr } = await supabase.from("lounges").insert({
-      name: lounge.name, slug: lounge.slug, city_id: city!.id, type: lounge.type,
-      address: lounge.address, description: lounge.description, phone: lounge.phone,
-      website: lounge.website, rating: lounge.rating || 0, review_count: lounge.review_count || 0,
-      price_tier: lounge.price_tier || 2, features: lounge.features,
-      cigar_highlights: lounge.cigar_highlights, image_url: lounge.image_url,
-      gallery: lounge.gallery, latitude: lounge.latitude, longitude: lounge.longitude,
-      hours: lounge.hours, google_place_id: lounge.google_place_id,
-    });
-    if (loungeErr) throw loungeErr;
-  }
+async function approveLounge(lounge: PendingLounge, userId: string) {
+  const cityId = await getOrCreateCity(lounge.city_name, lounge.country);
 
-  const { count } = await supabase.from("lounges").select("id", { count: "exact", head: true }).eq("city_id", city!.id);
-  await supabase.from("cities").update({ lounge_count: count || 0 }).eq("id", city!.id);
+  // Use upsert to handle duplicate lounges gracefully
+  const { error: loungeErr } = await supabase.from("lounges").upsert({
+    name: lounge.name, slug: lounge.slug, city_id: cityId, type: lounge.type,
+    address: lounge.address, description: lounge.description, phone: lounge.phone,
+    website: lounge.website, rating: lounge.rating || 0, review_count: lounge.review_count || 0,
+    price_tier: lounge.price_tier || 2, features: lounge.features,
+    cigar_highlights: lounge.cigar_highlights, image_url: lounge.image_url,
+    gallery: lounge.gallery, latitude: lounge.latitude, longitude: lounge.longitude,
+    hours: lounge.hours, google_place_id: lounge.google_place_id,
+  }, { onConflict: "city_id,slug" });
+  if (loungeErr) throw loungeErr;
+
+  const { count } = await supabase.from("lounges").select("id", { count: "exact", head: true }).eq("city_id", cityId);
+  await supabase.from("cities").update({ lounge_count: count || 0 }).eq("id", cityId);
 
   const { error: statusErr } = await supabase
     .from("pending_lounges")
