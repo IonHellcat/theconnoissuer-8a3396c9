@@ -12,6 +12,12 @@ import OptimizedImage from "@/components/OptimizedImage";
 const priceTierLabel = (tier: number) => "$".repeat(tier);
 const rankColors = ["", "text-yellow-500", "text-zinc-400", "text-amber-700", "text-primary", "text-primary"];
 
+// Bayesian weighted score: accounts for both rating and review count
+// C = minimum reviews to be considered reliable, m = global average rating
+const computeWeightedScore = (rating: number, reviewCount: number, C = 10, m = 4.0) => {
+  return (reviewCount / (reviewCount + C)) * rating + (C / (reviewCount + C)) * m;
+};
+
 const RankedLoungeCard = ({ lounge, rank, dimmed }: { lounge: any; rank: number; dimmed?: boolean }) => (
   <motion.div
     initial={{ opacity: 0, y: 20 }}
@@ -184,7 +190,14 @@ const CityPage = () => {
               ))}
             </div>
           ) : lounges && lounges.length > 0 ? (
-            <>
+            (() => {
+              // Sort by weighted score instead of raw rating
+              const sorted = [...lounges].sort((a, b) =>
+                computeWeightedScore(Number(b.rating), b.review_count) -
+                computeWeightedScore(Number(a.rating), a.review_count)
+              );
+              return (
+              <>
               {/* Top 5 Ranked */}
               <div className="mb-10">
                 <div className="flex items-center gap-2 mb-6">
@@ -192,26 +205,28 @@ const CityPage = () => {
                   <h2 className="font-display text-2xl font-bold text-foreground">Top Rated</h2>
                 </div>
                 <div className="space-y-4">
-                  {lounges.slice(0, 5).map((lounge, index) => (
+                  {sorted.slice(0, 5).map((lounge, index) => (
                     <RankedLoungeCard key={lounge.id} lounge={lounge} rank={index + 1} />
                   ))}
                 </div>
               </div>
 
               {/* Rest */}
-              {lounges.length > 5 && (
+              {sorted.length > 5 && (
                 <div>
                   <h2 className="font-display text-xl font-semibold text-muted-foreground mb-6">
                     More Places
                   </h2>
                   <div className="space-y-4">
-                    {lounges.slice(5).map((lounge, index) => (
+                    {sorted.slice(5).map((lounge, index) => (
                       <RankedLoungeCard key={lounge.id} lounge={lounge} rank={index + 6} dimmed />
                     ))}
                   </div>
                 </div>
               )}
             </>
+              );
+            })()
           ) : (
             <div className="text-center py-16">
               <p className="text-muted-foreground font-body">
