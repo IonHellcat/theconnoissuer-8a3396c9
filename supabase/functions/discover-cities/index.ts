@@ -36,13 +36,10 @@ serve(async (req) => {
       );
     }
 
-    const results: { country: string; cities: string[]; error?: string }[] = [];
-
-    for (const country of countries) {
+    async function discoverForCountry(country: string): Promise<{ country: string; cities: string[]; error?: string }> {
       try {
         console.log(`Discovering cities for: ${country}`);
 
-        // Search with Firecrawl
         const queries = [
           `best cities for cigars in ${country}`,
           `top cigar lounge cities ${country}`,
@@ -69,11 +66,9 @@ serve(async (req) => {
         }
 
         if (!combinedContent.trim()) {
-          results.push({ country, cities: [], error: "No search results found" });
-          continue;
+          return { country, cities: [], error: "No search results found" };
         }
 
-        // Extract cities with AI
         const aiRes = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
           method: "POST",
           headers: {
@@ -121,8 +116,7 @@ serve(async (req) => {
         if (!aiRes.ok) {
           const errText = await aiRes.text();
           console.error(`AI error for ${country}:`, errText);
-          results.push({ country, cities: [], error: "AI extraction failed" });
-          continue;
+          return { country, cities: [], error: "AI extraction failed" };
         }
 
         const aiData = await aiRes.json();
@@ -134,19 +128,27 @@ serve(async (req) => {
           cities = parsed.cities || [];
         }
 
-        // Deduplicate
         cities = [...new Set(cities.map((c: string) => c.trim()).filter(Boolean))];
-
         console.log(`Found ${cities.length} cities for ${country}:`, cities);
-        results.push({ country, cities });
+        return { country, cities };
       } catch (err) {
         console.error(`Error for ${country}:`, err);
-        results.push({
+        return {
           country,
           cities: [],
           error: err instanceof Error ? err.message : "Unknown error",
-        });
+        };
       }
+    }
+
+    // Process in parallel batches of 3 to avoid timeout
+    const BATCH_SIZE = 3;
+    const results: { country: string; cities: string[]; error?: string }[] = [];
+
+    for (let i = 0; i < countries.length; i += BATCH_SIZE) {
+      const batch = countries.slice(i, i + BATCH_SIZE);
+      const batchResults = await Promise.all(batch.map(discoverForCountry));
+      results.push(...batchResults);
     }
 
     return new Response(JSON.stringify({ success: true, results }), {
