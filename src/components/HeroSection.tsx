@@ -15,7 +15,7 @@ const HeroSection = () => {
   };
 
   return (
-    <section className="relative min-h-[90vh] flex items-center justify-center overflow-hidden">
+    <section className="relative min-h-[70vh] sm:min-h-[80vh] md:min-h-[90vh] flex items-center justify-center overflow-hidden">
       {/* Background gradient */}
       <div className="absolute inset-0 bg-gradient-to-b from-background via-background/95 to-background" />
       <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,hsl(41_55%_58%/0.08)_0%,transparent_70%)]" />
@@ -31,7 +31,7 @@ const HeroSection = () => {
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.8, ease: "easeOut" }}
         >
-          <h1 className="font-display text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-bold leading-tight">
+          <h1 className="font-display text-3xl sm:text-5xl md:text-6xl lg:text-7xl font-bold leading-tight">
             <span className="text-foreground">Discover the World's</span>
             <br />
             <span className="text-gradient-gold">Finest Cigar Lounges</span>
@@ -52,22 +52,22 @@ const HeroSection = () => {
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.8, delay: 0.4, ease: "easeOut" }}
-          className="mt-10 max-w-xl mx-auto"
+          className="mt-8 sm:mt-10 max-w-xl mx-auto px-2 sm:px-0"
         >
           <div className="relative group">
             <div className="absolute -inset-0.5 bg-gradient-to-r from-primary/50 to-gold-light/50 rounded-lg blur opacity-30 group-hover:opacity-50 transition-opacity" />
             <div className="relative flex items-center bg-secondary rounded-lg border border-border/50">
-              <Search className="ml-4 h-5 w-5 text-muted-foreground flex-shrink-0" />
+              <Search className="ml-3 sm:ml-4 h-5 w-5 text-muted-foreground flex-shrink-0" />
               <input
                 type="text"
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}
-                placeholder="Search by city, country, or lounge name..."
-                className="flex-1 bg-transparent px-4 py-4 text-foreground placeholder:text-muted-foreground focus:outline-none text-base font-body"
+                placeholder="Search cities or lounges..."
+                className="flex-1 bg-transparent px-3 sm:px-4 py-3 sm:py-4 text-foreground placeholder:text-muted-foreground focus:outline-none text-sm sm:text-base font-body min-w-0"
               />
               <button
                 type="submit"
-                className="mr-2 px-6 py-2 bg-primary text-primary-foreground rounded-md text-sm font-medium hover:bg-primary/90 transition-colors"
+                className="mr-1.5 sm:mr-2 px-4 sm:px-6 py-2 bg-primary text-primary-foreground rounded-md text-sm font-medium hover:bg-primary/90 transition-colors flex-shrink-0"
               >
                 Search
               </button>

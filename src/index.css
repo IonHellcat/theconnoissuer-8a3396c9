@@ -61,6 +61,7 @@
 
   body {
     @apply bg-background text-foreground font-sans antialiased;
+    -webkit-tap-highlight-color: transparent;
   }
 
   h1, h2, h3, h4, h5, h6 {
@@ -70,6 +71,16 @@
   /* Reduce CLS by reserving space for images */
   img {
     content-visibility: auto;
+  }
+
+  /* Better touch targets on mobile */
+  @media (max-width: 640px) {
+    /* Apply to interactive nav/form elements only */
+    nav button,
+    nav a,
+    form button {
+      min-height: 44px;
+    }
   }
 }
 
