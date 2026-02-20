@@ -181,7 +181,7 @@ const CityPage = () => {
           </div>
         </section>
 
-        {/* Lounges List */}
+        {/* Lounges & Shops */}
         <section className="container mx-auto px-4 py-12">
           {isLoading ? (
             <div className="space-y-4">
@@ -191,40 +191,83 @@ const CityPage = () => {
             </div>
           ) : lounges && lounges.length > 0 ? (
             (() => {
-              // Sort by weighted score instead of raw rating
-              const sorted = [...lounges].sort((a, b) =>
-                computeWeightedScore(Number(b.rating), b.review_count) -
-                computeWeightedScore(Number(a.rating), a.review_count)
-              );
-              return (
-              <>
-              {/* Top 5 Ranked */}
-              <div className="mb-10">
-                <div className="flex items-center gap-2 mb-6">
-                  <Trophy className="h-5 w-5 text-primary" />
-                  <h2 className="font-display text-2xl font-bold text-foreground">Top Rated</h2>
-                </div>
-                <div className="space-y-4">
-                  {sorted.slice(0, 5).map((lounge, index) => (
-                    <RankedLoungeCard key={lounge.id} lounge={lounge} rank={index + 1} />
-                  ))}
-                </div>
-              </div>
+              const cigarLounges = [...lounges]
+                .filter((l) => l.type === "lounge" || l.type === "both")
+                .sort((a, b) =>
+                  computeWeightedScore(Number(b.rating), b.review_count) -
+                  computeWeightedScore(Number(a.rating), a.review_count)
+                );
+              const cigarShops = [...lounges]
+                .filter((l) => l.type === "shop")
+                .sort((a, b) =>
+                  computeWeightedScore(Number(b.rating), b.review_count) -
+                  computeWeightedScore(Number(a.rating), a.review_count)
+                );
 
-              {/* Rest */}
-              {sorted.length > 5 && (
-                <div>
-                  <h2 className="font-display text-xl font-semibold text-muted-foreground mb-6">
-                    More Places
-                  </h2>
-                  <div className="space-y-4">
-                    {sorted.slice(5).map((lounge, index) => (
-                      <RankedLoungeCard key={lounge.id} lounge={lounge} rank={index + 6} dimmed />
-                    ))}
-                  </div>
+              return (
+                <div className="space-y-16">
+                  {cigarLounges.length > 0 && (
+                    <div>
+                      <div className="flex items-center gap-2 mb-6">
+                        <Trophy className="h-5 w-5 text-primary" />
+                        <h2 className="font-display text-2xl font-bold text-foreground">
+                          Top Cigar Lounges
+                        </h2>
+                        <span className="text-sm text-muted-foreground font-body">
+                          ({cigarLounges.length})
+                        </span>
+                      </div>
+                      <div className="space-y-4">
+                        {cigarLounges.slice(0, 5).map((lounge, index) => (
+                          <RankedLoungeCard key={lounge.id} lounge={lounge} rank={index + 1} />
+                        ))}
+                      </div>
+                      {cigarLounges.length > 5 && (
+                        <div className="mt-8">
+                          <h3 className="font-display text-xl font-semibold text-muted-foreground mb-6">
+                            More Lounges
+                          </h3>
+                          <div className="space-y-4">
+                            {cigarLounges.slice(5).map((lounge, index) => (
+                              <RankedLoungeCard key={lounge.id} lounge={lounge} rank={index + 6} dimmed />
+                            ))}
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  )}
+
+                  {cigarShops.length > 0 && (
+                    <div>
+                      <div className="flex items-center gap-2 mb-6">
+                        <Trophy className="h-5 w-5 text-primary" />
+                        <h2 className="font-display text-2xl font-bold text-foreground">
+                          Top Cigar Shops
+                        </h2>
+                        <span className="text-sm text-muted-foreground font-body">
+                          ({cigarShops.length})
+                        </span>
+                      </div>
+                      <div className="space-y-4">
+                        {cigarShops.slice(0, 5).map((lounge, index) => (
+                          <RankedLoungeCard key={lounge.id} lounge={lounge} rank={index + 1} />
+                        ))}
+                      </div>
+                      {cigarShops.length > 5 && (
+                        <div className="mt-8">
+                          <h3 className="font-display text-xl font-semibold text-muted-foreground mb-6">
+                            More Shops
+                          </h3>
+                          <div className="space-y-4">
+                            {cigarShops.slice(5).map((lounge, index) => (
+                              <RankedLoungeCard key={lounge.id} lounge={lounge} rank={index + 6} dimmed />
+                            ))}
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  )}
                 </div>
-              )}
-            </>
               );
             })()
           ) : (
