@@ -115,11 +115,27 @@ const GenerateDescriptionsPage = () => {
       }
       await generateOne(lounge);
       setBulkProgress({ current: i + 1, total: batch.length });
-      // Small delay to avoid rate limits
       if (i < batch.length - 1) await new Promise((r) => setTimeout(r, 500));
     }
     setBulkProgress(null);
     toast({ title: "Bulk generation complete", description: `Processed ${batch.length} lounges.` });
+  };
+
+  const bulkSaveAll = async () => {
+    if (!lounges) return;
+    const entries = Object.entries(drafts);
+    let saved = 0;
+    for (const [id, description] of entries) {
+      const lounge = lounges.find((l) => l.id === id);
+      if (!lounge) continue;
+      try {
+        await saveMutation.mutateAsync({ lounge, description });
+        saved++;
+      } catch {
+        // individual error toasts handled by mutation
+      }
+    }
+    toast({ title: "Bulk save complete", description: `Saved ${saved}/${entries.length} descriptions.` });
   };
 
   if (authLoading || roleLoading) {
@@ -143,14 +159,25 @@ const GenerateDescriptionsPage = () => {
               {lounges ? `${lounges.length} lounges missing descriptions` : "Loading..."}
             </p>
           </div>
-          <Button
-            onClick={bulkGenerate}
-            disabled={!!bulkProgress || !lounges?.length}
-            className="gap-2"
-          >
-            <Wand2 className="h-4 w-4" />
-            Bulk Generate (Top 50)
-          </Button>
+          <div className="flex gap-2">
+            <Button
+              onClick={bulkSaveAll}
+              disabled={saveMutation.isPending || Object.keys(drafts).length === 0}
+              variant="outline"
+              className="gap-2"
+            >
+              <Save className="h-4 w-4" />
+              Bulk Save ({Object.keys(drafts).length})
+            </Button>
+            <Button
+              onClick={bulkGenerate}
+              disabled={!!bulkProgress || !lounges?.length}
+              className="gap-2"
+            >
+              <Wand2 className="h-4 w-4" />
+              Bulk Generate (Top 50)
+            </Button>
+          </div>
         </div>
 
         {bulkProgress && (
