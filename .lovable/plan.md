@@ -1,106 +1,44 @@
 
 
-# Accuracy and Deduplication Layer
+# Fetch Missing City Images
 
-## Current State
-- Database has 0 lounges and 0 pending lounges (fresh start)
-- The `search-places` edge function already deduplicates by `google_place_id` against both `lounges` and `pending_lounges` before inserting
-- However, there are gaps that will cause problems as data grows
+## Problem
+45 cities are missing images, and while a `fetch-city-images` backend function exists (using Google Places API), there's no way to trigger it from the admin UI. The function also only processes 3 cities per call.
 
-## Gaps to Fix
+## Plan
 
-1. **No database-level uniqueness** -- if two requests run simultaneously or a place comes from Firecrawl (no Place ID) and Google Places, duplicates can slip through
-2. **No relevance filtering** -- Google Places returns hookah bars, vape shops, and general tobacco stores that aren't cigar lounges
-3. **No fuzzy name matching** -- same business with slightly different names (e.g., "The Cigar Bar" vs "Cigar Bar") won't be caught
-4. **No reporting** -- admin doesn't see how many were skipped or why
+### 1. Update the backend function
+Modify `supabase/functions/fetch-city-images/index.ts` to:
+- Accept an optional `mode` parameter: `"missing"` (default, only cities without images) or `"all"` (re-fetch all cities, replacing existing images)
+- Accept an optional `limit` parameter (default 5, max 10) to control batch size
+- Accept an optional `city_ids` array to target specific cities
+- Increase default batch from 3 to 5 for faster processing
 
-## What Gets Built
+### 2. Add a "Fetch City Images" button to the Admin page
+In `src/pages/AdminPendingPage.tsx`, add a button next to the existing export buttons that:
+- Calls the `fetch-city-images` function repeatedly until all cities are processed
+- Shows a progress indicator (e.g., "Fetched 15/45 cities...")
+- Allows choosing between "Missing only" and "All cities" modes
+- Displays results as they come in (which cities succeeded/failed)
 
-### 1. Database: Unique Indexes (safety net)
-Add partial unique indexes so duplicates are impossible even if application logic fails:
-- `lounges.google_place_id` (where not null) -- unique
-- `pending_lounges.google_place_id` (where not null) -- unique
+### 3. Add config.toml entry
+Add `verify_jwt = false` for `fetch-city-images` (it already exists for `generate-city-images` but not `fetch-city-images`).
 
-These are partial indexes so rows without a Place ID (e.g., manually added lounges) are unaffected.
-
-### 2. AI Relevance Filter in `search-places`
-After collecting Google Places results, batch all business names into a single AI call (Gemini Flash Lite via Lovable AI) that answers: "Is each business a cigar lounge, cigar bar, or cigar shop?"
-- Non-cigar businesses (hookah bars, vape shops, general tobacco) get filtered out
-- A confidence flag is stored in the `raw_data` column for admin reference
-- Only one AI call per city (all names batched together), so it's fast and cheap
-
-### 3. Fuzzy Name Dedup in `search-places`
-Before inserting, check for existing lounges with similar names in the same city:
-- Normalize names: lowercase, strip "the", remove punctuation
-- Query existing lounges in the same city and compare normalized names
-- Skip matches and log them as "probable duplicate"
-
-### 4. Enhanced Response Stats
-Update the `search-places` response to return:
-- `count` -- new lounges inserted
-- `total_found` -- raw count from Google Places
-- `skipped_duplicates` -- skipped due to dedup
-- `skipped_irrelevant` -- filtered by AI relevance check
-
-### 5. Admin UI: Better Feedback
-- Show detailed stats in the Import Form results: "8 new, 4 duplicates skipped, 3 non-cigar filtered"
-- Add a "Possible Duplicate" warning badge on pending lounge cards when a similar name exists in the approved lounges table
+---
 
 ## Technical Details
 
-### Database Migration
-```sql
-CREATE UNIQUE INDEX IF NOT EXISTS idx_lounges_google_place_id 
-  ON public.lounges (google_place_id) 
-  WHERE google_place_id IS NOT NULL;
+**Backend function changes** (`supabase/functions/fetch-city-images/index.ts`):
+- Parse request body for `{ mode, limit, city_ids }`
+- When `mode === "all"`, remove the `.is("image_url", null)` filter
+- When `city_ids` is provided, filter by those specific IDs
+- Return `{ processed, results, remaining }` so the frontend knows whether to call again
 
-CREATE UNIQUE INDEX IF NOT EXISTS idx_pending_lounges_google_place_id 
-  ON public.pending_lounges (google_place_id) 
-  WHERE google_place_id IS NOT NULL;
-```
+**Frontend changes** (`src/pages/AdminPendingPage.tsx`):
+- Add a "Fetch City Images" button with a dropdown for mode selection
+- Implement a loop that calls the function, updates progress state, and repeats until `remaining === 0`
+- Show a toast summary when complete
 
-### AI Relevance Filter (added to `search-places`)
-- Uses Lovable AI gateway (no extra API key needed) with Gemini Flash Lite
-- Single batch prompt: "Given these business names and addresses, mark each YES/NO for whether it is a cigar lounge, cigar bar, or cigar shop. Return JSON."
-- Places marked NO are excluded from insertion
-- Keeps the pipeline fast (one call per city, not per place)
-
-### Fuzzy Name Matching Logic
-```text
-normalize("The Cigar Lounge & Bar") -> "cigar lounge bar"
-normalize("Cigar Lounge and Bar")   -> "cigar lounge bar"
--> MATCH, skip as duplicate
-```
-- Applied after Google Place ID dedup
-- Only compares within the same city to avoid false positives
-
-### Updated Response Format
-```json
-{
-  "success": true,
-  "count": 8,
-  "total_found": 15,
-  "skipped_duplicates": 4,
-  "skipped_irrelevant": 3
-}
-```
-
-### Updated Import Form Results Display
-Instead of: "8 new lounge(s)"
-Shows: "8 new | 4 duplicates skipped | 3 non-cigar filtered | 15 total found"
-
-### Pending Lounge Card: Duplicate Warning
-- `AdminPendingPage` fetches all existing lounge names on load
-- Each `PendingLoungeCard` checks if a normalized version of its name matches an existing lounge
-- Shows a small orange "Possible Duplicate" badge if found
-
-## Files Changed / Created
-
-| File | Action |
-|---|---|
-| Database migration | New (unique indexes) |
-| `supabase/functions/search-places/index.ts` | Modified (AI filter, fuzzy dedup, enhanced response) |
-| `src/components/admin/ImportForm.tsx` | Modified (show detailed stats) |
-| `src/components/admin/PendingLoungeCard.tsx` | Modified (duplicate warning badge) |
-| `src/pages/AdminPendingPage.tsx` | Modified (fetch lounge names for comparison) |
+**Config** (`supabase/config.toml`):
+- Add `[functions.fetch-city-images]` with `verify_jwt = false`
 
