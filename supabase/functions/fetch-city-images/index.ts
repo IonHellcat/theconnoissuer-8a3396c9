@@ -83,7 +83,7 @@ serve(async (req) => {
             "X-Goog-FieldMask": "places.photos,places.displayName",
           },
           body: JSON.stringify({
-            textQuery: `${city.name} ${city.country} city landmark`,
+            textQuery: `${city.name} ${city.country} city skyline cityscape aerial view`,
             maxResultCount: 5,
           }),
         });
