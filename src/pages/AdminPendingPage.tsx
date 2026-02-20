@@ -13,6 +13,7 @@ import { DiscoverCitiesForm } from "@/components/admin/DiscoverCitiesForm";
 import { PendingLoungeCard } from "@/components/admin/PendingLoungeCard";
 import { EditPendingDialog } from "@/components/admin/EditPendingDialog";
 import { BulkActionBar } from "@/components/admin/BulkActionBar";
+import { FetchCityImagesButton } from "@/components/admin/FetchCityImagesButton";
 import { useToast } from "@/hooks/use-toast";
 import { Loader2, ShieldAlert, Check, X, Download } from "lucide-react";
 import type { Tables } from "@/integrations/supabase/types";
@@ -302,7 +303,8 @@ const AdminPendingPage = () => {
       <div className="max-w-5xl mx-auto px-4 py-8">
         <h1 className="text-3xl font-display font-bold mb-6">Admin: Pending Lounges</h1>
 
-        <div className="flex justify-end gap-2 mb-4">
+        <div className="flex flex-wrap justify-end gap-2 mb-4">
+          <FetchCityImagesButton />
           <Button variant="outline" onClick={() => handleExportDatabase("lounges")} disabled={exporting}>
             <Download className="h-4 w-4 mr-2" />
             {exporting ? "Exporting..." : "Export Lounges"}
