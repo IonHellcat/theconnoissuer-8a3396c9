@@ -7,6 +7,7 @@ import { useState } from "react";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import CityCard from "@/components/CityCard";
+import OptimizedImage from "@/components/OptimizedImage";
 
 const priceTierLabel = (tier: number) => "$".repeat(tier);
 
@@ -162,10 +163,13 @@ const SearchPage = () => {
                         >
                           <div className="flex flex-col sm:flex-row">
                             <div className="sm:w-56 h-40 sm:h-auto flex-shrink-0 overflow-hidden">
-                              <img
+                              <OptimizedImage
                                 src={lounge.image_url || "/placeholder.svg"}
                                 alt={lounge.name}
-                                loading="lazy"
+                                width={448}
+                                height={320}
+                                sizes="(max-width: 640px) 100vw, 224px"
+                                widths={[320, 448]}
                                 className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
                               />
                             </div>
