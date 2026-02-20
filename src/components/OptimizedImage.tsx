@@ -1,4 +1,4 @@
-import { useState, memo } from "react";
+import { useState, forwardRef } from "react";
 import { getOptimizedImageUrl, getImageSrcSet } from "@/lib/imageUtils";
 import { cn } from "@/lib/utils";
 
@@ -14,7 +14,7 @@ interface OptimizedImageProps {
   quality?: number;
 }
 
-const OptimizedImage = memo(({
+const OptimizedImage = forwardRef<HTMLImageElement, OptimizedImageProps>(({
   src,
   alt,
   width = 640,
@@ -24,11 +24,12 @@ const OptimizedImage = memo(({
   loading = "lazy",
   widths = [320, 640, 960],
   quality = 75,
-}: OptimizedImageProps) => {
+}, ref) => {
   const [loaded, setLoaded] = useState(false);
 
   return (
     <img
+      ref={ref}
       src={getOptimizedImageUrl(src, width, quality)}
       srcSet={getImageSrcSet(src, widths, quality) || undefined}
       sizes={getImageSrcSet(src, widths, quality) ? sizes : undefined}
