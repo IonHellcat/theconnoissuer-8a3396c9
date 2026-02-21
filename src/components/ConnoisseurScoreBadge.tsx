@@ -59,7 +59,7 @@ const ConnoisseurScoreBadge = ({
             className={`${sizeClasses[size]} rounded-full flex items-center justify-center font-display font-bold ${
               isVerified
                 ? "border-2 border-solid border-primary shadow-[0_0_12px_hsl(var(--primary)/0.3)]"
-                : "border-2 border-dashed border-muted-foreground/40 opacity-60"
+                : "border-2 border-dashed border-primary opacity-60"
             }`}
           >
             {score}
