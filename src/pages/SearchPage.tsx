@@ -207,11 +207,6 @@ const SearchPage = () => {
                                   />
                                 </div>
                               </div>
-                              {lounge.description && (
-                                <p className="mt-2 text-sm text-muted-foreground font-body line-clamp-2">
-                                  {lounge.description}
-                                </p>
-                              )}
                               {lounge.address && (
                                 <div className="flex items-center gap-1.5 mt-2 text-xs text-muted-foreground">
                                   <MapPin className="h-3.5 w-3.5" />
