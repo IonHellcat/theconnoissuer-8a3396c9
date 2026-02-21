@@ -28,11 +28,28 @@ serve(async (req) => {
     if (req.method === "POST") {
       try {
         const body = await req.json();
-        if (body.mode === "all") mode = "all";
-        if (body.limit && Number(body.limit) >= 1 && Number(body.limit) <= 10) {
-          limit = Number(body.limit);
+        if (body.mode && !["all", "missing"].includes(body.mode)) {
+          return new Response(JSON.stringify({ error: "Invalid mode (must be 'all' or 'missing')" }), {
+            status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
+          });
         }
-        if (Array.isArray(body.city_ids) && body.city_ids.length > 0) {
+        if (body.mode === "all") mode = "all";
+        if (body.limit) {
+          const n = Number(body.limit);
+          if (!Number.isInteger(n) || n < 1 || n > 10) {
+            return new Response(JSON.stringify({ error: "Invalid limit (integer 1-10)" }), {
+              status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
+            });
+          }
+          limit = n;
+        }
+        if (body.city_ids !== undefined) {
+          if (!Array.isArray(body.city_ids) || body.city_ids.length === 0 || body.city_ids.length > 20 ||
+              !body.city_ids.every((id: unknown) => typeof id === "string" && id.length <= 100)) {
+            return new Response(JSON.stringify({ error: "Invalid city_ids (array of 1-20 string IDs)" }), {
+              status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
+            });
+          }
           city_ids = body.city_ids;
         }
       } catch {

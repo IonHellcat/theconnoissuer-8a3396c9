@@ -69,9 +69,21 @@ serve(async (req) => {
     }
 
     const { lounge } = await req.json();
-    if (!lounge?.name) {
+    if (!lounge || typeof lounge !== "object" || !lounge.name || typeof lounge.name !== "string" || lounge.name.length > 200) {
       return new Response(
-        JSON.stringify({ error: "Missing lounge data" }),
+        JSON.stringify({ error: "Missing or invalid lounge data (name required, max 200 chars)" }),
+        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+    if (lounge.address && (typeof lounge.address !== "string" || lounge.address.length > 300)) {
+      return new Response(
+        JSON.stringify({ error: "Invalid address (max 300 chars)" }),
+        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+    if (lounge.description && (typeof lounge.description !== "string" || lounge.description.length > 1000)) {
+      return new Response(
+        JSON.stringify({ error: "Invalid description (max 1000 chars)" }),
         { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }

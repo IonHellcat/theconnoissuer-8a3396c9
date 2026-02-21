@@ -95,6 +95,15 @@ serve(async (req) => {
     const body = await req.json();
     const { action } = body;
 
+    // Input validation
+    const validActions = ["fetch-reviews", "analyze", "mark-no-reviews", "save"];
+    if (!action || !validActions.includes(action)) {
+      return new Response(
+        JSON.stringify({ error: `Invalid action. Must be one of: ${validActions.join(", ")}` }),
+        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
     // Service role client for writing data
     const serviceClient = createClient(
       Deno.env.get("SUPABASE_URL")!,
@@ -103,6 +112,12 @@ serve(async (req) => {
 
     if (action === "fetch-reviews") {
       const { lounge_id, google_place_id } = body;
+      if (lounge_id && (typeof lounge_id !== "string" || lounge_id.length > 100)) {
+        return new Response(
+          JSON.stringify({ error: "Invalid lounge_id" }),
+          { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
       if (!google_place_id) {
         return new Response(
           JSON.stringify({ reviews: [], message: "No google_place_id" }),
@@ -179,7 +194,25 @@ serve(async (req) => {
     if (action === "analyze") {
       const { lounge_name, lounge_type, city, country, reviews } = body;
 
-      if (!reviews || reviews.length === 0) {
+      if (typeof lounge_name !== "string" || lounge_name.length > 200) {
+        return new Response(
+          JSON.stringify({ error: "Invalid lounge_name (max 200 chars)" }),
+          { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+      if (lounge_type && !["lounge", "shop", "both"].includes(lounge_type)) {
+        return new Response(
+          JSON.stringify({ error: "Invalid lounge_type" }),
+          { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+      if (typeof city !== "string" || city.length > 100 || typeof country !== "string" || country.length > 100) {
+        return new Response(
+          JSON.stringify({ error: "Invalid city/country (max 100 chars)" }),
+          { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+      if (!reviews || !Array.isArray(reviews) || reviews.length === 0) {
         return new Response(
           JSON.stringify({ error: "No reviews to analyze" }),
           { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
@@ -307,6 +340,12 @@ Example: {"cigar_selection": 4.5, "ambiance": 4.0, "service": null, "drinks": 3.
 
     if (action === "mark-no-reviews") {
       const { lounge_id } = body;
+      if (!lounge_id || typeof lounge_id !== "string" || lounge_id.length > 100) {
+        return new Response(
+          JSON.stringify({ error: "Invalid lounge_id" }),
+          { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
 
       const { error } = await serviceClient
         .from("lounges")
@@ -323,6 +362,18 @@ Example: {"cigar_selection": 4.5, "ambiance": 4.0, "service": null, "drinks": 3.
 
     if (action === "save") {
       const { lounge_id, connoisseur_score, score_label, pillar_scores, score_summary } = body;
+      if (!lounge_id || typeof lounge_id !== "string" || lounge_id.length > 100) {
+        return new Response(
+          JSON.stringify({ error: "Invalid lounge_id" }),
+          { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+      if (connoisseur_score !== null && connoisseur_score !== undefined && (typeof connoisseur_score !== "number" || connoisseur_score < 0 || connoisseur_score > 100)) {
+        return new Response(
+          JSON.stringify({ error: "Invalid connoisseur_score (0-100)" }),
+          { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
 
       const { error } = await serviceClient
         .from("lounges")
