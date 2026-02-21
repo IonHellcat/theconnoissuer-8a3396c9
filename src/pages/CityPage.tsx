@@ -30,76 +30,57 @@ const RankedLoungeCard = ({ lounge, rank, dimmed }: { lounge: any; rank: number;
         rank <= 3 ? "border-primary/30 hover:border-primary/60" : "border-border/50 hover:border-primary/30"
       } ${dimmed ? "opacity-80" : ""}`}
     >
-      <div className="flex flex-col md:flex-row">
-        <div className="md:w-72 h-48 md:h-auto flex-shrink-0 overflow-hidden relative">
-          <OptimizedImage
-            src={lounge.image_url || "/placeholder.svg"}
-            alt={lounge.name}
-            width={480}
-            height={320}
-            sizes="(max-width: 768px) 100vw, 288px"
-            widths={[320, 480]}
-            className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
-          />
-          <div className="absolute top-3 left-3 z-10 flex items-center gap-1 bg-background/90 backdrop-blur-sm rounded-full px-2.5 py-1">
-            {rank <= 3 && <Crown className={`h-3.5 w-3.5 ${rankColors[rank]}`} />}
-            <span className={`text-sm font-bold font-display ${rank <= 3 ? rankColors[rank] : "text-muted-foreground"}`}>
-              #{rank}
-            </span>
-          </div>
-          <div className="absolute top-3 right-3 z-10">
-            <FavoriteButton loungeId={lounge.id} />
-          </div>
+      {/* Vertical layout for mobile 2-col grid */}
+      <div className="relative aspect-[4/3] overflow-hidden">
+        <OptimizedImage
+          src={lounge.image_url || "/placeholder.svg"}
+          alt={lounge.name}
+          width={480}
+          height={320}
+          sizes="(max-width: 768px) 50vw, 288px"
+          widths={[240, 480]}
+          className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
+        />
+        <div className="absolute top-2 left-2 z-10 flex items-center gap-1 bg-background/90 backdrop-blur-sm rounded-full px-2 py-0.5">
+          {rank <= 3 && <Crown className={`h-3 w-3 ${rankColors[rank]}`} />}
+          <span className={`text-xs font-bold font-display ${rank <= 3 ? rankColors[rank] : "text-muted-foreground"}`}>
+            #{rank}
+          </span>
         </div>
-        <div className="flex-1 p-5 md:p-6">
-          <div className="flex items-start justify-between gap-3">
-            <div>
-              <div className="flex items-center gap-2 mb-1">
-                <span className="text-xs font-medium font-body px-2 py-0.5 rounded-full bg-primary/10 text-primary capitalize">
-                  {lounge.type}
-                </span>
-                <span className="text-xs text-muted-foreground font-body">
-                  {priceTierLabel(lounge.price_tier)}
-                </span>
-              </div>
-              <h3 className="font-display text-xl font-bold text-foreground group-hover:text-primary transition-colors">
-                {lounge.name}
-              </h3>
-            </div>
-            <div className="flex items-center gap-1 flex-shrink-0">
-              <Star className="h-4 w-4 fill-primary text-primary" />
-              <span className="text-sm font-semibold text-foreground font-body">
-                {Number(lounge.rating).toFixed(1)}
-              </span>
-              <span className="text-xs text-muted-foreground font-body">
-                ({lounge.review_count})
-              </span>
-            </div>
-          </div>
-          <p className="mt-2 text-sm text-muted-foreground font-body line-clamp-2">
-            {lounge.description}
-          </p>
-          {lounge.address && (
-            <div className="flex items-center gap-1.5 mt-3 text-xs text-muted-foreground">
-              <MapPin className="h-3.5 w-3.5" />
-              <span className="font-body">{lounge.address}</span>
-            </div>
-          )}
-          {lounge.features && lounge.features.length > 0 && (
-            <div className="flex flex-wrap gap-1.5 mt-3">
-              {lounge.features.slice(0, 4).map((feature: string) => (
-                <span key={feature} className="text-xs font-body px-2 py-0.5 rounded-full bg-secondary text-muted-foreground">
-                  {feature}
-                </span>
-              ))}
-              {lounge.features.length > 4 && (
-                <span className="text-xs font-body text-muted-foreground">
-                  +{lounge.features.length - 4} more
-                </span>
-              )}
-            </div>
-          )}
+        <div className="absolute top-2 right-2 z-10">
+          <FavoriteButton loungeId={lounge.id} />
         </div>
+      </div>
+      <div className="p-2.5 sm:p-4">
+        <div className="flex items-center gap-1.5 mb-1">
+          <span className="text-[10px] sm:text-xs font-medium font-body px-1.5 py-0.5 rounded-full bg-primary/10 text-primary capitalize">
+            {lounge.type}
+          </span>
+          <span className="text-[10px] sm:text-xs text-muted-foreground font-body">
+            {priceTierLabel(lounge.price_tier)}
+          </span>
+        </div>
+        <h3 className="font-display text-sm sm:text-base font-bold text-foreground group-hover:text-primary transition-colors line-clamp-1">
+          {lounge.name}
+        </h3>
+        <div className="flex items-center gap-1 mt-1">
+          <Star className="h-3 w-3 sm:h-3.5 sm:w-3.5 fill-primary text-primary" />
+          <span className="text-xs font-semibold text-foreground font-body">
+            {Number(lounge.rating).toFixed(1)}
+          </span>
+          <span className="text-[10px] text-muted-foreground font-body">
+            ({lounge.review_count})
+          </span>
+        </div>
+        <p className="hidden sm:block mt-1.5 text-xs text-muted-foreground font-body line-clamp-2">
+          {lounge.description}
+        </p>
+        {lounge.address && (
+          <div className="hidden sm:flex items-center gap-1 mt-2 text-[10px] sm:text-xs text-muted-foreground">
+            <MapPin className="h-3 w-3" />
+            <span className="font-body line-clamp-1">{lounge.address}</span>
+          </div>
+        )}
       </div>
     </Link>
   </motion.div>
@@ -205,15 +186,15 @@ const CityPage = () => {
                 );
 
               return (
-                <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 lg:gap-12">
+                <div className="grid grid-cols-2 gap-3 sm:gap-6 lg:gap-12">
                   {/* Lounges Column */}
                   <div>
-                    <div className="flex items-center gap-2 mb-6">
-                      <Trophy className="h-5 w-5 text-primary" />
-                      <h2 className="font-display text-2xl font-bold text-foreground">
+                    <div className="flex items-center gap-1.5 sm:gap-2 mb-3 sm:mb-6">
+                      <Trophy className="h-4 w-4 sm:h-5 sm:w-5 text-primary" />
+                      <h2 className="font-display text-base sm:text-2xl font-bold text-foreground">
                         Lounges
                       </h2>
-                      <span className="text-sm text-muted-foreground font-body">
+                      <span className="text-xs sm:text-sm text-muted-foreground font-body">
                         ({cigarLounges.length})
                       </span>
                     </div>
@@ -230,12 +211,12 @@ const CityPage = () => {
 
                   {/* Shops Column */}
                   <div>
-                    <div className="flex items-center gap-2 mb-6">
-                      <Trophy className="h-5 w-5 text-primary" />
-                      <h2 className="font-display text-2xl font-bold text-foreground">
+                    <div className="flex items-center gap-1.5 sm:gap-2 mb-3 sm:mb-6">
+                      <Trophy className="h-4 w-4 sm:h-5 sm:w-5 text-primary" />
+                      <h2 className="font-display text-base sm:text-2xl font-bold text-foreground">
                         Shops
                       </h2>
-                      <span className="text-sm text-muted-foreground font-body">
+                      <span className="text-xs sm:text-sm text-muted-foreground font-body">
                         ({cigarShops.length})
                       </span>
                     </div>
