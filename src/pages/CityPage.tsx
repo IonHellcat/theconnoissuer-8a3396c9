@@ -8,6 +8,7 @@ import Footer from "@/components/Footer";
 import FavoriteButton from "@/components/FavoriteButton";
 import OptimizedImage from "@/components/OptimizedImage";
 import ConnoisseurScoreBadge from "@/components/ConnoisseurScoreBadge";
+import ScoreExplainer from "@/components/ScoreExplainer";
 
 
 const priceTierLabel = (tier: number) => "$".repeat(tier);
@@ -181,6 +182,7 @@ const CityPage = () => {
 
         {/* Lounges & Shops */}
         <section className="container mx-auto px-4 py-12">
+          <ScoreExplainer />
           {isLoading ? (
             <div className="space-y-4">
               {Array.from({ length: 3 }).map((_, i) => (
