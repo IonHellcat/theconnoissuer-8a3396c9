@@ -59,6 +59,20 @@ serve(async (req) => {
         { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
+    if (countries.length > 10) {
+      return new Response(
+        JSON.stringify({ error: "Maximum 10 countries per request" }),
+        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+    for (const c of countries) {
+      if (typeof c !== "string" || c.length < 2 || c.length > 60) {
+        return new Response(
+          JSON.stringify({ error: "Each country must be a string (2-60 chars)" }),
+          { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+    }
 
     const FIRECRAWL_API_KEY = Deno.env.get("FIRECRAWL_API_KEY");
     if (!FIRECRAWL_API_KEY) {

@@ -223,9 +223,21 @@ serve(async (req) => {
 
   try {
     const { city, country, auto_approve } = await req.json();
-    if (!city || !country) {
+    if (!city || typeof city !== "string" || city.length < 2 || city.length > 100) {
       return new Response(
-        JSON.stringify({ error: "city and country are required" }),
+        JSON.stringify({ error: "city is required (2-100 chars)" }),
+        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+    if (!country || typeof country !== "string" || country.length < 2 || country.length > 60) {
+      return new Response(
+        JSON.stringify({ error: "country is required (2-60 chars)" }),
+        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+    if (auto_approve !== undefined && typeof auto_approve !== "boolean") {
+      return new Response(
+        JSON.stringify({ error: "auto_approve must be a boolean" }),
         { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }

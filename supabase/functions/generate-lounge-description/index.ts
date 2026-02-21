@@ -55,13 +55,22 @@ serve(async (req) => {
     }
 
     const { lounge } = await req.json();
-    if (!lounge?.name) {
+    if (!lounge || typeof lounge !== "object" || !lounge.name || typeof lounge.name !== "string" || lounge.name.length > 200) {
       return new Response(
-        JSON.stringify({ error: "Missing lounge data" }),
-        {
-          status: 400,
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
-        }
+        JSON.stringify({ error: "Missing or invalid lounge data (name required, max 200 chars)" }),
+        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+    if (lounge.address && (typeof lounge.address !== "string" || lounge.address.length > 300)) {
+      return new Response(
+        JSON.stringify({ error: "Invalid address (max 300 chars)" }),
+        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+    if (lounge.city && (typeof lounge.city !== "string" || lounge.city.length > 100)) {
+      return new Response(
+        JSON.stringify({ error: "Invalid city (max 100 chars)" }),
+        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
 

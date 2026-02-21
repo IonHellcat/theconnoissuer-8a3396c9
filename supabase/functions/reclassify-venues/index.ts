@@ -57,6 +57,12 @@ Deno.serve(async (req) => {
 
     const { table = "lounges", offset = 0 } = await req.json();
     const targetTable = table === "pending_lounges" ? "pending_lounges" : "lounges";
+    if (typeof offset !== "number" || offset < 0 || offset > 100000 || !Number.isInteger(offset)) {
+      return new Response(JSON.stringify({ error: "Invalid offset (integer 0-100000)" }), {
+        status: 400,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
 
     // Fetch a batch of venues
     const { data: venues, error: fetchErr } = await serviceClient
