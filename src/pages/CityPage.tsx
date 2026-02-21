@@ -195,18 +195,19 @@ const CityPage = () => {
             </div>
           ) : lounges && lounges.length > 0 ? (
             (() => {
+              const scoreSort = (a: any, b: any) => {
+                const aScore = a.connoisseur_score ?? -1;
+                const bScore = b.connoisseur_score ?? -1;
+                if (bScore !== aScore) return bScore - aScore;
+                return computeWeightedScore(Number(b.rating), b.review_count) -
+                  computeWeightedScore(Number(a.rating), a.review_count);
+              };
               const cigarLounges = [...lounges]
                 .filter((l) => l.type === "lounge" || l.type === "both")
-                .sort((a, b) =>
-                  computeWeightedScore(Number(b.rating), b.review_count) -
-                  computeWeightedScore(Number(a.rating), a.review_count)
-                );
+                .sort(scoreSort);
               const cigarShops = [...lounges]
                 .filter((l) => l.type === "shop")
-                .sort((a, b) =>
-                  computeWeightedScore(Number(b.rating), b.review_count) -
-                  computeWeightedScore(Number(a.rating), a.review_count)
-                );
+                .sort(scoreSort);
 
               return (
                 <div className="grid grid-cols-2 gap-3 sm:gap-6 lg:gap-12">
