@@ -64,10 +64,10 @@ Deno.serve(async (req) => {
       });
     }
 
-    // Fetch a batch of venues
+    // Fetch a batch of venues with google_types and website instead of description
     const { data: venues, error: fetchErr } = await serviceClient
       .from(targetTable)
-      .select("id, name, address, description")
+      .select("id, name, address, google_types, website")
       .range(offset, offset + BATCH_SIZE - 1)
       .order("created_at", { ascending: true });
 
@@ -78,9 +78,15 @@ Deno.serve(async (req) => {
       });
     }
 
-    // Build business list for AI
+    // Build business list for AI using Google types and website
     const businessList = venues
-      .map((v: any, i: number) => `${i + 1}. "${v.name}" - ${v.address || "no address"} - ${(v.description || "").substring(0, 100)}`)
+      .map((v: any, i: number) => {
+        const googleTypes = v.google_types?.types?.length
+          ? `Google types: ${v.google_types.types.join(", ")}`
+          : "no Google type data";
+        const website = v.website ? `website: ${v.website}` : "no website";
+        return `${i + 1}. "${v.name}" - ${v.address || "no address"} - ${googleTypes} - ${website}`;
+      })
       .join("\n");
 
     const res = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
@@ -90,12 +96,12 @@ Deno.serve(async (req) => {
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        model: "google/gemini-2.5-flash-lite",
+        model: "google/gemini-2.5-flash",
         messages: [
           {
             role: "system",
             content:
-              "You classify cigar businesses. For each numbered business, classify as: 'lounge' (cigar lounge, cigar bar, place primarily for smoking cigars on-site), 'shop' (retail cigar shop, tobacconist, primarily for purchasing cigars), or 'both' (offers both a lounge and retail). Use the name, address, and description to decide. If unclear, default to 'lounge'.",
+              "You classify cigar businesses. For each numbered business, classify as: 'lounge' (cigar lounge, cigar bar, place primarily for smoking cigars on-site), 'shop' (retail cigar shop, tobacconist, primarily for purchasing cigars), or 'both' (offers both a lounge and retail). Use the name, address, Google Places type data, and website URL to decide. Google types like 'bar', 'restaurant', 'night_club' suggest lounge. Types like 'store', 'shopping' suggest shop. If unclear, default to 'lounge'.",
           },
           {
             role: "user",

@@ -125,6 +125,7 @@ export type Database = {
           features: string[] | null
           gallery: string[] | null
           google_place_id: string | null
+          google_types: Json | null
           hours: Json | null
           id: string
           image_url: string | null
@@ -154,6 +155,7 @@ export type Database = {
           features?: string[] | null
           gallery?: string[] | null
           google_place_id?: string | null
+          google_types?: Json | null
           hours?: Json | null
           id?: string
           image_url?: string | null
@@ -183,6 +185,7 @@ export type Database = {
           features?: string[] | null
           gallery?: string[] | null
           google_place_id?: string | null
+          google_types?: Json | null
           hours?: Json | null
           id?: string
           image_url?: string | null
@@ -223,6 +226,7 @@ export type Database = {
           features: string[] | null
           gallery: string[] | null
           google_place_id: string | null
+          google_types: Json | null
           hours: Json | null
           id: string
           image_url: string | null
@@ -251,6 +255,7 @@ export type Database = {
           features?: string[] | null
           gallery?: string[] | null
           google_place_id?: string | null
+          google_types?: Json | null
           hours?: Json | null
           id?: string
           image_url?: string | null
@@ -279,6 +284,7 @@ export type Database = {
           features?: string[] | null
           gallery?: string[] | null
           google_place_id?: string | null
+          google_types?: Json | null
           hours?: Json | null
           id?: string
           image_url?: string | null
