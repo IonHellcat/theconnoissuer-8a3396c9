@@ -105,7 +105,7 @@ const AdminPendingPage = () => {
   const [reclassifying, setReclassifying] = useState(false);
   const [reclassifyProgress, setReclassifyProgress] = useState("");
 
-  const handleReclassifyVenues = async () => {
+  const handleReclassifyVenues = async (targetTable: "lounges" | "pending_lounges" = "lounges") => {
     if (!session?.access_token) return;
     setReclassifying(true);
     setReclassifyProgress("Starting...");
@@ -122,7 +122,7 @@ const AdminPendingPage = () => {
             Authorization: `Bearer ${session.access_token}`,
             "Content-Type": "application/json",
           },
-          body: JSON.stringify({ table: "lounges", offset }),
+          body: JSON.stringify({ table: targetTable, offset }),
         });
 
         if (!res.ok) throw new Error(await res.text());
@@ -349,9 +349,13 @@ const AdminPendingPage = () => {
         <h1 className="text-3xl font-display font-bold mb-6">Admin: Pending Lounges</h1>
 
         <div className="flex flex-wrap justify-end gap-2 mb-4">
-          <Button variant="outline" onClick={handleReclassifyVenues} disabled={reclassifying}>
+          <Button variant="outline" onClick={() => handleReclassifyVenues("pending_lounges")} disabled={reclassifying}>
             <RefreshCw className={`h-4 w-4 mr-2 ${reclassifying ? "animate-spin" : ""}`} />
-            {reclassifying ? reclassifyProgress : "Reclassify Venue Types"}
+            {reclassifying ? reclassifyProgress : "Reclassify Pending"}
+          </Button>
+          <Button variant="outline" onClick={() => handleReclassifyVenues("lounges")} disabled={reclassifying}>
+            <RefreshCw className={`h-4 w-4 mr-2 ${reclassifying ? "animate-spin" : ""}`} />
+            {reclassifying ? reclassifyProgress : "Reclassify Approved"}
           </Button>
           <FetchCityImagesButton />
           <Button variant="outline" onClick={() => handleExportDatabase("lounges")} disabled={exporting}>

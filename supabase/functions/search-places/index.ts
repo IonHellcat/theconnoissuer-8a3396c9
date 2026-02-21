@@ -8,7 +8,7 @@ const corsHeaders = {
 };
 
 const FIELD_MASK =
-  "places.id,places.displayName,places.formattedAddress,places.nationalPhoneNumber,places.websiteUri,places.rating,places.userRatingCount,places.regularOpeningHours,places.location,places.photos";
+  "places.id,places.displayName,places.formattedAddress,places.nationalPhoneNumber,places.websiteUri,places.rating,places.userRatingCount,places.regularOpeningHours,places.location,places.photos,places.primaryType,places.types";
 
 interface PlaceResult {
   id: string;
@@ -24,6 +24,8 @@ interface PlaceResult {
   };
   location?: { latitude: number; longitude: number };
   photos?: { name: string }[];
+  primaryType?: string;
+  types?: string[];
 }
 
 // ── Helpers ──
@@ -51,7 +53,10 @@ async function filterAndClassifyPlaces(
 
   const entries = [...places.entries()];
   const businessList = entries
-    .map(([id, p], i) => `${i + 1}. "${p.displayName?.text || "Unknown"}" - ${p.formattedAddress || "no address"}`)
+    .map(([id, p], i) => {
+      const googleTypes = p.types?.length ? ` - Google types: ${p.types.join(", ")}` : "";
+      return `${i + 1}. "${p.displayName?.text || "Unknown"}" - ${p.formattedAddress || "no address"}${googleTypes}`;
+    })
     .join("\n");
 
   try {
@@ -367,6 +372,9 @@ serve(async (req) => {
       for (const [placeId, { place, type: venueType }] of newPlaces) {
         const name = place.displayName?.text || "Unknown";
         const slug = name.toLowerCase().replace(/\s+/g, "-").replace(/[^\w-]/g, "") + "-" + placeId.slice(-6);
+        const googleTypes = place.primaryType || place.types?.length
+          ? { primaryType: place.primaryType || null, types: place.types || [] }
+          : null;
         const { error } = await supabase.from("lounges").insert({
           name, slug, city_id: cityRow!.id, type: venueType,
           address: place.formattedAddress || null,
@@ -379,6 +387,7 @@ serve(async (req) => {
           hours: buildHours(place),
           image_url: getPhotoUrl(place, GOOGLE_PLACES_API_KEY),
           google_place_id: placeId,
+          google_types: googleTypes,
         });
         if (error) console.error(`Error inserting "${name}":`, error);
         else insertedCount++;
@@ -391,6 +400,9 @@ serve(async (req) => {
       for (const [placeId, { place, type: venueType }] of newPlaces) {
         const name = place.displayName?.text || "Unknown";
         const slug = name.toLowerCase().replace(/\s+/g, "-").replace(/[^\w-]/g, "") + "-" + placeId.slice(-6);
+        const googleTypes = place.primaryType || place.types?.length
+          ? { primaryType: place.primaryType || null, types: place.types || [] }
+          : null;
         const { error } = await supabase.from("pending_lounges").insert({
           name, slug, city_name: city, country, type: venueType,
           source: "google_places", status: "pending",
@@ -404,6 +416,7 @@ serve(async (req) => {
           hours: buildHours(place),
           image_url: getPhotoUrl(place, GOOGLE_PLACES_API_KEY),
           google_place_id: placeId,
+          google_types: googleTypes,
         });
         if (error) console.error(`Error inserting pending "${name}":`, error);
         else insertedCount++;
