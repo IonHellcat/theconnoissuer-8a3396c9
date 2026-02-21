@@ -91,9 +91,6 @@ const RankedLoungeCard = ({ lounge, rank, dimmed }: { lounge: any; rank: number;
             size="sm"
           />
         </div>
-        <p className="hidden sm:block mt-1.5 text-xs text-muted-foreground font-body line-clamp-2">
-          {lounge.description}
-        </p>
         {lounge.address && (
           <div className="hidden sm:flex items-center gap-1 mt-2 text-[10px] sm:text-xs text-muted-foreground">
             <MapPin className="h-3 w-3" />

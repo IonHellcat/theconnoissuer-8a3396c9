@@ -213,13 +213,6 @@ const LoungePage = () => {
                     );
                   })()}
 
-                  {/* Description */}
-                  {lounge.description && (
-                    <div>
-                      <h2 className="font-display text-xl font-semibold text-foreground mb-3">About</h2>
-                      <p className="text-muted-foreground font-body leading-relaxed">{lounge.description}</p>
-                    </div>
-                  )}
 
                   {/* Features */}
                   {lounge.features && lounge.features.length > 0 && (
