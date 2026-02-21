@@ -13,7 +13,7 @@ const ScoreExplainer = () => {
             <Trophy className="h-3.5 w-3.5 text-primary" />
             City Rankings
           </div>
-          <p>Venues are ranked by a weighted combination of Google rating and review count — popular, highly-rated spots rise to the top.</p>
+          <p>Venues are ranked by their Connoisseur Score — a multi-pillar quality assessment. Venues without a score fall back to Google rating and review count.</p>
         </div>
         <div className="space-y-1">
           <div className="flex items-center gap-1.5 text-foreground font-semibold font-display">
