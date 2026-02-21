@@ -300,6 +300,22 @@ Example: {"cigar_selection": 4.5, "ambiance": 4.0, "service": null, "drinks": 3.
       );
     }
 
+    if (action === "mark-no-reviews") {
+      const { lounge_id } = body;
+
+      const { error } = await serviceClient
+        .from("lounges")
+        .update({ score_source: "no_reviews" })
+        .eq("id", lounge_id);
+
+      if (error) throw error;
+
+      return new Response(
+        JSON.stringify({ success: true }),
+        { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
     if (action === "save") {
       const { lounge_id, connoisseur_score, score_label, pillar_scores, score_summary } = body;
 

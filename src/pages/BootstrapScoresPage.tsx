@@ -42,6 +42,8 @@ const statusBadge = (source: string) => {
       return <span className="text-[10px] font-medium font-body px-2 py-0.5 rounded-full bg-green-500/20 text-green-400">Estimated</span>;
     case "verified":
       return <span className="text-[10px] font-medium font-body px-2 py-0.5 rounded-full bg-blue-500/20 text-blue-400">Verified</span>;
+    case "no_reviews":
+      return <span className="text-[10px] font-medium font-body px-2 py-0.5 rounded-full bg-muted text-muted-foreground">No Reviews</span>;
     default:
       return <span className="text-[10px] font-medium font-body px-2 py-0.5 rounded-full bg-destructive/20 text-destructive">No Score</span>;
   }
@@ -132,7 +134,7 @@ const BootstrapScoresPage = () => {
     </button>
   );
 
-  const bootstrapSingle = async (lounge: LoungeRow) => {
+  const bootstrapSingle = async (lounge: LoungeRow): Promise<"success" | "no-reviews" | "error"> => {
     setProcessing((p) => ({ ...p, [lounge.id]: true }));
     try {
       // Refresh session to prevent token expiry during bulk operations
@@ -153,9 +155,14 @@ const BootstrapScoresPage = () => {
 
       const reviews = reviewData?.reviews || [];
       if (reviews.length === 0) {
-        toast({ title: "No reviews", description: `${lounge.name} has no text reviews on Google.` });
+        // Mark as no_reviews so it's skipped in future bulk runs
+        await supabase.functions.invoke("bootstrap-scores", {
+          body: { action: "mark-no-reviews", lounge_id: lounge.id },
+        });
+        toast({ title: "No reviews", description: `${lounge.name} marked as no reviews — will be skipped next time.` });
         setProcessing((p) => ({ ...p, [lounge.id]: false }));
-        return;
+        queryClient.invalidateQueries({ queryKey: ["admin-lounges-scores"] });
+        return "no-reviews";
       }
 
       // Step 2: Analyze
@@ -175,8 +182,10 @@ const BootstrapScoresPage = () => {
       setResults((p) => ({ ...p, [lounge.id]: result }));
       setEditedResults((p) => ({ ...p, [lounge.id]: { ...result } }));
       setExpandedLounges((p) => ({ ...p, [lounge.id]: true }));
+      return "success";
     } catch (e: any) {
-      toast({ title: "Bootstrap failed", description: e.message, variant: "destructive" });
+      toast({ title: "Bootstrap failed", description: `${lounge.name}: ${e.message}`, variant: "destructive" });
+      return "error";
     } finally {
       setProcessing((p) => ({ ...p, [lounge.id]: false }));
     }
@@ -227,16 +236,25 @@ const BootstrapScoresPage = () => {
     }
 
     setBulkProgress({ current: 0, total: batch.length, currentName: "" });
+    let successCount = 0;
+    let noReviewCount = 0;
+    let errorCount = 0;
 
     for (let i = 0; i < batch.length; i++) {
       const lounge = batch[i];
       setBulkProgress({ current: i, total: batch.length, currentName: lounge.name });
-      await bootstrapSingle(lounge);
+      const result = await bootstrapSingle(lounge);
+      if (result === "success") successCount++;
+      else if (result === "no-reviews") noReviewCount++;
+      else errorCount++;
       if (i < batch.length - 1) await new Promise((r) => setTimeout(r, 2000));
     }
 
     setBulkProgress(null);
-    toast({ title: "Bulk bootstrap complete", description: `Processed ${batch.length} lounges.` });
+    toast({
+      title: "Bulk bootstrap complete",
+      description: `${successCount} scored, ${noReviewCount} no reviews, ${errorCount} errors.`,
+    });
   };
 
   const bulkSaveAll = async () => {
