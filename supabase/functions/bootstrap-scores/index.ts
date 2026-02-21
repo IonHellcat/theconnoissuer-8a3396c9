@@ -286,13 +286,14 @@ Example: {"cigar_selection": 4.5, "ambiance": 4.0, "service": null, "drinks": 3.
       }
 
       const compositeScore = calculateCompositeScore(pillarScores, weights);
-      const scoreLabel = getScoreLabel(compositeScore);
+      const finalScore = compositeScore === 0 ? null : compositeScore;
+      const finalLabel = finalScore === null ? null : getScoreLabel(compositeScore);
 
       return new Response(
         JSON.stringify({
           pillar_scores: pillarScores,
-          connoisseur_score: compositeScore,
-          score_label: scoreLabel,
+          connoisseur_score: finalScore,
+          score_label: finalLabel,
           score_summary: summary,
         }),
         { headers: { ...corsHeaders, "Content-Type": "application/json" } }

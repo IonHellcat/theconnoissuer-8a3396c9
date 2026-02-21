@@ -471,7 +471,7 @@ const BootstrapScoresPage = () => {
                       <div className="flex-shrink-0 text-center">
                         <div className="h-16 w-16 rounded-full border-2 border-dashed border-primary/50 flex items-center justify-center mx-auto">
                           <span className="text-xl font-bold font-display text-foreground">
-                            {editedResults[lounge.id].connoisseur_score}
+                            {editedResults[lounge.id].connoisseur_score ?? "-"}
                           </span>
                         </div>
                         {editedResults[lounge.id].score_label && (
