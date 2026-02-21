@@ -135,6 +135,12 @@ const BootstrapScoresPage = () => {
   const bootstrapSingle = async (lounge: LoungeRow) => {
     setProcessing((p) => ({ ...p, [lounge.id]: true }));
     try {
+      // Refresh session to prevent token expiry during bulk operations
+      const { error: refreshError } = await supabase.auth.refreshSession();
+      if (refreshError) {
+        console.warn("Session refresh failed:", refreshError.message);
+      }
+
       // Step 1: Fetch reviews
       const { data: reviewData, error: reviewError } = await supabase.functions.invoke("bootstrap-scores", {
         body: {
