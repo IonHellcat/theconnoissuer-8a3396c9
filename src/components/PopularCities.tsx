@@ -2,6 +2,7 @@ import { motion } from "framer-motion";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import CityCard from "./CityCard";
+import FeaturedCities from "./FeaturedCities";
 
 const PopularCities = () => {
   const { data: cities, isLoading } = useQuery({
@@ -33,6 +34,8 @@ const PopularCities = () => {
             Explore top cigar destinations around the world
           </p>
         </motion.div>
+
+        <FeaturedCities />
 
         {isLoading ? (
           <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 md:gap-6">
