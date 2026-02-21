@@ -45,7 +45,7 @@ const HeroSection = () => {
           transition={{ duration: 0.8, delay: 0.2, ease: "easeOut" }}
           className="mt-6 text-lg md:text-xl text-muted-foreground max-w-2xl mx-auto font-body"
         >
-          Find where to smoke wherever you travel
+          The world's most curated guide to cigar lounges.
         </motion.p>
 
         <motion.form

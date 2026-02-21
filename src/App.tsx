@@ -1,4 +1,5 @@
 import { lazy, Suspense } from "react";
+import { HelmetProvider } from "react-helmet-async";
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -37,34 +38,36 @@ const PageLoader = () => (
 );
 
 const App = () => (
-  <QueryClientProvider client={queryClient}>
-    <AuthProvider>
-      <TooltipProvider>
-        <Toaster />
-        <Sonner />
-        <BrowserRouter>
-          <Suspense fallback={<PageLoader />}>
-            <Routes>
-              <Route path="/" element={<Index />} />
-              <Route path="/city/:slug" element={<CityPage />} />
-              <Route path="/search" element={<SearchPage />} />
-              <Route path="/lounge/:slug" element={<LoungePage />} />
-              <Route path="/auth" element={<AuthPage />} />
-              <Route path="/reset-password" element={<ResetPasswordPage />} />
-              <Route path="/explore" element={<ExplorePage />} />
-              <Route path="/favorites" element={<FavoritesPage />} />
-              <Route path="/admin/pending" element={<AdminPendingPage />} />
-              <Route path="/admin/generate-descriptions" element={<GenerateDescriptionsPage />} />
-              <Route path="/admin/generate-features" element={<GenerateFeaturesPage />} />
-              <Route path="/admin/bootstrap-scores" element={<BootstrapScoresPage />} />
-              {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
-              <Route path="*" element={<NotFound />} />
-            </Routes>
-          </Suspense>
-        </BrowserRouter>
-      </TooltipProvider>
-    </AuthProvider>
-  </QueryClientProvider>
+  <HelmetProvider>
+    <QueryClientProvider client={queryClient}>
+      <AuthProvider>
+        <TooltipProvider>
+          <Toaster />
+          <Sonner />
+          <BrowserRouter>
+            <Suspense fallback={<PageLoader />}>
+              <Routes>
+                <Route path="/" element={<Index />} />
+                <Route path="/city/:slug" element={<CityPage />} />
+                <Route path="/search" element={<SearchPage />} />
+                <Route path="/lounge/:slug" element={<LoungePage />} />
+                <Route path="/auth" element={<AuthPage />} />
+                <Route path="/reset-password" element={<ResetPasswordPage />} />
+                <Route path="/explore" element={<ExplorePage />} />
+                <Route path="/favorites" element={<FavoritesPage />} />
+                <Route path="/admin/pending" element={<AdminPendingPage />} />
+                <Route path="/admin/generate-descriptions" element={<GenerateDescriptionsPage />} />
+                <Route path="/admin/generate-features" element={<GenerateFeaturesPage />} />
+                <Route path="/admin/bootstrap-scores" element={<BootstrapScoresPage />} />
+                {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
+                <Route path="*" element={<NotFound />} />
+              </Routes>
+            </Suspense>
+          </BrowserRouter>
+        </TooltipProvider>
+      </AuthProvider>
+    </QueryClientProvider>
+  </HelmetProvider>
 );
 
 export default App;

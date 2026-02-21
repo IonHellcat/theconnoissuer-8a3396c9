@@ -1,6 +1,7 @@
 import { useParams, Link } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { Helmet } from "react-helmet-async";
 import { motion } from "framer-motion";
 import { MapPin, Star, ArrowLeft, Trophy, Crown } from "lucide-react";
 import Navbar from "@/components/Navbar";
@@ -140,6 +141,9 @@ const CityPage = () => {
 
   return (
     <div className="min-h-screen bg-background">
+      <Helmet>
+        <title>{city ? `${city.name} Cigar Lounges — The Connoisseur` : "Loading... — The Connoisseur"}</title>
+      </Helmet>
       <Navbar />
       <main className="pt-16">
         {/* Hero */}

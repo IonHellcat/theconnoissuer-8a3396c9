@@ -1,6 +1,7 @@
 import { useParams, Link } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { Helmet } from "react-helmet-async";
 import { motion } from "framer-motion";
 import {
   ArrowLeft, Star, MapPin, Phone, Globe, Clock,
@@ -46,6 +47,9 @@ const LoungePage = () => {
 
   return (
     <div className="min-h-screen bg-background">
+      <Helmet>
+        <title>{lounge ? `${lounge.name}, ${city?.name} — The Connoisseur` : "Loading... — The Connoisseur"}</title>
+      </Helmet>
       <Navbar />
       <main className="pt-16">
         {isLoading ? (
@@ -132,13 +136,9 @@ const LoungePage = () => {
                       return (
                         <div className="bg-card rounded-xl border border-border/50 p-6 text-center">
                           <p className="text-muted-foreground font-body">Awaiting Connoisseur Score</p>
-                          <div className="flex items-center justify-center gap-1.5 mt-2">
-                            <Star className="h-5 w-5 fill-primary text-primary" />
-                            <span className="text-lg font-semibold text-foreground font-body">
-                              {Number(lounge.rating).toFixed(1)}
-                            </span>
-                            <span className="text-sm text-muted-foreground font-body">Google Rating</span>
-                          </div>
+                          <p className="text-xs text-muted-foreground font-body mt-2">
+                            Google Rating: {Number(lounge.rating).toFixed(1)} ★
+                          </p>
                           <p className="text-sm text-primary font-body mt-3">Be the first to rate this lounge</p>
                         </div>
                       );
@@ -185,6 +185,9 @@ const LoungePage = () => {
                                 Rate this lounge to help verify the Connoisseur Score
                               </p>
                             )}
+                            <p className="text-xs text-muted-foreground font-body mt-2">
+                              Google Rating: {Number(lounge.rating).toFixed(1)} ★
+                            </p>
                           </div>
                         </div>
 
