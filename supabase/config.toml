@@ -14,3 +14,6 @@ verify_jwt = false
 
 [functions.fetch-city-images]
 verify_jwt = false
+
+[functions.generate-lounge-features]
+verify_jwt = false
