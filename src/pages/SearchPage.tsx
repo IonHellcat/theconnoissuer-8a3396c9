@@ -8,6 +8,7 @@ import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import CityCard from "@/components/CityCard";
 import OptimizedImage from "@/components/OptimizedImage";
+import ConnoisseurScoreBadge from "@/components/ConnoisseurScoreBadge";
 
 const priceTierLabel = (tier: number) => "$".repeat(tier);
 
@@ -175,7 +176,7 @@ const SearchPage = () => {
                             </div>
                             <div className="flex-1 p-4 sm:p-5">
                               <div className="flex items-start justify-between gap-3">
-                                <div>
+                                <div className="flex-1 min-w-0">
                                   <div className="flex items-center gap-2 mb-1">
                                     <span className="text-xs font-medium font-body px-2 py-0.5 rounded-full bg-primary/10 text-primary capitalize">
                                       {lounge.type}
@@ -187,15 +188,23 @@ const SearchPage = () => {
                                   <h3 className="font-display text-lg font-bold text-foreground group-hover:text-primary transition-colors">
                                     {lounge.name}
                                   </h3>
+                                  {(lounge as any).score_summary && (
+                                    <p className="text-xs font-body italic text-muted-foreground line-clamp-1 mt-0.5">
+                                      {(lounge as any).score_summary}
+                                    </p>
+                                  )}
                                   <p className="text-xs text-muted-foreground font-body mt-0.5">
                                     {(lounge as any).cities?.name}
                                   </p>
                                 </div>
-                                <div className="flex items-center gap-1 flex-shrink-0">
-                                  <Star className="h-4 w-4 fill-primary text-primary" />
-                                  <span className="text-sm font-semibold text-foreground font-body">
-                                    {Number(lounge.rating).toFixed(1)}
-                                  </span>
+                                <div className="flex items-center gap-3 flex-shrink-0">
+                                  <ConnoisseurScoreBadge
+                                    score={(lounge as any).connoisseur_score}
+                                    scoreLabel={(lounge as any).score_label}
+                                    scoreSource={(lounge as any).score_source || "none"}
+                                    googleRating={Number(lounge.rating)}
+                                    size="sm"
+                                  />
                                 </div>
                               </div>
                               {lounge.description && (

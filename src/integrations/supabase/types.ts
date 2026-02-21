@@ -73,11 +73,53 @@ export type Database = {
           },
         ]
       }
+      google_reviews: {
+        Row: {
+          author_name: string | null
+          fetched_at: string
+          google_place_id: string | null
+          id: string
+          lounge_id: string
+          rating: number | null
+          relative_time: string | null
+          review_text: string | null
+        }
+        Insert: {
+          author_name?: string | null
+          fetched_at?: string
+          google_place_id?: string | null
+          id?: string
+          lounge_id: string
+          rating?: number | null
+          relative_time?: string | null
+          review_text?: string | null
+        }
+        Update: {
+          author_name?: string | null
+          fetched_at?: string
+          google_place_id?: string | null
+          id?: string
+          lounge_id?: string
+          rating?: number | null
+          relative_time?: string | null
+          review_text?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "google_reviews_lounge_id_fkey"
+            columns: ["lounge_id"]
+            isOneToOne: false
+            referencedRelation: "lounges"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       lounges: {
         Row: {
           address: string | null
           cigar_highlights: string[] | null
           city_id: string
+          connoisseur_score: number | null
           created_at: string
           description: string | null
           features: string[] | null
@@ -90,9 +132,13 @@ export type Database = {
           longitude: number | null
           name: string
           phone: string | null
+          pillar_scores: Json | null
           price_tier: number
           rating: number
           review_count: number
+          score_label: string | null
+          score_source: string
+          score_summary: string | null
           slug: string
           type: string
           updated_at: string
@@ -102,6 +148,7 @@ export type Database = {
           address?: string | null
           cigar_highlights?: string[] | null
           city_id: string
+          connoisseur_score?: number | null
           created_at?: string
           description?: string | null
           features?: string[] | null
@@ -114,9 +161,13 @@ export type Database = {
           longitude?: number | null
           name: string
           phone?: string | null
+          pillar_scores?: Json | null
           price_tier?: number
           rating?: number
           review_count?: number
+          score_label?: string | null
+          score_source?: string
+          score_summary?: string | null
           slug: string
           type?: string
           updated_at?: string
@@ -126,6 +177,7 @@ export type Database = {
           address?: string | null
           cigar_highlights?: string[] | null
           city_id?: string
+          connoisseur_score?: number | null
           created_at?: string
           description?: string | null
           features?: string[] | null
@@ -138,9 +190,13 @@ export type Database = {
           longitude?: number | null
           name?: string
           phone?: string | null
+          pillar_scores?: Json | null
           price_tier?: number
           rating?: number
           review_count?: number
+          score_label?: string | null
+          score_source?: string
+          score_summary?: string | null
           slug?: string
           type?: string
           updated_at?: string
