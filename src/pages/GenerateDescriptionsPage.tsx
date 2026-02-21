@@ -151,8 +151,8 @@ const GenerateDescriptionsPage = () => {
   return (
     <div className="min-h-screen bg-background flex flex-col">
       <Navbar />
-      <main className="flex-1 container mx-auto px-4 py-8 max-w-5xl">
-        <div className="flex items-center justify-between mb-8">
+      <main className="flex-1 container mx-auto px-4 pt-24 pb-8 max-w-5xl">
+        <div className="flex flex-col gap-4 mb-8">
           <div>
             <h1 className="font-display text-3xl font-bold text-foreground">Generate Descriptions</h1>
             <p className="text-muted-foreground mt-1">
