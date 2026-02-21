@@ -270,9 +270,14 @@ Example: {"cigar_selection": 4.5, "ambiance": 4.0, "service": null, "drinks": 3.
         parsed = JSON.parse(raw);
       } catch {
         console.error("Failed to parse AI response:", raw);
+        // AI refused or returned non-JSON — treat as unscoreable
         return new Response(
-          JSON.stringify({ error: "Failed to parse AI response", raw }),
-          { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+          JSON.stringify({
+            error: "ai_refused",
+            message: "AI could not analyze this venue. It may need manual scoring.",
+            raw,
+          }),
+          { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
         );
       }
 
