@@ -104,7 +104,7 @@ const GenerateDescriptionsPage = () => {
 
   const bulkGenerate = async () => {
     if (!lounges) return;
-    const batch = lounges.slice(0, 50);
+    const batch = lounges.slice(0, 100);
     setBulkProgress({ current: 0, total: batch.length });
 
     for (let i = 0; i < batch.length; i++) {
@@ -175,7 +175,7 @@ const GenerateDescriptionsPage = () => {
               className="gap-2"
             >
               <Wand2 className="h-4 w-4" />
-              Bulk Generate (Top 50)
+              Bulk Generate (Top 100)
             </Button>
           </div>
         </div>
