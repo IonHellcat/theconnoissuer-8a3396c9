@@ -1,33 +1,48 @@
 
 
-# Add Score Explainer Section to City Page
+# Improve Venue Classification Using Google Places Data
 
-## What This Does
-Adds a compact, elegant explainer panel between the city hero and the lounge listings that educates visitors on how the ranking system works. It will clearly communicate:
+## Problem
+The current reclassification relies on stored descriptions that are mostly empty and potentially inaccurate. Google Places API provides structured type data (`primaryType` and `types` fields) that can definitively categorize businesses.
 
-- Rankings on this page are based on **Google Reviews** (rating + review volume)
-- The **Connoisseur Score** (circular badge) is a deeper, more meaningful assessment based on review analysis across multiple quality pillars
-- A score badge with no number means insufficient data (not a negative judgment)
-- Verified scores carry more weight than estimated ones
+## What Changes
 
-## Design
-A collapsible/accordion-style section with an "Info" icon and title like **"How We Rank"**, placed just above the Lounges/Shops grid. Collapsed by default to keep the page clean, but easy to expand for curious visitors.
+### 1. Database: Add `google_types` column
+Add a `google_types` JSONB column to both `lounges` and `pending_lounges` tables to store the structured Google Places classification data (e.g., `{ "primaryType": "store", "types": ["store", "tobacco_shop"] }`).
 
-**Content when expanded:**
-1. **City Rankings** -- Venues are ranked by a weighted combination of Google rating and review count, so popular and highly-rated spots rise to the top.
-2. **Connoisseur Score** -- A separate quality score (shown as the circular badge) that analyzes reviews across pillars like cigar selection, ambiance, service, drinks, and value. This score is a more meaningful indicator than star ratings alone.
-3. **Estimated vs Verified** -- Estimated scores (dashed border) are AI-analyzed from public reviews. Verified scores (solid border, glowing) come from community member ratings and carry more weight.
-4. **No Score Shown** -- If a venue doesn't display a score, it simply means there wasn't enough data to rate it fairly -- it's not a negative mark.
+### 2. Capture Google types during discovery
+Update the `search-places` function to fetch and store `primaryType` and `types` from Google Places when discovering new venues. This data gets saved into the new `google_types` column and is also passed to the AI filter for better initial classification.
+
+### 3. Improve the reclassify-venues function
+- Use `google_types` and `website` URL instead of descriptions in the AI prompt
+- Drop description from the classification context entirely
+- Upgrade the AI model from Gemini Flash Lite to Gemini 2.5 Flash for better accuracy
+- The AI will see data like: `"Tobacco Palace" - 123 Main St - Google types: store, tobacco_shop - website: tobaccopalace.com`
+
+### 4. Admin UI: Add "Reclassify" button
+Add a "Reclassify Types" button on the admin pending page so you can trigger reclassification directly from the UI with progress feedback.
+
+---
 
 ## Technical Details
 
-### New Component: `src/components/ScoreExplainer.tsx`
-- A reusable collapsible panel using the existing `Collapsible` component from Radix
-- Uses `Info` icon from lucide-react
-- Styled to match existing design system (font-display for headings, font-body for text, muted-foreground colors)
+### Database migration
+```sql
+ALTER TABLE lounges ADD COLUMN google_types jsonb DEFAULT NULL;
+ALTER TABLE pending_lounges ADD COLUMN google_types jsonb DEFAULT NULL;
+```
 
-### Edit: `src/pages/CityPage.tsx`
-- Import and place `<ScoreExplainer />` between the hero section and the lounges grid (around line 182, before the grid rendering)
+### search-places changes
+- Add `places.primaryType,places.types` to `FIELD_MASK`
+- Store `{ primaryType, types }` in `google_types` column on insert
+- Pass Google types to the `filterAndClassifyPlaces` AI call
 
-No database or backend changes required.
+### reclassify-venues changes
+- Fetch `google_types` and `website` instead of `description`
+- Update AI prompt to reference Google type data instead of descriptions
+- Switch model to `gemini-2.5-flash`
+
+### AdminPendingPage changes
+- Add a "Reclassify Types" button that calls `reclassify-venues` with `table: "pending_lounges"`
+- Show batch progress (classified count, remaining)
 
