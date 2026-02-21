@@ -178,6 +178,13 @@ const BootstrapScoresPage = () => {
       });
       if (analysisError) throw analysisError;
 
+      // Handle AI refusal (returned as 200 with error key)
+      if (analysisData?.error === "ai_refused") {
+        toast({ title: "AI skipped", description: `${lounge.name}: AI could not analyze — may need manual scoring.` });
+        setProcessing((p) => ({ ...p, [lounge.id]: false }));
+        return "error";
+      }
+
       const result: AnalysisResult = { ...analysisData, reviews };
       setResults((p) => ({ ...p, [lounge.id]: result }));
       setEditedResults((p) => ({ ...p, [lounge.id]: { ...result } }));
