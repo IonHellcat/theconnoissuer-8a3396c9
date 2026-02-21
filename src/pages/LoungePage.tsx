@@ -202,7 +202,7 @@ const LoungePage = () => {
                                     {pillarLabel(pillar)}
                                   </p>
                                   <p className="text-lg font-bold font-display text-foreground">
-                                    {val !== null && val !== undefined ? val.toFixed(1) : "—"}
+                                    {val !== null && val !== undefined ? Number(val).toFixed(1) : "—"}
                                   </p>
                                 </div>
                               );
