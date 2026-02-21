@@ -2,6 +2,7 @@ import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Search } from "lucide-react";
 import { motion } from "framer-motion";
+import TrustStats from "./TrustStats";
 
 const HeroSection = () => {
   const [query, setQuery] = useState("");
@@ -74,6 +75,8 @@ const HeroSection = () => {
             </div>
           </div>
         </motion.form>
+
+        <TrustStats />
       </div>
     </section>
   );
