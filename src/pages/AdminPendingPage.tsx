@@ -15,7 +15,7 @@ import { EditPendingDialog } from "@/components/admin/EditPendingDialog";
 import { BulkActionBar } from "@/components/admin/BulkActionBar";
 import { FetchCityImagesButton } from "@/components/admin/FetchCityImagesButton";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2, ShieldAlert, Check, X, Download, RefreshCw } from "lucide-react";
+import { Loader2, ShieldAlert, Check, X, Download, RefreshCw, Database } from "lucide-react";
 import type { Tables } from "@/integrations/supabase/types";
 
 type PendingLounge = Tables<"pending_lounges">;
@@ -104,6 +104,47 @@ const AdminPendingPage = () => {
   const [exporting, setExporting] = useState(false);
   const [reclassifying, setReclassifying] = useState(false);
   const [reclassifyProgress, setReclassifyProgress] = useState("");
+  const [backfilling, setBackfilling] = useState(false);
+  const [backfillProgress, setBackfillProgress] = useState("");
+
+  const handleBackfillGoogleTypes = async (targetTable: "lounges" | "pending_lounges" = "lounges") => {
+    if (!session?.access_token) return;
+    setBackfilling(true);
+    setBackfillProgress("Starting...");
+    let offset = 0;
+    let totalUpdated = 0;
+
+    try {
+      while (true) {
+        setBackfillProgress(`Updated ${totalUpdated}, processing...`);
+        const res = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/backfill-google-types`, {
+          method: "POST",
+          headers: {
+            Authorization: `Bearer ${session.access_token}`,
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({ table: targetTable, offset }),
+        });
+
+        if (!res.ok) throw new Error(await res.text());
+        const data = await res.json();
+        totalUpdated += data.updated || 0;
+
+        if (!data.next_offset) break;
+        offset = data.next_offset;
+      }
+
+      toast({
+        title: "Backfill complete",
+        description: `${totalUpdated} venues updated with Google types`,
+      });
+    } catch (err: any) {
+      toast({ title: "Backfill failed", description: err.message, variant: "destructive" });
+    } finally {
+      setBackfilling(false);
+      setBackfillProgress("");
+    }
+  };
 
   const handleReclassifyVenues = async (targetTable: "lounges" | "pending_lounges" = "lounges") => {
     if (!session?.access_token) return;
@@ -356,6 +397,10 @@ const AdminPendingPage = () => {
           <Button variant="outline" onClick={() => handleReclassifyVenues("lounges")} disabled={reclassifying}>
             <RefreshCw className={`h-4 w-4 mr-2 ${reclassifying ? "animate-spin" : ""}`} />
             {reclassifying ? reclassifyProgress : "Reclassify Approved"}
+          </Button>
+          <Button variant="outline" onClick={() => handleBackfillGoogleTypes("lounges")} disabled={backfilling}>
+            <Database className={`h-4 w-4 mr-2`} />
+            {backfilling ? backfillProgress : "Backfill Google Types"}
           </Button>
           <FetchCityImagesButton />
           <Button variant="outline" onClick={() => handleExportDatabase("lounges")} disabled={exporting}>

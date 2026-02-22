@@ -20,3 +20,6 @@ verify_jwt = false
 
 [functions.bootstrap-scores]
 verify_jwt = false
+
+[functions.backfill-google-types]
+verify_jwt = false
