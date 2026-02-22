@@ -1,9 +1,11 @@
+import { useState } from "react";
 import { useParams, Link } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Helmet } from "react-helmet-async";
 import { motion } from "framer-motion";
-import { MapPin, Star, ArrowLeft, Trophy, Crown } from "lucide-react";
+import { MapPin, Star, ArrowLeft, Trophy, Crown, Store, Sofa } from "lucide-react";
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import FavoriteButton from "@/components/FavoriteButton";
@@ -101,6 +103,7 @@ const RankedLoungeCard = ({ lounge, rank, dimmed }: { lounge: any; rank: number;
     </Link>
   </motion.div>
 );
+  const [venueFilter, setVenueFilter] = useState<"all" | "lounge" | "shop">("all");
 
 
 const CityPage = () => {
@@ -184,6 +187,26 @@ const CityPage = () => {
         {/* Lounges & Shops */}
         <section className="container mx-auto px-4 py-12">
           <ScoreExplainer />
+
+          {/* Venue type filter */}
+          {!isLoading && lounges && lounges.length > 0 && (
+            <div className="flex items-center gap-4 mb-6">
+              <Tabs value={venueFilter} onValueChange={(v) => setVenueFilter(v as any)}>
+                <TabsList>
+                  <TabsTrigger value="all">All ({lounges.length})</TabsTrigger>
+                  <TabsTrigger value="lounge" className="gap-1.5">
+                    <Sofa className="h-3.5 w-3.5" />
+                    Lounges ({lounges.filter(l => l.type === "lounge" || l.type === "both").length})
+                  </TabsTrigger>
+                  <TabsTrigger value="shop" className="gap-1.5">
+                    <Store className="h-3.5 w-3.5" />
+                    Shops ({lounges.filter(l => l.type === "shop" || l.type === "both").length})
+                  </TabsTrigger>
+                </TabsList>
+              </Tabs>
+            </div>
+          )}
+
           {isLoading ? (
             <div className="space-y-4">
               {Array.from({ length: 3 }).map((_, i) => (
@@ -199,59 +222,23 @@ const CityPage = () => {
                 return computeWeightedScore(Number(b.rating), b.review_count) -
                   computeWeightedScore(Number(a.rating), a.review_count);
               };
-              const cigarLounges = [...lounges]
-                .filter((l) => l.type === "lounge" || l.type === "both")
-                .sort(scoreSort);
-              const cigarShops = [...lounges]
-                .filter((l) => l.type === "shop")
-                .sort(scoreSort);
 
-              return (
-                <div className="grid grid-cols-2 gap-3 sm:gap-6 lg:gap-12">
-                  {/* Lounges Column */}
-                  <div>
-                    <div className="flex items-center gap-1.5 sm:gap-2 mb-3 sm:mb-6">
-                      <Trophy className="h-4 w-4 sm:h-5 sm:w-5 text-primary" />
-                      <h2 className="font-display text-base sm:text-2xl font-bold text-foreground">
-                        Lounges
-                      </h2>
-                      <span className="text-xs sm:text-sm text-muted-foreground font-body">
-                        ({cigarLounges.length})
-                      </span>
-                    </div>
-                    {cigarLounges.length > 0 ? (
-                      <div className="space-y-4">
-                        {cigarLounges.map((lounge, index) => (
-                          <RankedLoungeCard key={lounge.id} lounge={lounge} rank={index + 1} dimmed={index >= 5} />
-                        ))}
-                      </div>
-                    ) : (
-                      <p className="text-muted-foreground font-body text-sm">No lounges found yet.</p>
-                    )}
-                  </div>
+              const filtered = venueFilter === "all"
+                ? [...lounges].sort(scoreSort)
+                : venueFilter === "lounge"
+                  ? [...lounges].filter(l => l.type === "lounge" || l.type === "both").sort(scoreSort)
+                  : [...lounges].filter(l => l.type === "shop" || l.type === "both").sort(scoreSort);
 
-                  {/* Shops Column */}
-                  <div>
-                    <div className="flex items-center gap-1.5 sm:gap-2 mb-3 sm:mb-6">
-                      <Trophy className="h-4 w-4 sm:h-5 sm:w-5 text-primary" />
-                      <h2 className="font-display text-base sm:text-2xl font-bold text-foreground">
-                        Shops
-                      </h2>
-                      <span className="text-xs sm:text-sm text-muted-foreground font-body">
-                        ({cigarShops.length})
-                      </span>
-                    </div>
-                    {cigarShops.length > 0 ? (
-                      <div className="space-y-4">
-                        {cigarShops.map((lounge, index) => (
-                          <RankedLoungeCard key={lounge.id} lounge={lounge} rank={index + 1} dimmed={index >= 5} />
-                        ))}
-                      </div>
-                    ) : (
-                      <p className="text-muted-foreground font-body text-sm">No shops found yet.</p>
-                    )}
-                  </div>
+              return filtered.length > 0 ? (
+                <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-6">
+                  {filtered.map((lounge, index) => (
+                    <RankedLoungeCard key={lounge.id} lounge={lounge} rank={index + 1} dimmed={index >= 10} />
+                  ))}
                 </div>
+              ) : (
+                <p className="text-muted-foreground font-body text-sm text-center py-8">
+                  No {venueFilter === "lounge" ? "lounges" : "shops"} found in this city.
+                </p>
               );
             })()
           ) : (
