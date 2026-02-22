@@ -5,7 +5,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { Navigate, Link } from "react-router-dom";
 import { Helmet } from "react-helmet-async";
 import { motion } from "framer-motion";
-import { User, Star, Heart, MapPin, Camera, Pencil, Save, X } from "lucide-react";
+import { User, Star, Heart, MapPin, Camera, Pencil, Save, X, Share2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -169,6 +169,16 @@ const ProfilePage = () => {
                       >
                         <Pencil className="h-3.5 w-3.5" />
                       </Button>
+                      <Link to={`/user/${user?.id}`}>
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          className="text-muted-foreground hover:text-foreground flex-shrink-0 gap-1.5"
+                        >
+                          <Share2 className="h-3.5 w-3.5" />
+                          <span className="hidden sm:inline text-xs">Share</span>
+                        </Button>
+                      </Link>
                     </div>
                     {profile?.bio && (
                       <p className="text-sm text-muted-foreground font-body mt-1 line-clamp-2">
