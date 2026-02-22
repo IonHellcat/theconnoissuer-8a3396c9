@@ -12,6 +12,7 @@ import FavoriteButton from "@/components/FavoriteButton";
 import OptimizedImage from "@/components/OptimizedImage";
 import ConnoisseurScoreBadge from "@/components/ConnoisseurScoreBadge";
 import ScoreExplainer from "@/components/ScoreExplainer";
+import CityJsonLd from "@/components/CityJsonLd";
 
 
 const priceTierLabel = (tier: number) => "$".repeat(tier);
@@ -143,6 +144,7 @@ const CityPage = () => {
       <Helmet>
         <title>{city ? `${city.name} Cigar Lounges — The Connoisseur` : "Loading... — The Connoisseur"}</title>
       </Helmet>
+      {city && <CityJsonLd city={city} />}
       <Navbar />
       <main className="pt-16">
         {/* Hero */}

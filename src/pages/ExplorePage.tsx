@@ -1,5 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { Helmet } from "react-helmet-async";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import CityCard from "@/components/CityCard";
@@ -19,6 +20,10 @@ const ExplorePage = () => {
 
   return (
     <div className="min-h-screen bg-background">
+      <Helmet>
+        <title>Explore Cities — The Connoisseur</title>
+        <meta name="description" content="Browse all cities with cigar lounges worldwide. Find your next destination with The Connoisseur." />
+      </Helmet>
       <Navbar />
       <main className="pt-16">
         <section className="container mx-auto px-4 py-12">

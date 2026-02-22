@@ -53,6 +53,16 @@ const LoungePage = () => {
     <div className="min-h-screen bg-background">
       <Helmet>
         <title>{lounge ? `${lounge.name}, ${city?.name} — The Connoisseur` : "Loading... — The Connoisseur"}</title>
+        {lounge && (
+          <>
+            <meta name="description" content={`${lounge.name} in ${city?.name}, ${city?.country}. ${(lounge as any).score_summary || `Rated ${Number(lounge.rating).toFixed(1)} stars.`}`} />
+            <meta property="og:title" content={`${lounge.name}, ${city?.name} — The Connoisseur`} />
+            <meta property="og:description" content={`${(lounge as any).score_summary || `Rated ${Number(lounge.rating).toFixed(1)} stars with ${lounge.review_count} reviews.`}`} />
+            {lounge.image_url && <meta property="og:image" content={lounge.image_url} />}
+            <meta property="og:type" content="website" />
+            <meta name="twitter:card" content="summary_large_image" />
+          </>
+        )}
       </Helmet>
       {lounge && city && (
         <LoungeJsonLd lounge={lounge} cityName={city.name} cityCountry={city.country} />

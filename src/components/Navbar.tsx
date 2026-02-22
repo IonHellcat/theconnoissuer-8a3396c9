@@ -59,9 +59,11 @@ const Navbar = () => {
                   <Heart className="h-4 w-4" />
                 </Button>
               </Link>
-              <div className="h-8 w-8 rounded-full bg-primary/20 flex items-center justify-center text-sm font-body font-medium text-primary">
-                {(user.email || "?")[0].toUpperCase()}
-              </div>
+              <Link to="/profile">
+                <div className="h-8 w-8 rounded-full bg-primary/20 flex items-center justify-center text-sm font-body font-medium text-primary hover:bg-primary/30 transition-colors cursor-pointer">
+                  {(user.email || "?")[0].toUpperCase()}
+                </div>
+              </Link>
               <Button variant="ghost" size="icon" onClick={handleSignOut} className="text-muted-foreground hover:text-foreground">
                 <LogOut className="h-4 w-4" />
               </Button>
@@ -99,6 +101,9 @@ const Navbar = () => {
             </Link>
             {user ? (
               <>
+                <Link to="/profile" onClick={() => setIsOpen(false)} className="text-sm text-muted-foreground hover:text-foreground transition-colors">
+                  My Profile
+                </Link>
                 <Link to="/favorites" onClick={() => setIsOpen(false)} className="text-sm text-muted-foreground hover:text-foreground transition-colors">
                   My Favorites
                 </Link>
