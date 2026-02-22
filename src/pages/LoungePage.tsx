@@ -16,7 +16,7 @@ import OptimizedImage from "@/components/OptimizedImage";
 import ConnoisseurScoreBadge from "@/components/ConnoisseurScoreBadge";
 import GalleryLightbox from "@/components/GalleryLightbox";
 import FeatureChips from "@/components/FeatureChips";
-import MapEmbed from "@/components/MapEmbed";
+
 import LoungeJsonLd from "@/components/LoungeJsonLd";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 
@@ -328,10 +328,6 @@ const LoungePage = () => {
                     </div>
                   )}
 
-                  {/* Map */}
-                  {lounge.latitude && lounge.longitude && (
-                    <MapEmbed latitude={lounge.latitude} longitude={lounge.longitude} name={lounge.name} />
-                  )}
                 </div>
               </div>
             </section>
