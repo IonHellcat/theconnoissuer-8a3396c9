@@ -103,11 +103,10 @@ const RankedLoungeCard = ({ lounge, rank, dimmed }: { lounge: any; rank: number;
     </Link>
   </motion.div>
 );
-  const [venueFilter, setVenueFilter] = useState<"all" | "lounge" | "shop">("all");
-
 
 const CityPage = () => {
   const { slug } = useParams<{ slug: string }>();
+  const [venueFilter, setVenueFilter] = useState<"all" | "lounge" | "shop">("all");
 
   const { data: city, isLoading: cityLoading } = useQuery({
     queryKey: ["city", slug],
