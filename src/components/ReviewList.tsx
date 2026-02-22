@@ -1,5 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { Link } from "react-router-dom";
 import { Star } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 
@@ -55,14 +56,18 @@ const ReviewList = ({ loungeId }: ReviewListProps) => {
         return (
           <div key={review.id} className="bg-card rounded-xl border border-border/50 p-5 space-y-3">
             <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <div className="h-8 w-8 rounded-full bg-secondary flex items-center justify-center text-sm font-body font-medium text-foreground">
-                  {(profile?.display_name || "?")[0].toUpperCase()}
+              <Link to={`/user/${review.user_id}`} className="flex items-center gap-2 group">
+                <div className="h-8 w-8 rounded-full bg-secondary flex items-center justify-center text-sm font-body font-medium text-foreground group-hover:bg-primary/20 transition-colors">
+                  {profile?.avatar_url ? (
+                    <img src={profile.avatar_url} alt="" className="h-full w-full rounded-full object-cover" />
+                  ) : (
+                    (profile?.display_name || "?")[0].toUpperCase()
+                  )}
                 </div>
-                <span className="font-body text-sm font-medium text-foreground">
+                <span className="font-body text-sm font-medium text-foreground group-hover:text-primary transition-colors">
                   {profile?.display_name || "Anonymous"}
                 </span>
-              </div>
+              </Link>
               <span className="text-xs text-muted-foreground font-body">
                 {formatDistanceToNow(new Date(review.created_at), { addSuffix: true })}
               </span>
