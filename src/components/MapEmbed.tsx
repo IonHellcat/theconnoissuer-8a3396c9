@@ -17,7 +17,7 @@ const MapEmbed = ({ latitude, longitude, name }: MapEmbedProps) => {
       <div className="relative aspect-[4/3] w-full">
         <iframe
           src={mapUrl}
-          className="absolute inset-0 w-full h-full border-0"
+          className="absolute inset-0 w-full h-full border-0 invert hue-rotate-180 brightness-95 contrast-[1.1]"
           loading="lazy"
           title={`Map showing ${name}`}
           aria-label={`Map showing location of ${name}`}
