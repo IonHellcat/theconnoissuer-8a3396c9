@@ -14,6 +14,10 @@ import ReviewList from "@/components/ReviewList";
 import FavoriteButton from "@/components/FavoriteButton";
 import OptimizedImage from "@/components/OptimizedImage";
 import ConnoisseurScoreBadge from "@/components/ConnoisseurScoreBadge";
+import GalleryLightbox from "@/components/GalleryLightbox";
+import FeatureChips from "@/components/FeatureChips";
+import MapEmbed from "@/components/MapEmbed";
+import LoungeJsonLd from "@/components/LoungeJsonLd";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 
 const priceTierLabel = (tier: number) => "$".repeat(tier);
@@ -50,6 +54,9 @@ const LoungePage = () => {
       <Helmet>
         <title>{lounge ? `${lounge.name}, ${city?.name} — The Connoisseur` : "Loading... — The Connoisseur"}</title>
       </Helmet>
+      {lounge && city && (
+        <LoungeJsonLd lounge={lounge} cityName={city.name} cityCountry={city.country} />
+      )}
       <Navbar />
       <main className="pt-16">
         {isLoading ? (
@@ -216,19 +223,7 @@ const LoungePage = () => {
 
                   {/* Features */}
                   {lounge.features && lounge.features.length > 0 && (
-                    <div>
-                      <h2 className="font-display text-xl font-semibold text-foreground mb-4">Features</h2>
-                      <div className="flex flex-wrap gap-2">
-                        {lounge.features.map((feature) => (
-                          <span
-                            key={feature}
-                            className="text-sm font-body px-3 py-1.5 rounded-full bg-secondary text-foreground border border-border/50"
-                          >
-                            {feature}
-                          </span>
-                        ))}
-                      </div>
-                    </div>
+                    <FeatureChips features={lounge.features} />
                   )}
 
                   {/* Cigar Highlights */}
@@ -254,24 +249,7 @@ const LoungePage = () => {
 
                   {/* Gallery */}
                   {lounge.gallery && lounge.gallery.length > 0 && (
-                    <div>
-                      <h2 className="font-display text-xl font-semibold text-foreground mb-4">Gallery</h2>
-                      <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
-                        {lounge.gallery.map((img, i) => (
-                          <div key={i} className="aspect-square rounded-lg overflow-hidden bg-secondary">
-                            <OptimizedImage
-                              src={img}
-                              alt={`${lounge.name} photo ${i + 1}`}
-                              width={480}
-                              height={480}
-                              sizes="(max-width: 768px) 50vw, 33vw"
-                              widths={[240, 480]}
-                              className="w-full h-full object-cover"
-                            />
-                          </div>
-                        ))}
-                      </div>
-                    </div>
+                    <GalleryLightbox images={lounge.gallery} loungeName={lounge.name} />
                   )}
 
                   {/* Reviews */}
@@ -348,6 +326,11 @@ const LoungePage = () => {
                         ))}
                       </div>
                     </div>
+                  )}
+
+                  {/* Map */}
+                  {lounge.latitude && lounge.longitude && (
+                    <MapEmbed latitude={lounge.latitude} longitude={lounge.longitude} name={lounge.name} />
                   )}
                 </div>
               </div>
