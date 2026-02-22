@@ -23,15 +23,6 @@ const MapEmbed = ({ latitude, longitude, name }: MapEmbedProps) => {
           aria-label={`Map showing location of ${name}`}
         />
       </div>
-      <a
-        href={linkUrl}
-        target="_blank"
-        rel="noopener noreferrer"
-        className="flex items-center gap-2 px-4 py-3 text-sm font-body text-primary hover:text-primary/80 transition-colors"
-      >
-        <MapPin className="h-3.5 w-3.5" />
-        View on Google Maps
-      </a>
     </div>
   );
 };
