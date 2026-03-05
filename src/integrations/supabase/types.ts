@@ -114,6 +114,45 @@ export type Database = {
           },
         ]
       }
+      lounge_suggestions: {
+        Row: {
+          address: string | null
+          city: string
+          country: string
+          created_at: string
+          id: string
+          name: string
+          notes: string | null
+          status: string
+          user_id: string
+          website: string | null
+        }
+        Insert: {
+          address?: string | null
+          city: string
+          country: string
+          created_at?: string
+          id?: string
+          name: string
+          notes?: string | null
+          status?: string
+          user_id: string
+          website?: string | null
+        }
+        Update: {
+          address?: string | null
+          city?: string
+          country?: string
+          created_at?: string
+          id?: string
+          name?: string
+          notes?: string | null
+          status?: string
+          user_id?: string
+          website?: string | null
+        }
+        Relationships: []
+      }
       lounges: {
         Row: {
           address: string | null
