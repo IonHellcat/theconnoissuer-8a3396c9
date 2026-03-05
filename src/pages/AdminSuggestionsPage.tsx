@@ -35,12 +35,31 @@ const AdminSuggestionsPage = () => {
   });
 
   const updateStatus = useMutation({
-    mutationFn: async ({ id, status }: { id: string; status: string }) => {
+    mutationFn: async ({ id, status, suggestion }: { id: string; status: string; suggestion: any }) => {
       const { error } = await supabase
         .from("lounge_suggestions")
         .update({ status })
         .eq("id", id);
       if (error) throw error;
+
+      if (status === "approved" && suggestion?.user_id) {
+        await supabase.from("notifications").insert({
+          user_id: suggestion.user_id,
+          type: "suggestion_approved",
+          title: "Your suggestion was approved!",
+          message: `"${suggestion.name}" in ${suggestion.city} has been approved and will be added to The Connoisseur.`,
+          link: "/explore",
+        });
+      }
+
+      if (status === "rejected" && suggestion?.user_id) {
+        await supabase.from("notifications").insert({
+          user_id: suggestion.user_id,
+          type: "suggestion_rejected",
+          title: "Suggestion update",
+          message: `"${suggestion.name}" in ${suggestion.city} was not added at this time. Thanks for contributing!`,
+        });
+      }
     },
     onSuccess: (_, { status }) => {
       queryClient.invalidateQueries({ queryKey: ["admin-suggestions"] });
@@ -119,8 +138,8 @@ const AdminSuggestionsPage = () => {
                       <SuggestionCard
                         key={s.id}
                         suggestion={s}
-                        onApprove={() => updateStatus.mutate({ id: s.id, status: "approved" })}
-                        onReject={() => updateStatus.mutate({ id: s.id, status: "rejected" })}
+                        onApprove={() => updateStatus.mutate({ id: s.id, status: "approved", suggestion: s })}
+                        onReject={() => updateStatus.mutate({ id: s.id, status: "rejected", suggestion: s })}
                         onDelete={() => deleteSuggestion.mutate(s.id)}
                         isPending
                       />
@@ -140,8 +159,8 @@ const AdminSuggestionsPage = () => {
                       <SuggestionCard
                         key={s.id}
                         suggestion={s}
-                        onApprove={() => updateStatus.mutate({ id: s.id, status: "approved" })}
-                        onReject={() => updateStatus.mutate({ id: s.id, status: "rejected" })}
+                        onApprove={() => updateStatus.mutate({ id: s.id, status: "approved", suggestion: s })}
+                        onReject={() => updateStatus.mutate({ id: s.id, status: "rejected", suggestion: s })}
                         onDelete={() => deleteSuggestion.mutate(s.id)}
                       />
                     ))}
