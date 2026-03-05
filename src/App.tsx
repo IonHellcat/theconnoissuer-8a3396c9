@@ -23,6 +23,7 @@ const BootstrapScoresPage = lazy(() => import("./pages/BootstrapScoresPage"));
 const ProfilePage = lazy(() => import("./pages/ProfilePage"));
 const PublicProfilePage = lazy(() => import("./pages/PublicProfilePage"));
 const SuggestLoungePage = lazy(() => import("./pages/SuggestLoungePage"));
+const AdminSuggestionsPage = lazy(() => import("./pages/AdminSuggestionsPage"));
 const NotFound = lazy(() => import("./pages/NotFound"));
 
 const queryClient = new QueryClient({
@@ -65,6 +66,7 @@ const App = () => (
                 <Route path="/profile" element={<ProfilePage />} />
                 <Route path="/user/:userId" element={<PublicProfilePage />} />
                 <Route path="/suggest" element={<SuggestLoungePage />} />
+                <Route path="/admin/suggestions" element={<AdminSuggestionsPage />} />
                 {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
                 <Route path="*" element={<NotFound />} />
               </Routes>
