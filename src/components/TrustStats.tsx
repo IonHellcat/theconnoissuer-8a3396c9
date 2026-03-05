@@ -25,11 +25,11 @@ const TrustStats = () => {
       initial={{ opacity: 0, y: 10 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.5, delay: 0.3 }}
-      className="flex items-center justify-center gap-2 mt-6 text-base md:text-lg text-muted-foreground">
+      className="flex flex-wrap items-center justify-center gap-x-2 gap-y-1 mt-6 text-sm sm:text-base md:text-lg text-muted-foreground px-4">
       
-      <span className="font-display font-bold text-primary text-lg md:text-xl">{data.loungeCount.toLocaleString()}</span>
-      <span>lounges and cigar shops across</span>
-      <span className="font-display font-bold text-primary text-lg md:text-xl">{data.cityCount.toLocaleString()}</span>
+      <span className="font-display font-bold text-primary text-base sm:text-lg md:text-xl">{data.loungeCount.toLocaleString()}</span>
+      <span>lounges across</span>
+      <span className="font-display font-bold text-primary text-base sm:text-lg md:text-xl">{data.cityCount.toLocaleString()}</span>
       <span>cities worldwide</span>
     </motion.div>);
 
