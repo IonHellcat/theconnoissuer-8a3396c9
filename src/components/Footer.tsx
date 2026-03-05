@@ -29,9 +29,9 @@ const Footer = () => {
           </div>
 
           <div>
-            <h4 className="font-display text-sm font-semibold text-foreground mb-4">Account</h4>
+            <h4 className="font-display text-sm font-semibold text-foreground mb-4">Community</h4>
             <ul className="space-y-2 text-sm text-muted-foreground">
-              <li><Link to="/auth" className="hover:text-foreground transition-colors">Sign In</Link></li>
+              <li><Link to="/suggest" className="hover:text-foreground transition-colors">Suggest a Lounge</Link></li>
               <li><Link to="/favorites" className="hover:text-foreground transition-colors">My Favorites</Link></li>
             </ul>
           </div>
