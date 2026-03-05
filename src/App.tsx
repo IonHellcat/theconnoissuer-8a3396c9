@@ -6,6 +6,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { AuthProvider } from "@/hooks/useAuth";
+import { AdminRoute } from "@/components/AdminRoute";
 import Index from "./pages/Index";
 
 // Lazy-loaded routes for code splitting
@@ -59,14 +60,14 @@ const App = () => (
                 <Route path="/reset-password" element={<ResetPasswordPage />} />
                 <Route path="/explore" element={<ExplorePage />} />
                 <Route path="/favorites" element={<FavoritesPage />} />
-                <Route path="/admin/pending" element={<AdminPendingPage />} />
-                <Route path="/admin/generate-descriptions" element={<GenerateDescriptionsPage />} />
-                <Route path="/admin/generate-features" element={<GenerateFeaturesPage />} />
-                <Route path="/admin/bootstrap-scores" element={<BootstrapScoresPage />} />
+                <Route path="/admin/pending" element={<AdminRoute><AdminPendingPage /></AdminRoute>} />
+                <Route path="/admin/generate-descriptions" element={<AdminRoute><GenerateDescriptionsPage /></AdminRoute>} />
+                <Route path="/admin/generate-features" element={<AdminRoute><GenerateFeaturesPage /></AdminRoute>} />
+                <Route path="/admin/bootstrap-scores" element={<AdminRoute><BootstrapScoresPage /></AdminRoute>} />
                 <Route path="/profile" element={<ProfilePage />} />
                 <Route path="/user/:userId" element={<PublicProfilePage />} />
                 <Route path="/suggest" element={<SuggestLoungePage />} />
-                <Route path="/admin/suggestions" element={<AdminSuggestionsPage />} />
+                <Route path="/admin/suggestions" element={<AdminRoute><AdminSuggestionsPage /></AdminRoute>} />
                 {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
                 <Route path="*" element={<NotFound />} />
               </Routes>
