@@ -23,6 +23,10 @@ const ExplorePage = () => {
       <Helmet>
         <title>Explore Cities — The Connoisseur</title>
         <meta name="description" content="Browse all cities with cigar lounges worldwide. Find your next destination with The Connoisseur." />
+        <meta property="og:title" content="Explore Cities — The Connoisseur" />
+        <meta property="og:description" content="Browse all cities with cigar lounges worldwide." />
+        <meta property="og:type" content="website" />
+        <link rel="canonical" href="https://theconnoisseur.co/explore" />
       </Helmet>
       <Navbar />
       <main className="pt-16">
