@@ -2,6 +2,7 @@ import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import logo from "@/assets/logo.png";
 import { Search, Menu, X, User, LogOut, Heart } from "lucide-react";
+import NotificationBell from "@/components/NotificationBell";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useAuth } from "@/hooks/useAuth";
@@ -54,6 +55,7 @@ const Navbar = () => {
           </Link>
           {user ? (
             <div className="flex items-center gap-3">
+              <NotificationBell />
               <Link to="/favorites">
                 <Button variant="ghost" size="icon" className="text-muted-foreground hover:text-foreground">
                   <Heart className="h-4 w-4" />
