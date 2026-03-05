@@ -86,7 +86,7 @@ const LoungePage = () => {
         ) : (
           <>
             {/* Hero */}
-            <section className="relative h-72 md:h-96 overflow-hidden">
+            <section className="relative h-56 sm:h-72 md:h-96 overflow-hidden">
               <OptimizedImage
                 src={lounge.image_url || "/placeholder.svg"}
                 alt={lounge.name}
@@ -164,7 +164,7 @@ const LoungePage = () => {
 
                     return (
                       <div className="bg-card rounded-xl border border-border/50 p-6">
-                        <div className="flex items-start gap-6">
+                        <div className="flex flex-col sm:flex-row items-center sm:items-start gap-4 sm:gap-6">
                           <ConnoisseurScoreBadge
                             score={connoisseurScore}
                             scoreLabel={scoreLabel}
@@ -273,8 +273,8 @@ const LoungePage = () => {
                   </div>
                 </div>
 
-                {/* Sidebar */}
-                <div className="space-y-6">
+                {/* Sidebar — on mobile moves to bottom, on desktop sticks */}
+                <div className="space-y-6 lg:sticky lg:top-24">
                   <div className="bg-card rounded-xl border border-border/50 p-6 space-y-5">
                     <h3 className="font-display text-lg font-semibold text-foreground">Details</h3>
 

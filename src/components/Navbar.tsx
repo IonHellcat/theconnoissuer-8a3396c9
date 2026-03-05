@@ -84,39 +84,73 @@ const Navbar = () => {
         </button>
       </div>
 
+      {/* Mobile overlay */}
       {isOpen && (
-        <div className="md:hidden bg-background border-b border-border/50 px-4 pb-4 space-y-4">
-          <form onSubmit={handleSearch}>
-            <div className="relative">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-              <Input
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                placeholder="Search cities, lounges..."
-                className="pl-10 bg-secondary border-border/50"
-              />
-            </div>
-          </form>
-          <div className="flex flex-col gap-3">
-            <Link to="/explore" onClick={() => setIsOpen(false)} className="text-sm text-muted-foreground hover:text-foreground transition-colors">
-              Explore Cities
-            </Link>
-            {user ? (
-              <>
-                <Link to="/profile" onClick={() => setIsOpen(false)} className="text-sm text-muted-foreground hover:text-foreground transition-colors">
-                  My Profile
+        <div className="md:hidden fixed inset-0 top-16 z-40 bg-background/95 backdrop-blur-lg animate-in fade-in slide-in-from-top-2 duration-200">
+          <div className="flex flex-col h-full px-6 pt-6 pb-8 overflow-y-auto">
+            <form onSubmit={handleSearch} className="mb-6">
+              <div className="relative">
+                <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
+                <Input
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  placeholder="Search cities, lounges..."
+                  className="pl-12 bg-secondary border-border/50 h-12 text-base rounded-xl"
+                  autoFocus
+                />
+              </div>
+            </form>
+
+            <nav className="flex flex-col gap-1">
+              <Link
+                to="/explore"
+                onClick={() => setIsOpen(false)}
+                className="flex items-center gap-3 px-4 py-3.5 rounded-xl text-base font-body text-foreground hover:bg-secondary transition-colors"
+              >
+                <Search className="h-5 w-5 text-primary" />
+                Explore Cities
+              </Link>
+              {user ? (
+                <>
+                  <Link
+                    to="/profile"
+                    onClick={() => setIsOpen(false)}
+                    className="flex items-center gap-3 px-4 py-3.5 rounded-xl text-base font-body text-foreground hover:bg-secondary transition-colors"
+                  >
+                    <User className="h-5 w-5 text-primary" />
+                    My Profile
+                  </Link>
+                  <Link
+                    to="/favorites"
+                    onClick={() => setIsOpen(false)}
+                    className="flex items-center gap-3 px-4 py-3.5 rounded-xl text-base font-body text-foreground hover:bg-secondary transition-colors"
+                  >
+                    <Heart className="h-5 w-5 text-primary" />
+                    My Favorites
+                  </Link>
+                </>
+              ) : (
+                <Link
+                  to="/auth"
+                  onClick={() => setIsOpen(false)}
+                  className="flex items-center gap-3 px-4 py-3.5 rounded-xl text-base font-body text-foreground hover:bg-secondary transition-colors"
+                >
+                  <User className="h-5 w-5 text-primary" />
+                  Log In
                 </Link>
-                <Link to="/favorites" onClick={() => setIsOpen(false)} className="text-sm text-muted-foreground hover:text-foreground transition-colors">
-                  My Favorites
-                </Link>
-                <button onClick={handleSignOut} className="text-sm text-muted-foreground hover:text-foreground transition-colors text-left">
+              )}
+            </nav>
+
+            {user && (
+              <div className="mt-auto pt-6 border-t border-border/30">
+                <button
+                  onClick={handleSignOut}
+                  className="flex items-center gap-3 px-4 py-3.5 rounded-xl text-base font-body text-muted-foreground hover:text-foreground hover:bg-secondary transition-colors w-full"
+                >
+                  <LogOut className="h-5 w-5" />
                   Log Out
                 </button>
-              </>
-            ) : (
-              <Link to="/auth" onClick={() => setIsOpen(false)} className="text-sm text-muted-foreground hover:text-foreground transition-colors">
-                Log In
-              </Link>
+              </div>
             )}
           </div>
         </div>
