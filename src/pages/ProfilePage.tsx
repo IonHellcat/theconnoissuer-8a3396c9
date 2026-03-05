@@ -142,6 +142,7 @@ const ProfilePage = () => {
     <div className="min-h-screen bg-background">
       <Helmet>
         <title>My Profile — The Connoisseur</title>
+        <meta name="robots" content="noindex" />
       </Helmet>
       <Navbar />
       <main className="pt-24 pb-16">

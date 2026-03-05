@@ -61,6 +61,7 @@ const LoungePage = () => {
             {lounge.image_url && <meta property="og:image" content={lounge.image_url} />}
             <meta property="og:type" content="website" />
             <meta name="twitter:card" content="summary_large_image" />
+            <link rel="canonical" href={`https://theconnoisseur.co/lounge/${lounge.slug}`} />
           </>
         )}
       </Helmet>

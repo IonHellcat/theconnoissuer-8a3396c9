@@ -1,6 +1,7 @@
 import { useSearchParams, Link } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { Helmet } from "react-helmet-async";
 import { motion } from "framer-motion";
 import { Search, MapPin, ArrowLeft } from "lucide-react";
 import { useState, useMemo } from "react";
@@ -116,6 +117,11 @@ const SearchPage = () => {
 
   return (
     <div className="min-h-screen bg-background">
+      <Helmet>
+        <title>{q ? `"${q}" — Search — The Connoisseur` : "Search — The Connoisseur"}</title>
+        <meta name="description" content={q ? `Search results for "${q}" on The Connoisseur.` : "Search cigar lounges and shops worldwide on The Connoisseur."} />
+        <meta name="robots" content="noindex" />
+      </Helmet>
       <Navbar />
       <main className="pt-24 pb-16">
         <div className="container mx-auto px-4">

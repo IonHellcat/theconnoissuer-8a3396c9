@@ -24,17 +24,15 @@ const Footer = () => {
             <h4 className="font-display text-sm font-semibold text-foreground mb-4">Discover</h4>
             <ul className="space-y-2 text-sm text-muted-foreground">
               <li><Link to="/explore" className="hover:text-foreground transition-colors">Explore Cities</Link></li>
-              <li><Link to="/about" className="hover:text-foreground transition-colors">About</Link></li>
-              <li><Link to="/contact" className="hover:text-foreground transition-colors">Contact</Link></li>
+              <li><Link to="/search" className="hover:text-foreground transition-colors">Search</Link></li>
             </ul>
           </div>
 
           <div>
-            <h4 className="font-display text-sm font-semibold text-foreground mb-4">Community</h4>
+            <h4 className="font-display text-sm font-semibold text-foreground mb-4">Account</h4>
             <ul className="space-y-2 text-sm text-muted-foreground">
-              <li><Link to="/add-lounge" className="hover:text-foreground transition-colors">Add a Lounge</Link></li>
-              <li><a href="#" className="hover:text-foreground transition-colors">Instagram</a></li>
-              <li><a href="#" className="hover:text-foreground transition-colors">Twitter</a></li>
+              <li><Link to="/auth" className="hover:text-foreground transition-colors">Sign In</Link></li>
+              <li><Link to="/favorites" className="hover:text-foreground transition-colors">My Favorites</Link></li>
             </ul>
           </div>
         </div>

@@ -143,6 +143,17 @@ const CityPage = () => {
     <div className="min-h-screen bg-background">
       <Helmet>
         <title>{city ? `${city.name} Cigar Lounges — The Connoisseur` : "Loading... — The Connoisseur"}</title>
+        {city && (
+          <>
+            <meta name="description" content={`Discover the best cigar lounges and shops in ${city.name}, ${city.country}. ${city.lounge_count} venues ranked by Connoisseur Score.`} />
+            <meta property="og:title" content={`${city.name} Cigar Lounges — The Connoisseur`} />
+            <meta property="og:description" content={`Explore ${city.lounge_count} cigar lounges and shops in ${city.name}, ${city.country}.`} />
+            {city.image_url && <meta property="og:image" content={city.image_url} />}
+            <meta property="og:type" content="website" />
+            <meta name="twitter:card" content="summary_large_image" />
+            <link rel="canonical" href={`https://theconnoisseur.co/city/${city.slug}`} />
+          </>
+        )}
       </Helmet>
       {city && <CityJsonLd city={city} />}
       <Navbar />
