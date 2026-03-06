@@ -30,6 +30,7 @@ const Index = () => {
       <main className="pt-16">
         <HeroSection />
         <WhyConnoisseur />
+        <ForYouPromo />
         <PopularCities />
       </main>
       <Footer />
