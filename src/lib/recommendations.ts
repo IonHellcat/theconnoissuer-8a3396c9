@@ -7,7 +7,7 @@ export function haversine(
   lat2: number,
   lng2: number,
 ): number {
-  const R = 6371; // Earth radius in km
+  const R = 6371;
   const toRad = (deg: number) => (deg * Math.PI) / 180;
   const dLat = toRad(lat2 - lat1);
   const dLng = toRad(lng2 - lng1);
@@ -18,6 +18,7 @@ export function haversine(
 }
 
 export type VisitType = "Quick Smoke" | "Full Evening";
+export type VenueType = "Lounge" | "Shop" | "All";
 
 export interface LoungeWithCoords {
   id: string;
@@ -27,6 +28,7 @@ export interface LoungeWithCoords {
   longitude: number | null;
   connoisseur_score: number | null;
   visit_type: string | null;
+  type: string;
   address: string | null;
   image_url: string | null;
   score_label: string | null;
@@ -34,7 +36,6 @@ export interface LoungeWithCoords {
   score_summary?: string | null;
   rating: number;
   city_id: string;
-  // joined city fields
   city_name?: string;
   city_slug?: string;
 }
@@ -49,9 +50,17 @@ export function getRecommendations(
   userLng: number,
   visitType: VisitType,
   lounges: LoungeWithCoords[],
+  venueType: VenueType = "All",
 ): RecommendedLounge[] {
   return lounges
     .filter((l) => l.latitude != null && l.longitude != null)
+    .filter((l) => {
+      if (venueType === "All") return true;
+      const t = (l.type || "lounge").toLowerCase();
+      if (venueType === "Lounge") return t === "lounge" || t === "both";
+      if (venueType === "Shop") return t === "shop" || t === "both";
+      return true;
+    })
     .map((lounge) => {
       const distanceKm = haversine(
         userLat,
