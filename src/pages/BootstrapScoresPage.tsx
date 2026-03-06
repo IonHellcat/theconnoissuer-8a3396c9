@@ -11,7 +11,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Progress } from "@/components/ui/progress";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2, Sparkles, Save, Wand2, Check, X, Star, ChevronDown, ChevronUp } from "lucide-react";
+import { Loader2, Sparkles, Save, Wand2, Check, X, Star, ChevronDown, ChevronUp, Zap } from "lucide-react";
 
 interface LoungeRow {
   id: string;
@@ -68,6 +68,7 @@ const BootstrapScoresPage = () => {
   const [editedResults, setEditedResults] = useState<Record<string, AnalysisResult>>({});
   const [bulkProgress, setBulkProgress] = useState<{ current: number; total: number; currentName: string } | null>(null);
   const [expandedLounges, setExpandedLounges] = useState<Record<string, boolean>>({});
+  const [bulkRescoring, setBulkRescoring] = useState(false);
 
   const { data: lounges, isLoading } = useQuery({
     queryKey: ["admin-lounges-scores"],
@@ -88,6 +89,7 @@ const BootstrapScoresPage = () => {
         estimated: lounges.filter((l) => l.score_source === "estimated").length,
         verified: lounges.filter((l) => l.score_source === "verified").length,
         none: lounges.filter((l) => l.score_source === "none").length,
+        noReviews: lounges.filter((l) => l.score_source === "no_reviews").length,
         withPlaceId: lounges.filter((l) => l.google_place_id && l.score_source === "none").length,
       }
     : null;
@@ -137,13 +139,11 @@ const BootstrapScoresPage = () => {
   const bootstrapSingle = async (lounge: LoungeRow): Promise<"success" | "no-reviews" | "error"> => {
     setProcessing((p) => ({ ...p, [lounge.id]: true }));
     try {
-      // Refresh session to prevent token expiry during bulk operations
       const { error: refreshError } = await supabase.auth.refreshSession();
       if (refreshError) {
         console.warn("Session refresh failed:", refreshError.message);
       }
 
-      // Step 1: Fetch reviews
       const { data: reviewData, error: reviewError } = await supabase.functions.invoke("bootstrap-scores", {
         body: {
           action: "fetch-reviews",
@@ -155,7 +155,6 @@ const BootstrapScoresPage = () => {
 
       const reviews = reviewData?.reviews || [];
       if (reviews.length === 0) {
-        // Mark as no_reviews so it's skipped in future bulk runs
         await supabase.functions.invoke("bootstrap-scores", {
           body: { action: "mark-no-reviews", lounge_id: lounge.id },
         });
@@ -165,7 +164,6 @@ const BootstrapScoresPage = () => {
         return "no-reviews";
       }
 
-      // Step 2: Analyze
       const { data: analysisData, error: analysisError } = await supabase.functions.invoke("bootstrap-scores", {
         body: {
           action: "analyze",
@@ -178,7 +176,6 @@ const BootstrapScoresPage = () => {
       });
       if (analysisError) throw analysisError;
 
-      // Handle AI refusal (returned as 200 with error key)
       if (analysisData?.error === "ai_refused") {
         toast({ title: "AI skipped", description: `${lounge.name}: AI could not analyze — may need manual scoring.` });
         setProcessing((p) => ({ ...p, [lounge.id]: false }));
@@ -267,12 +264,32 @@ const BootstrapScoresPage = () => {
     await runBulkBatch(batch, "Bulk bootstrap");
   };
 
-  const bulkRescore = async () => {
-    if (!lounges) return;
-    const batch = lounges
-      .filter((l) => l.score_source === "estimated" && l.google_place_id)
-      .slice(0, 50);
-    await runBulkBatch(batch, "Re-score");
+  /** Server-side bulk rescore: all estimated lounges, auto-save */
+  const bulkRescoreServer = async () => {
+    setBulkRescoring(true);
+    try {
+      const { error: refreshError } = await supabase.auth.refreshSession();
+      if (refreshError) console.warn("Session refresh failed:", refreshError.message);
+
+      toast({ title: "Bulk rescore started", description: "Processing all estimated venues server-side. This may take 15-20 minutes..." });
+
+      const { data, error } = await supabase.functions.invoke("bootstrap-scores", {
+        body: { action: "bulk-rescore" },
+      });
+
+      if (error) throw error;
+
+      toast({
+        title: "Bulk rescore complete",
+        description: `${data.rescored} rescored, ${data.skipped} skipped (no cached reviews), ${data.errors} errors out of ${data.total} total.`,
+      });
+
+      queryClient.invalidateQueries({ queryKey: ["admin-lounges-scores"] });
+    } catch (e: any) {
+      toast({ title: "Bulk rescore failed", description: e.message, variant: "destructive" });
+    } finally {
+      setBulkRescoring(false);
+    }
   };
 
   const bulkSaveAll = async () => {
@@ -355,8 +372,8 @@ const BootstrapScoresPage = () => {
               <p className="text-xs text-muted-foreground font-body">No Score</p>
             </div>
             <div className="bg-card rounded-lg border border-border/50 p-4">
-              <p className="text-2xl font-bold font-display text-primary">~${(stats.withPlaceId * 0.03).toFixed(0)}</p>
-              <p className="text-xs text-muted-foreground font-body">Est. Cost</p>
+              <p className="text-2xl font-bold font-display text-primary">{stats.noReviews}</p>
+              <p className="text-xs text-muted-foreground font-body">No Reviews</p>
             </div>
           </div>
         )}
@@ -373,13 +390,18 @@ const BootstrapScoresPage = () => {
 
         {/* Actions */}
         <div className="flex gap-2 mb-6 flex-wrap">
-          <Button onClick={bulkBootstrap} disabled={!!bulkProgress || !lounges?.length} className="gap-2">
+          <Button onClick={bulkBootstrap} disabled={!!bulkProgress || bulkRescoring || !lounges?.length} className="gap-2">
             <Wand2 className="h-4 w-4" />
             Bulk Bootstrap (Top 50)
           </Button>
-          <Button onClick={bulkRescore} disabled={!!bulkProgress || !lounges?.length} variant="secondary" className="gap-2">
-            <Sparkles className="h-4 w-4" />
-            Re-score All (Top 50)
+          <Button
+            onClick={bulkRescoreServer}
+            disabled={!!bulkProgress || bulkRescoring || !stats?.estimated}
+            variant="secondary"
+            className="gap-2"
+          >
+            {bulkRescoring ? <Loader2 className="h-4 w-4 animate-spin" /> : <Zap className="h-4 w-4" />}
+            Re-score All Estimated ({stats?.estimated || 0})
           </Button>
           {Object.keys(editedResults).length > 0 && (
             <Button onClick={bulkSaveAll} variant="outline" className="gap-2">
@@ -388,6 +410,20 @@ const BootstrapScoresPage = () => {
             </Button>
           )}
         </div>
+
+        {bulkRescoring && (
+          <div className="mb-6 p-4 rounded-lg border border-primary/30 bg-primary/5">
+            <div className="flex items-center gap-3">
+              <Loader2 className="h-5 w-5 animate-spin text-primary" />
+              <div>
+                <p className="text-sm font-medium text-foreground">Bulk rescore in progress...</p>
+                <p className="text-xs text-muted-foreground font-body">
+                  Processing all {stats?.estimated || 0} estimated venues server-side. This may take 15-20 minutes. You can leave this page — scores will be saved automatically.
+                </p>
+              </div>
+            </div>
+          </div>
+        )}
 
         {bulkProgress && (
           <div className="mb-6 space-y-2">
