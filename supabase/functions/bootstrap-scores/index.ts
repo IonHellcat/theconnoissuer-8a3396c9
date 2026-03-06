@@ -63,18 +63,15 @@ async function verifyAdmin(req: Request) {
     { global: { headers: { Authorization: authHeader } } }
   );
 
-  const token = authHeader.replace("Bearer ", "");
-  const { data: claimsData, error: claimsError } =
-    await supabase.auth.getClaims(token);
-  if (claimsError || !claimsData?.claims) {
+  const { data: { user }, error: userError } = await supabase.auth.getUser();
+  if (userError || !user) {
     throw new Error("Unauthorized");
   }
 
-  const userId = claimsData.claims.sub;
   const { data: roleData } = await supabase
     .from("user_roles")
     .select("role")
-    .eq("user_id", userId)
+    .eq("user_id", user.id)
     .eq("role", "admin")
     .maybeSingle();
 
@@ -82,7 +79,7 @@ async function verifyAdmin(req: Request) {
     throw new Error("Forbidden");
   }
 
-  return userId;
+  return user.id;
 }
 
 serve(async (req) => {
