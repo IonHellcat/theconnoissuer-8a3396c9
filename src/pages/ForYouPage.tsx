@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { Link } from "react-router-dom";
 import { Helmet } from "react-helmet-async";
-import { MapPin, Plane, Clock, Wine, Search, ArrowLeft, Locate } from "lucide-react";
+import { MapPin, Plane, Clock, Wine, Search, ArrowLeft, Locate, Armchair, Store } from "lucide-react";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import ConnoisseurScoreBadge from "@/components/ConnoisseurScoreBadge";
@@ -16,6 +16,7 @@ import {
   type LoungeWithCoords,
   type RecommendedLounge,
   type VisitType,
+  type VenueType,
 } from "@/lib/recommendations";
 
 type LocationMode = "here" | "travelling" | null;
@@ -35,6 +36,7 @@ const ForYouPage = () => {
   // --- intent state ---
   const [locationMode, setLocationMode] = useState<LocationMode>(null);
   const [visitType, setVisitType] = useState<VisitType | null>(null);
+  const [venueType, setVenueType] = useState<VenueType>("All");
   const [userLat, setUserLat] = useState<number | null>(null);
   const [userLng, setUserLng] = useState<number | null>(null);
   const [locationLabel, setLocationLabel] = useState("");
@@ -54,7 +56,7 @@ const ForYouPage = () => {
     (async () => {
       const { data } = await supabase
         .from("lounges")
-        .select("id, name, slug, latitude, longitude, connoisseur_score, visit_type, address, image_url, score_label, score_source, score_summary, rating, city_id, cities(name, slug)")
+        .select("id, name, slug, latitude, longitude, connoisseur_score, visit_type, type, address, image_url, score_label, score_source, score_summary, rating, city_id, cities(name, slug)")
         .not("latitude", "is", null)
         .not("longitude", "is", null);
 
@@ -133,7 +135,7 @@ const ForYouPage = () => {
 
   const handleFind = () => {
     if (!canSubmit) return;
-    const recs = getRecommendations(userLat!, userLng!, visitType!, allLounges);
+    const recs = getRecommendations(userLat!, userLng!, visitType!, allLounges, venueType);
     setResults(recs);
   };
 
@@ -141,6 +143,7 @@ const ForYouPage = () => {
     setResults(null);
     setLocationMode(null);
     setVisitType(null);
+    setVenueType("All");
     setUserLat(null);
     setUserLng(null);
     setLocationLabel("");
@@ -288,6 +291,33 @@ const ForYouPage = () => {
                 </div>
               </section>
 
+              {/* Venue type */}
+              <section className="flex flex-col gap-3">
+                <h2 className="font-display text-lg font-semibold text-foreground">
+                  What are you looking for?
+                </h2>
+                <div className="grid grid-cols-3 gap-3">
+                  <ToggleCard
+                    active={venueType === "All"}
+                    onClick={() => setVenueType("All")}
+                    icon={<Search className="h-5 w-5" />}
+                    label="All"
+                  />
+                  <ToggleCard
+                    active={venueType === "Lounge"}
+                    onClick={() => setVenueType("Lounge")}
+                    icon={<Armchair className="h-5 w-5" />}
+                    label="Lounges"
+                  />
+                  <ToggleCard
+                    active={venueType === "Shop"}
+                    onClick={() => setVenueType("Shop")}
+                    icon={<Store className="h-5 w-5" />}
+                    label="Shops"
+                  />
+                </div>
+              </section>
+
               <Button
                 onClick={handleFind}
                 disabled={!canSubmit}
@@ -302,7 +332,7 @@ const ForYouPage = () => {
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-xs text-muted-foreground font-body">
-                    {results.length} lounge{results.length !== 1 ? "s" : ""}{" "}
+                    {results.length} {venueType === "All" ? "venue" : venueType.toLowerCase()}{results.length !== 1 ? "s" : ""}{" "}
                     ranked for you in {locationLabel || "your area"}
                   </p>
                 </div>
@@ -333,9 +363,14 @@ const ForYouPage = () => {
                       size="sm"
                     />
                     <div className="flex-1 min-w-0">
-                      <h3 className="font-display text-sm font-semibold text-foreground truncate">
-                        {lounge.name}
-                      </h3>
+                      <div className="flex items-center gap-1.5">
+                        <h3 className="font-display text-sm font-semibold text-foreground truncate">
+                          {lounge.name}
+                        </h3>
+                        <Badge variant="outline" className="text-[10px] px-1.5 py-0 shrink-0 capitalize">
+                          {lounge.type}
+                        </Badge>
+                      </div>
                       <p className="text-xs text-muted-foreground font-body truncate">
                         {lounge.city_name}
                       </p>
