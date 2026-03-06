@@ -231,14 +231,9 @@ const BootstrapScoresPage = () => {
     setExpandedLounges((p) => { const n = { ...p }; delete n[loungeId]; return n; });
   };
 
-  const bulkBootstrap = async () => {
-    if (!lounges) return;
-    const batch = lounges
-      .filter((l) => l.score_source === "none" && l.google_place_id)
-      .slice(0, 50);
-
+  const runBulkBatch = async (batch: LoungeRow[], label: string) => {
     if (batch.length === 0) {
-      toast({ title: "Nothing to process", description: "All lounges with Google Place IDs already have scores." });
+      toast({ title: "Nothing to process", description: `No ${label} lounges to bootstrap.` });
       return;
     }
 
@@ -259,9 +254,25 @@ const BootstrapScoresPage = () => {
 
     setBulkProgress(null);
     toast({
-      title: "Bulk bootstrap complete",
+      title: `${label} complete`,
       description: `${successCount} scored, ${noReviewCount} no reviews, ${errorCount} errors.`,
     });
+  };
+
+  const bulkBootstrap = async () => {
+    if (!lounges) return;
+    const batch = lounges
+      .filter((l) => l.score_source === "none" && l.google_place_id)
+      .slice(0, 50);
+    await runBulkBatch(batch, "Bulk bootstrap");
+  };
+
+  const bulkRescore = async () => {
+    if (!lounges) return;
+    const batch = lounges
+      .filter((l) => l.score_source === "estimated" && l.google_place_id)
+      .slice(0, 50);
+    await runBulkBatch(batch, "Re-score");
   };
 
   const bulkSaveAll = async () => {
