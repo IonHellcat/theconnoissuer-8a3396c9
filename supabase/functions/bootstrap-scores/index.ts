@@ -273,8 +273,9 @@ RULES:
 2. If only 1 vague mention → return null (insufficient data)
 3. Generic praise like "great place" does NOT justify high scores across all pillars
 4. A single enthusiastic review should not override multiple moderate ones
-5. Weight negative feedback heavily — one bad experience matters more than generic praise
-6. The summary must be honest and balanced, not promotional
+5. FAIRNESS: Do NOT let a single negative review tank a pillar score. One bad experience among many positive ones is an outlier, not the norm. Weight the consensus — if 4 out of 5 reviews praise service and 1 complains, score service based on the majority (e.g. 3.5-4.0, not 2.5).
+6. Consider review recency and specificity — vague complaints carry less weight than detailed criticism
+7. The summary must be honest and balanced, not promotional — but also not unfairly harsh based on one outlier
 
 Reviews:
 ${reviewTexts}
