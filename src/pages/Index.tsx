@@ -3,6 +3,7 @@ import Navbar from "@/components/Navbar";
 import HeroSection from "@/components/HeroSection";
 import WhyConnoisseur from "@/components/WhyConnoisseur";
 import PopularCities from "@/components/PopularCities";
+import ForYouPromo from "@/components/ForYouPromo";
 import Footer from "@/components/Footer";
 
 const Index = () => {
@@ -29,6 +30,7 @@ const Index = () => {
       <main className="pt-16">
         <HeroSection />
         <WhyConnoisseur />
+        <ForYouPromo />
         <PopularCities />
       </main>
       <Footer />
