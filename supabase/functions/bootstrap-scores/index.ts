@@ -297,7 +297,7 @@ Example: {"cigar_selection": 3.5, "ambiance": 4.0, "service": null, "drinks": 3.
             "Content-Type": "application/json",
           },
           body: JSON.stringify({
-            model: "google/gemini-2.5-flash",
+            model: "google/gemini-2.5-pro",
             messages: [
               {
                 role: "system",

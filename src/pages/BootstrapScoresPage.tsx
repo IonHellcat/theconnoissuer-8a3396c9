@@ -377,6 +377,10 @@ const BootstrapScoresPage = () => {
             <Wand2 className="h-4 w-4" />
             Bulk Bootstrap (Top 50)
           </Button>
+          <Button onClick={bulkRescore} disabled={!!bulkProgress || !lounges?.length} variant="secondary" className="gap-2">
+            <Sparkles className="h-4 w-4" />
+            Re-score All (Top 50)
+          </Button>
           {Object.keys(editedResults).length > 0 && (
             <Button onClick={bulkSaveAll} variant="outline" className="gap-2">
               <Save className="h-4 w-4" />
