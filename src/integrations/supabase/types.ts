@@ -182,6 +182,7 @@ export type Database = {
           slug: string
           type: string
           updated_at: string
+          visit_type: string | null
           website: string | null
         }
         Insert: {
@@ -212,6 +213,7 @@ export type Database = {
           slug: string
           type?: string
           updated_at?: string
+          visit_type?: string | null
           website?: string | null
         }
         Update: {
@@ -242,6 +244,7 @@ export type Database = {
           slug?: string
           type?: string
           updated_at?: string
+          visit_type?: string | null
           website?: string | null
         }
         Relationships: [

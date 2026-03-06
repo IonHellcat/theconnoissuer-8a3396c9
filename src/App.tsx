@@ -25,6 +25,7 @@ const ProfilePage = lazy(() => import("./pages/ProfilePage"));
 const PublicProfilePage = lazy(() => import("./pages/PublicProfilePage"));
 const SuggestLoungePage = lazy(() => import("./pages/SuggestLoungePage"));
 const AdminSuggestionsPage = lazy(() => import("./pages/AdminSuggestionsPage"));
+const ForYouPage = lazy(() => import("./pages/ForYouPage"));
 const NotFound = lazy(() => import("./pages/NotFound"));
 
 const queryClient = new QueryClient({
@@ -59,6 +60,7 @@ const App = () => (
                 <Route path="/auth" element={<AuthPage />} />
                 <Route path="/reset-password" element={<ResetPasswordPage />} />
                 <Route path="/explore" element={<ExplorePage />} />
+                <Route path="/for-you" element={<ForYouPage />} />
                 <Route path="/favorites" element={<FavoritesPage />} />
                 <Route path="/admin/pending" element={<AdminRoute><AdminPendingPage /></AdminRoute>} />
                 <Route path="/admin/generate-descriptions" element={<AdminRoute><GenerateDescriptionsPage /></AdminRoute>} />
