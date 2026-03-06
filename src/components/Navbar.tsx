@@ -108,6 +108,14 @@ const Navbar = () => {
 
             <nav className="flex flex-col gap-1">
               <Link
+                to="/for-you"
+                onClick={() => setIsOpen(false)}
+                className="flex items-center gap-3 px-4 py-3.5 rounded-xl text-base font-body text-foreground hover:bg-secondary transition-colors"
+              >
+                <Sparkles className="h-5 w-5 text-primary" />
+                For You
+              </Link>
+              <Link
                 to="/explore"
                 onClick={() => setIsOpen(false)}
                 className="flex items-center gap-3 px-4 py-3.5 rounded-xl text-base font-body text-foreground hover:bg-secondary transition-colors"
