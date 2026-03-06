@@ -291,6 +291,33 @@ const ForYouPage = () => {
                 </div>
               </section>
 
+              {/* Venue type */}
+              <section className="flex flex-col gap-3">
+                <h2 className="font-display text-lg font-semibold text-foreground">
+                  What are you looking for?
+                </h2>
+                <div className="grid grid-cols-3 gap-3">
+                  <ToggleCard
+                    active={venueType === "All"}
+                    onClick={() => setVenueType("All")}
+                    icon={<Search className="h-5 w-5" />}
+                    label="All"
+                  />
+                  <ToggleCard
+                    active={venueType === "Lounge"}
+                    onClick={() => setVenueType("Lounge")}
+                    icon={<Armchair className="h-5 w-5" />}
+                    label="Lounges"
+                  />
+                  <ToggleCard
+                    active={venueType === "Shop"}
+                    onClick={() => setVenueType("Shop")}
+                    icon={<Store className="h-5 w-5" />}
+                    label="Shops"
+                  />
+                </div>
+              </section>
+
               <Button
                 onClick={handleFind}
                 disabled={!canSubmit}
