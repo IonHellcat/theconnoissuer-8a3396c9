@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { Link } from "react-router-dom";
 import { Helmet } from "react-helmet-async";
-import { MapPin, Plane, Clock, Wine, Search, ArrowLeft, Locate } from "lucide-react";
+import { MapPin, Plane, Clock, Wine, Search, ArrowLeft, Locate, Armchair, Store } from "lucide-react";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import ConnoisseurScoreBadge from "@/components/ConnoisseurScoreBadge";
@@ -16,6 +16,7 @@ import {
   type LoungeWithCoords,
   type RecommendedLounge,
   type VisitType,
+  type VenueType,
 } from "@/lib/recommendations";
 
 type LocationMode = "here" | "travelling" | null;
@@ -35,6 +36,7 @@ const ForYouPage = () => {
   // --- intent state ---
   const [locationMode, setLocationMode] = useState<LocationMode>(null);
   const [visitType, setVisitType] = useState<VisitType | null>(null);
+  const [venueType, setVenueType] = useState<VenueType>("All");
   const [userLat, setUserLat] = useState<number | null>(null);
   const [userLng, setUserLng] = useState<number | null>(null);
   const [locationLabel, setLocationLabel] = useState("");
@@ -54,7 +56,7 @@ const ForYouPage = () => {
     (async () => {
       const { data } = await supabase
         .from("lounges")
-        .select("id, name, slug, latitude, longitude, connoisseur_score, visit_type, address, image_url, score_label, score_source, score_summary, rating, city_id, cities(name, slug)")
+        .select("id, name, slug, latitude, longitude, connoisseur_score, visit_type, type, address, image_url, score_label, score_source, score_summary, rating, city_id, cities(name, slug)")
         .not("latitude", "is", null)
         .not("longitude", "is", null);
 
@@ -133,7 +135,7 @@ const ForYouPage = () => {
 
   const handleFind = () => {
     if (!canSubmit) return;
-    const recs = getRecommendations(userLat!, userLng!, visitType!, allLounges);
+    const recs = getRecommendations(userLat!, userLng!, visitType!, allLounges, venueType);
     setResults(recs);
   };
 
@@ -141,6 +143,7 @@ const ForYouPage = () => {
     setResults(null);
     setLocationMode(null);
     setVisitType(null);
+    setVenueType("All");
     setUserLat(null);
     setUserLng(null);
     setLocationLabel("");
