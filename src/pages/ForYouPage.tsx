@@ -332,7 +332,7 @@ const ForYouPage = () => {
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-xs text-muted-foreground font-body">
-                    {results.length} lounge{results.length !== 1 ? "s" : ""}{" "}
+                    {results.length} {venueType === "All" ? "venue" : venueType.toLowerCase()}{results.length !== 1 ? "s" : ""}{" "}
                     ranked for you in {locationLabel || "your area"}
                   </p>
                 </div>
