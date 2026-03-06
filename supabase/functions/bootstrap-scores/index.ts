@@ -220,11 +220,9 @@ serve(async (req) => {
       }
 
       const isShop = lounge_type === "shop";
+      const isBoth = lounge_type === "both";
       const weights = isShop ? SHOP_WEIGHTS : LOUNGE_WEIGHTS;
-      const pillarList = isShop
-        ? "Selection (inventory breadth, Cuban availability, budget-to-premium range), Storage Quality (humidor conditions, temperature, humidity control), Staff Knowledge (recommendations, honesty, expertise), Pricing (market competitiveness, deals, loyalty programs), Shop Experience (layout, browsability, sampling availability)"
-        : "Cigar Selection (range, quality, rare finds, storage condition), Ambiance (design, comfort, mood, cleanliness, seating quality), Service (staff knowledge, attentiveness, recommendations quality), Drinks & Pairings (spirits, coffee, cocktails, pairing expertise), Value (price fairness for cigars, drinks, and overall experience)";
-
+      
       const pillarKeys = isShop
         ? "selection, storage, staff_knowledge, pricing, experience"
         : "cigar_selection, ambiance, service, drinks, value";
@@ -233,20 +231,57 @@ serve(async (req) => {
         .map((r: any, i: number) => `Review ${i + 1} (${r.rating || "?"}★): ${r.review_text}`)
         .join("\n\n");
 
-      const prompt = `You are a cigar lounge analyst. Based on the following Google reviews for a ${isShop ? "cigar shop" : "cigar lounge"} called "${lounge_name}" in ${city}, ${country}, analyze and rate each of these pillars from 1.0 to 5.0 (use half-point increments):
+      const venueLabel = isShop ? "cigar shop/tobacconist" : isBoth ? "cigar lounge & shop" : "cigar lounge";
 
-${pillarList}
+      const prompt = `You are a strict, calibrated cigar venue analyst. Analyze the Google reviews below for "${lounge_name}" (${venueLabel}) in ${city}, ${country}.
 
-If a review doesn't mention a particular pillar, skip it for that review — don't guess.
-If NO reviews mention a pillar at all, return null for that pillar.
-If a lounge has very few reviews or the reviews are too vague to assess a pillar reliably, return null for that pillar rather than guessing. Accuracy matters more than completeness.
+CRITICAL SCORING GUIDELINES — read carefully:
+
+VENUE TYPE: This is classified as a "${lounge_type}". ${isShop 
+  ? "Score ONLY on shop-specific pillars. Do NOT evaluate lounge amenities like seating, drinks, or ambiance." 
+  : isBoth 
+    ? "This venue is both a lounge and a shop. Score on lounge pillars but consider retail quality in the selection pillar."
+    : "Score ONLY on lounge-specific pillars. If this seems to actually be a retail shop, still score the lounge pillars but note this in the summary."}
+
+CALIBRATION — most venues should score between 3.0 and 4.0:
+- 5.0 = World-class, best-in-category globally. Reserve for truly extraordinary mentions.
+- 4.5 = Among the best in the country. Multiple reviewers rave about this specific aspect.
+- 4.0 = Clearly above average. Positive mentions from several reviewers.
+- 3.5 = Solid, good. Generally positive but nothing remarkable.
+- 3.0 = Average, acceptable. No complaints but no praise either.
+- 2.5 = Below average. Some complaints or mediocre mentions.
+- 2.0 = Poor. Multiple complaints about this aspect.
+- 1.0-1.5 = Terrible. Consistent negative feedback.
+
+IMPORTANT: Do NOT inflate scores. A Google rating of 4.0-4.5 does NOT automatically mean pillar scores should be 4.0+. Google ratings are inflated — a 4.2 Google-rated venue is typically average (3.0-3.5 on our scale). Be skeptical and conservative.
+
+${isShop ? `SHOP PILLARS (rate 1.0-5.0, half-point increments):
+- selection: Inventory breadth, brand variety, premium/rare cigar availability, range from budget to high-end
+- storage: Humidor conditions, temperature/humidity control, cigar freshness as mentioned by reviewers
+- staff_knowledge: Quality of recommendations, product expertise, honesty, helpfulness
+- pricing: Competitiveness vs market, perceived value, deals/loyalty programs
+- experience: Store layout, browsability, atmosphere, sampling availability, overall shopping experience` 
+: `LOUNGE PILLARS (rate 1.0-5.0, half-point increments):
+- cigar_selection: Range of cigars available, quality, rare finds, humidor condition, brand variety
+- ambiance: Interior design, comfort, mood/atmosphere, cleanliness, seating quality, noise level, ventilation
+- service: Staff attentiveness, knowledge, friendliness, speed, quality of recommendations
+- drinks: Spirits/whiskey selection, coffee quality, cocktails, pairing expertise, bar quality
+- value: Price fairness for cigars AND drinks, overall value proposition, price-to-quality ratio`}
+
+RULES:
+1. If NO reviews mention a pillar AT ALL → return null (not a guess)
+2. If only 1 vague mention → return null (insufficient data)
+3. Generic praise like "great place" does NOT justify high scores across all pillars
+4. A single enthusiastic review should not override multiple moderate ones
+5. Weight negative feedback heavily — one bad experience matters more than generic praise
+6. The summary must be honest and balanced, not promotional
 
 Reviews:
 ${reviewTexts}
 
 Return ONLY a JSON object with keys: ${pillarKeys}, summary
-The summary should be one sentence capturing the overall impression.
-Example: {"cigar_selection": 4.5, "ambiance": 4.0, "service": null, "drinks": 3.5, "value": 4.0, "summary": "A sentence here"}`;
+The summary should be one honest sentence — mention both strengths AND weaknesses if present.
+Example: {"cigar_selection": 3.5, "ambiance": 4.0, "service": null, "drinks": 3.0, "value": 3.5, "summary": "A sentence here"}`;
 
       const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
       if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY not configured");
@@ -262,7 +297,7 @@ Example: {"cigar_selection": 4.5, "ambiance": 4.0, "service": null, "drinks": 3.
             "Content-Type": "application/json",
           },
           body: JSON.stringify({
-            model: "google/gemini-2.5-flash",
+            model: "google/gemini-2.5-pro",
             messages: [
               {
                 role: "system",
