@@ -363,9 +363,14 @@ const ForYouPage = () => {
                       size="sm"
                     />
                     <div className="flex-1 min-w-0">
-                      <h3 className="font-display text-sm font-semibold text-foreground truncate">
-                        {lounge.name}
-                      </h3>
+                      <div className="flex items-center gap-1.5">
+                        <h3 className="font-display text-sm font-semibold text-foreground truncate">
+                          {lounge.name}
+                        </h3>
+                        <Badge variant="outline" className="text-[10px] px-1.5 py-0 shrink-0 capitalize">
+                          {lounge.type}
+                        </Badge>
+                      </div>
                       <p className="text-xs text-muted-foreground font-body truncate">
                         {lounge.city_name}
                       </p>
