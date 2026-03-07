@@ -265,24 +265,46 @@ const BootstrapScoresPage = () => {
     await runBulkBatch(batch, "Bulk bootstrap");
   };
 
-  /** Server-side bulk rescore: all estimated lounges, auto-save */
+  /** Server-side bulk rescore in chunks to avoid long-running request timeouts */
   const bulkRescoreServer = async () => {
     setBulkRescoring(true);
+    setBulkServerProgress(null);
+
     try {
       const { error: refreshError } = await supabase.auth.refreshSession();
       if (refreshError) console.warn("Session refresh failed:", refreshError.message);
 
-      toast({ title: "Bulk rescore started", description: "Processing all estimated venues server-side. This may take 15-20 minutes..." });
+      toast({ title: "Bulk rescore started", description: "Processing estimated venues in server-side chunks..." });
 
-      const { data, error } = await supabase.functions.invoke("bootstrap-scores", {
-        body: { action: "bulk-rescore" },
-      });
+      let offset = 0;
+      const limit = 15;
+      let rescored = 0;
+      let skipped = 0;
+      let errors = 0;
+      let total = stats?.estimated || 0;
 
-      if (error) throw error;
+      while (true) {
+        const { data, error } = await supabase.functions.invoke("bootstrap-scores", {
+          body: { action: "bulk-rescore-chunk", offset, limit },
+        });
+
+        if (error) throw error;
+
+        rescored += data?.rescored ?? 0;
+        skipped += data?.skipped ?? 0;
+        errors += data?.errors ?? 0;
+        total = data?.total ?? total;
+
+        const nextOffset = data?.next_offset ?? offset;
+        setBulkServerProgress({ processed: Math.min(nextOffset, total), total });
+
+        if (data?.done || nextOffset <= offset) break;
+        offset = nextOffset;
+      }
 
       toast({
         title: "Bulk rescore complete",
-        description: `${data.rescored} rescored, ${data.skipped} skipped (no cached reviews), ${data.errors} errors out of ${data.total} total.`,
+        description: `${rescored} rescored, ${skipped} skipped (no cached reviews), ${errors} errors out of ${total} total.`,
       });
 
       queryClient.invalidateQueries({ queryKey: ["admin-lounges-scores"] });
@@ -290,6 +312,7 @@ const BootstrapScoresPage = () => {
       toast({ title: "Bulk rescore failed", description: e.message, variant: "destructive" });
     } finally {
       setBulkRescoring(false);
+      setBulkServerProgress(null);
     }
   };
 
