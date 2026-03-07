@@ -140,11 +140,6 @@ const BootstrapScoresPage = () => {
   const bootstrapSingle = async (lounge: LoungeRow): Promise<"success" | "no-reviews" | "error"> => {
     setProcessing((p) => ({ ...p, [lounge.id]: true }));
     try {
-      const { error: refreshError } = await supabase.auth.refreshSession();
-      if (refreshError) {
-        console.warn("Session refresh failed:", refreshError.message);
-      }
-
       const { data: reviewData, error: reviewError } = await supabase.functions.invoke("bootstrap-scores", {
         body: {
           action: "fetch-reviews",
@@ -271,9 +266,6 @@ const BootstrapScoresPage = () => {
     setBulkServerProgress(null);
 
     try {
-      const { error: refreshError } = await supabase.auth.refreshSession();
-      if (refreshError) console.warn("Session refresh failed:", refreshError.message);
-
       toast({ title: "Bulk rescore started", description: "Processing estimated venues in server-side chunks..." });
 
       let offset = 0;
