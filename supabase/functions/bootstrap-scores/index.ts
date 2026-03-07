@@ -96,23 +96,20 @@ async function verifyAdmin(req: Request) {
     { global: { headers: { Authorization: authHeader } } }
   );
 
-  const { data: { user }, error: userError } = await supabase.auth.getUser();
-  if (userError || !user) {
+  const token = authHeader.replace("Bearer ", "");
+  const { data: claimsData, error: claimsError } = await supabase.auth.getClaims(token);
+  if (claimsError || !claimsData?.claims) {
     throw new Error("Unauthorized");
   }
 
-  const { data: roleData } = await supabase
-    .from("user_roles")
-    .select("role")
-    .eq("user_id", user.id)
-    .eq("role", "admin")
-    .maybeSingle();
+  const userId = claimsData.claims.sub as string;
 
-  if (!roleData) {
+  const { data: isAdmin } = await supabase.rpc("has_role", { _user_id: userId, _role: "admin" });
+  if (!isAdmin) {
     throw new Error("Forbidden");
   }
 
-  return user.id;
+  return userId;
 }
 
 function buildAnalysisPrompt(
