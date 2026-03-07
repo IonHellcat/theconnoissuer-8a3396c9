@@ -485,23 +485,50 @@ serve(async (req) => {
       );
     }
 
-    if (action === "bulk-rescore") {
-      // Fetch all estimated lounges with a google_place_id
-      const { data: lounges, error: loungeError } = await serviceClient
+    if (action === "bulk-rescore" || action === "bulk-rescore-chunk") {
+      const offsetInput = Number(body.offset ?? 0);
+      const limitInput = Number(body.limit ?? 15);
+      const offset = Number.isFinite(offsetInput) ? Math.max(0, Math.floor(offsetInput)) : 0;
+      const limit = Number.isFinite(limitInput)
+        ? Math.min(50, Math.max(1, Math.floor(limitInput)))
+        : 15;
+
+      // Total target count for progress reporting
+      const { count: totalCount, error: totalError } = await serviceClient
         .from("lounges")
-        .select("id, name, type, google_place_id, city:cities(name, country)")
+        .select("id", { count: "exact", head: true })
         .eq("score_source", "estimated")
         .not("google_place_id", "is", null);
 
-      if (loungeError) throw loungeError;
-      if (!lounges || lounges.length === 0) {
+      if (totalError) throw totalError;
+
+      const total = totalCount ?? 0;
+      if (total === 0 || offset >= total) {
         return new Response(
-          JSON.stringify({ rescored: 0, skipped: 0, errors: 0, message: "No estimated lounges to rescore." }),
+          JSON.stringify({ rescored: 0, skipped: 0, errors: 0, total, processed: 0, next_offset: offset, done: true }),
           { headers: { ...corsHeaders, "Content-Type": "application/json" } }
         );
       }
 
-      console.log(`Bulk rescore: ${lounges.length} lounges to process`);
+      // Fetch one chunk only (client loops until done)
+      const { data: lounges, error: loungeError } = await serviceClient
+        .from("lounges")
+        .select("id, name, type, google_place_id, city:cities(name, country)")
+        .eq("score_source", "estimated")
+        .not("google_place_id", "is", null)
+        .order("id", { ascending: true })
+        .range(offset, offset + limit - 1);
+
+      if (loungeError) throw loungeError;
+
+      if (!lounges || lounges.length === 0) {
+        return new Response(
+          JSON.stringify({ rescored: 0, skipped: 0, errors: 0, total, processed: 0, next_offset: offset, done: true }),
+          { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+
+      console.log(`Bulk rescore chunk: processing ${lounges.length} lounges (offset ${offset}, limit ${limit}, total ${total})`);
 
       let rescored = 0;
       let skipped = 0;
@@ -513,7 +540,7 @@ serve(async (req) => {
 
         const batchPromises = batch.map(async (lounge: any) => {
           try {
-            // Load cached reviews
+            // Load cached reviews only
             const { data: reviews, error: revError } = await serviceClient
               .from("google_reviews")
               .select("author_name, rating, review_text, relative_time")
@@ -550,33 +577,30 @@ serve(async (req) => {
               console.error(`Save error for ${lounge.name}:`, saveError);
               errors++;
             } else {
-              console.log(`Rescored ${lounge.name}: ${result.connoisseur_score} (${result.score_label})`);
               rescored++;
             }
           } catch (e: any) {
             console.error(`Error processing ${lounge.name}:`, e.message);
-            if (e.message === "RATE_LIMITED") {
-              // Wait longer and retry once
-              await new Promise(r => setTimeout(r, 5000));
-              errors++;
-            } else {
-              errors++;
-            }
+            errors++;
           }
         });
 
         await Promise.all(batchPromises);
 
-        // Delay between batches
+        // Brief delay between mini-batches
         if (i + BATCH_SIZE < lounges.length) {
-          await new Promise(r => setTimeout(r, 500));
+          await new Promise(r => setTimeout(r, 300));
         }
       }
 
-      console.log(`Bulk rescore complete: ${rescored} rescored, ${skipped} skipped, ${errors} errors`);
+      const processed = lounges.length;
+      const nextOffset = offset + processed;
+      const done = nextOffset >= total;
+
+      console.log(`Bulk rescore chunk complete: ${rescored} rescored, ${skipped} skipped, ${errors} errors. nextOffset=${nextOffset}/${total}`);
 
       return new Response(
-        JSON.stringify({ rescored, skipped, errors, total: lounges.length }),
+        JSON.stringify({ rescored, skipped, errors, processed, total, next_offset: nextOffset, done }),
         { headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
