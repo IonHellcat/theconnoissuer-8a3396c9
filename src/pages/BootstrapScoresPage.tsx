@@ -442,7 +442,9 @@ const BootstrapScoresPage = () => {
               <div>
                 <p className="text-sm font-medium text-foreground">Bulk rescore in progress...</p>
                 <p className="text-xs text-muted-foreground font-body">
-                  Processing all {stats?.estimated || 0} estimated venues server-side. This may take 15-20 minutes. You can leave this page — scores will be saved automatically.
+                  {bulkServerProgress
+                    ? `Processed ${bulkServerProgress.processed}/${bulkServerProgress.total} estimated venues in server-side chunks.`
+                    : `Processing all ${stats?.estimated || 0} estimated venues in server-side chunks. This can take several minutes.`}
                 </p>
               </div>
             </div>
