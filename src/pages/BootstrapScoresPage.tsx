@@ -428,18 +428,26 @@ const BootstrapScoresPage = () => {
         </div>
 
         {bulkRescoring && (
-          <div className="mb-6 p-4 rounded-lg border border-primary/30 bg-primary/5">
+          <div className="mb-6 p-4 rounded-lg border border-primary/30 bg-primary/5 space-y-3">
             <div className="flex items-center gap-3">
               <Loader2 className="h-5 w-5 animate-spin text-primary" />
-              <div>
+              <div className="flex-1">
                 <p className="text-sm font-medium text-foreground">Bulk rescore in progress...</p>
                 <p className="text-xs text-muted-foreground font-body">
                   {bulkServerProgress
-                    ? `Processed ${bulkServerProgress.processed}/${bulkServerProgress.total} estimated venues in server-side chunks.`
-                    : `Processing all ${stats?.estimated || 0} estimated venues in server-side chunks. This can take several minutes.`}
+                    ? `Processed ${bulkServerProgress.processed} of ${bulkServerProgress.total} estimated venues.`
+                    : `Starting bulk rescore of ${stats?.estimated || 0} estimated venues...`}
                 </p>
               </div>
+              {bulkServerProgress && (
+                <span className="text-sm font-bold font-display text-primary">
+                  {Math.round((bulkServerProgress.processed / bulkServerProgress.total) * 100)}%
+                </span>
+              )}
             </div>
+            {bulkServerProgress && (
+              <Progress value={(bulkServerProgress.processed / bulkServerProgress.total) * 100} />
+            )}
           </div>
         )}
 
