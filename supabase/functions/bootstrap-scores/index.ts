@@ -277,7 +277,7 @@ serve(async (req) => {
     const body = await req.json();
     const { action } = body;
 
-    const validActions = ["fetch-reviews", "analyze", "mark-no-reviews", "save", "bulk-rescore"];
+    const validActions = ["fetch-reviews", "analyze", "mark-no-reviews", "save", "bulk-rescore", "bulk-rescore-chunk"];
     if (!action || !validActions.includes(action)) {
       return new Response(
         JSON.stringify({ error: `Invalid action. Must be one of: ${validActions.join(", ")}` }),
