@@ -69,6 +69,7 @@ const BootstrapScoresPage = () => {
   const [bulkProgress, setBulkProgress] = useState<{ current: number; total: number; currentName: string } | null>(null);
   const [expandedLounges, setExpandedLounges] = useState<Record<string, boolean>>({});
   const [bulkRescoring, setBulkRescoring] = useState(false);
+  const [bulkServerProgress, setBulkServerProgress] = useState<{ processed: number; total: number } | null>(null);
 
   const { data: lounges, isLoading } = useQuery({
     queryKey: ["admin-lounges-scores"],
@@ -139,11 +140,6 @@ const BootstrapScoresPage = () => {
   const bootstrapSingle = async (lounge: LoungeRow): Promise<"success" | "no-reviews" | "error"> => {
     setProcessing((p) => ({ ...p, [lounge.id]: true }));
     try {
-      const { error: refreshError } = await supabase.auth.refreshSession();
-      if (refreshError) {
-        console.warn("Session refresh failed:", refreshError.message);
-      }
-
       const { data: reviewData, error: reviewError } = await supabase.functions.invoke("bootstrap-scores", {
         body: {
           action: "fetch-reviews",
@@ -264,24 +260,43 @@ const BootstrapScoresPage = () => {
     await runBulkBatch(batch, "Bulk bootstrap");
   };
 
-  /** Server-side bulk rescore: all estimated lounges, auto-save */
+  /** Server-side bulk rescore in chunks to avoid long-running request timeouts */
   const bulkRescoreServer = async () => {
     setBulkRescoring(true);
+    setBulkServerProgress(null);
+
     try {
-      const { error: refreshError } = await supabase.auth.refreshSession();
-      if (refreshError) console.warn("Session refresh failed:", refreshError.message);
+      toast({ title: "Bulk rescore started", description: "Processing estimated venues in server-side chunks..." });
 
-      toast({ title: "Bulk rescore started", description: "Processing all estimated venues server-side. This may take 15-20 minutes..." });
+      let offset = 0;
+      const limit = 15;
+      let rescored = 0;
+      let skipped = 0;
+      let errors = 0;
+      let total = stats?.estimated || 0;
 
-      const { data, error } = await supabase.functions.invoke("bootstrap-scores", {
-        body: { action: "bulk-rescore" },
-      });
+      while (true) {
+        const { data, error } = await supabase.functions.invoke("bootstrap-scores", {
+          body: { action: "bulk-rescore-chunk", offset, limit },
+        });
 
-      if (error) throw error;
+        if (error) throw error;
+
+        rescored += data?.rescored ?? 0;
+        skipped += data?.skipped ?? 0;
+        errors += data?.errors ?? 0;
+        total = data?.total ?? total;
+
+        const nextOffset = data?.next_offset ?? offset;
+        setBulkServerProgress({ processed: Math.min(nextOffset, total), total });
+
+        if (data?.done || nextOffset <= offset) break;
+        offset = nextOffset;
+      }
 
       toast({
         title: "Bulk rescore complete",
-        description: `${data.rescored} rescored, ${data.skipped} skipped (no cached reviews), ${data.errors} errors out of ${data.total} total.`,
+        description: `${rescored} rescored, ${skipped} skipped (no cached reviews), ${errors} errors out of ${total} total.`,
       });
 
       queryClient.invalidateQueries({ queryKey: ["admin-lounges-scores"] });
@@ -289,6 +304,7 @@ const BootstrapScoresPage = () => {
       toast({ title: "Bulk rescore failed", description: e.message, variant: "destructive" });
     } finally {
       setBulkRescoring(false);
+      setBulkServerProgress(null);
     }
   };
 
@@ -418,7 +434,9 @@ const BootstrapScoresPage = () => {
               <div>
                 <p className="text-sm font-medium text-foreground">Bulk rescore in progress...</p>
                 <p className="text-xs text-muted-foreground font-body">
-                  Processing all {stats?.estimated || 0} estimated venues server-side. This may take 15-20 minutes. You can leave this page — scores will be saved automatically.
+                  {bulkServerProgress
+                    ? `Processed ${bulkServerProgress.processed}/${bulkServerProgress.total} estimated venues in server-side chunks.`
+                    : `Processing all ${stats?.estimated || 0} estimated venues in server-side chunks. This can take several minutes.`}
                 </p>
               </div>
             </div>
