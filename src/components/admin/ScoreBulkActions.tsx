@@ -94,9 +94,9 @@ export const ScoreBulkActions = ({
       {bulkBootstrapping && (
         <div className="mb-6 p-4 rounded-lg border border-primary/30 bg-primary/5 space-y-3">
           <div className="flex items-center gap-3">
-            <Loader2 className="h-5 w-5 animate-spin text-primary" />
+            {paused ? <Pause className="h-5 w-5 text-amber-500" /> : <Loader2 className="h-5 w-5 animate-spin text-primary" />}
             <div className="flex-1">
-              <p className="text-sm font-medium text-foreground">Full pipeline in progress...</p>
+              <p className="text-sm font-medium text-foreground">{paused ? "Pipeline paused" : "Full pipeline in progress..."}</p>
               <p className="text-xs text-muted-foreground font-body">
                 {bulkBootstrapProgress
                   ? `✓ ${bulkBootstrapProgress.scored} scored · ${bulkBootstrapProgress.no_reviews} no reviews · ${bulkBootstrapProgress.errors} errors · ${bulkBootstrapProgress.remaining} remaining`
