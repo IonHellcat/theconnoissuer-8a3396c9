@@ -23,7 +23,7 @@ const BootstrapScoresPage = () => {
   const [sortAsc, setSortAsc] = useState(true);
   const [processing, setProcessing] = useState<Record<string, boolean>>({});
   const [results, setResults] = useState<Record<string, PipelineResult>>({});
-  const [bulkProgress, setBulkProgress] = useState<{ current: number; total: number; currentName: string } | null>(null);
+  
   const [expandedLounges, setExpandedLounges] = useState<Record<string, boolean>>({});
   const [bulkRescoring, setBulkRescoring] = useState(false);
   const [bulkServerProgress, setBulkServerProgress] = useState<{ processed: number; total: number } | null>(null);
@@ -159,23 +159,59 @@ const BootstrapScoresPage = () => {
     setExpandedLounges((p) => { const n = { ...p }; delete n[loungeId]; return n; });
   };
 
-  const runBulkBatch = async (batch: LoungeRow[], label: string) => {
-    if (batch.length === 0) { toast({ title: "Nothing to process" }); return; }
-    setBulkProgress({ current: 0, total: batch.length, currentName: "" });
-    let successCount = 0, noReviewCount = 0, errorCount = 0;
-    for (let i = 0; i < batch.length; i++) {
-      setBulkProgress({ current: i, total: batch.length, currentName: batch[i].name });
-      const result = await bootstrapSingle(batch[i]);
-      if (result === "success") successCount++; else if (result === "no-reviews") noReviewCount++; else errorCount++;
-      if (i < batch.length - 1) await new Promise((r) => setTimeout(r, 2000));
-    }
-    setBulkProgress(null);
-    toast({ title: `${label} complete`, description: `${successCount} scored, ${noReviewCount} no reviews, ${errorCount} errors.` });
-  };
+  const [bulkBootstrapping, setBulkBootstrapping] = useState(false);
+  const [bulkBootstrapProgress, setBulkBootstrapProgress] = useState<{
+    scored: number; no_reviews: number; errors: number; remaining: number; total: number;
+  } | null>(null);
 
   const bulkBootstrap = async () => {
     if (!lounges) return;
-    await runBulkBatch(lounges.filter((l) => l.score_source === "none" && l.google_place_id).slice(0, 50), "Bulk pipeline");
+    setBulkBootstrapping(true);
+    setBulkBootstrapProgress(null);
+    try {
+      toast({ title: "Bulk pipeline started", description: "Fetching reviews → classifying → scoring → summarizing..." });
+      let totalScored = 0, totalNoReviews = 0, totalErrors = 0;
+      const chunkSize = 5; // Process 5 venues per chunk to stay under edge function timeout
+
+      while (true) {
+        const { data, error } = await supabase.functions.invoke("bootstrap-scores", {
+          body: { action: "bulk-full-pipeline-chunk", limit: chunkSize },
+        });
+        if (error) throw error;
+
+        totalScored += data?.scored ?? 0;
+        totalNoReviews += data?.no_reviews ?? 0;
+        totalErrors += data?.errors ?? 0;
+        const remaining = data?.remaining ?? 0;
+        const total = data?.total ?? (totalScored + totalNoReviews + totalErrors + remaining);
+
+        setBulkBootstrapProgress({
+          scored: totalScored, no_reviews: totalNoReviews, errors: totalErrors,
+          remaining, total,
+        });
+
+        if (data?.done || remaining <= 0) break;
+
+        // Refresh table data periodically (every 5 chunks)
+        if ((totalScored + totalNoReviews + totalErrors) % 25 === 0) {
+          queryClient.invalidateQueries({ queryKey: ["admin-lounges-scores"] });
+        }
+
+        // Small delay between chunks
+        await new Promise(r => setTimeout(r, 500));
+      }
+
+      toast({
+        title: "Bulk pipeline complete",
+        description: `${totalScored} scored, ${totalNoReviews} no reviews, ${totalErrors} errors.`,
+      });
+      queryClient.invalidateQueries({ queryKey: ["admin-lounges-scores"] });
+    } catch (e: any) {
+      toast({ title: "Bulk pipeline failed", description: e.message, variant: "destructive" });
+    } finally {
+      setBulkBootstrapping(false);
+      setBulkBootstrapProgress(null);
+    }
   };
 
   const bulkRescoreServer = async () => {
@@ -256,8 +292,10 @@ const BootstrapScoresPage = () => {
         {stats && <ScoreStats stats={stats} />}
 
         <ScoreBulkActions
-          bulkProgress={bulkProgress} bulkRescoring={bulkRescoring} bulkServerProgress={bulkServerProgress}
-          estimatedCount={stats?.estimated || 0} editedCount={Object.keys(results).length} loungeCount={lounges?.length || 0}
+          bulkBootstrapping={bulkBootstrapping} bulkBootstrapProgress={bulkBootstrapProgress}
+          bulkRescoring={bulkRescoring} bulkServerProgress={bulkServerProgress}
+          unscoredCount={stats?.none || 0} estimatedCount={stats?.estimated || 0}
+          editedCount={Object.keys(results).length} loungeCount={lounges?.length || 0}
           onBulkBootstrap={bulkBootstrap} onBulkRescore={bulkRescoreServer} onBulkSaveAll={bulkSaveAll}
           onResetAllScores={resetAllScores} resetting={resettingScores}
         />
