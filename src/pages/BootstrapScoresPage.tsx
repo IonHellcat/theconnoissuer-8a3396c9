@@ -220,6 +220,25 @@ const BootstrapScoresPage = () => {
     toast({ title: "Bulk save complete", description: `Saved ${saved} scores.` });
   };
 
+  const [resettingScores, setResettingScores] = useState(false);
+  const resetAllScores = async () => {
+    setResettingScores(true);
+    try {
+      const { error } = await supabase.functions.invoke("bootstrap-scores", {
+        body: { action: "reset-all" },
+      });
+      if (error) throw error;
+      toast({ title: "Reset complete", description: "All scores, classifications, and summaries have been cleared." });
+      setResults({});
+      setExpandedLounges({});
+      queryClient.invalidateQueries({ queryKey: ["admin-lounges-scores"] });
+    } catch (e: any) {
+      toast({ title: "Reset failed", description: e.message, variant: "destructive" });
+    } finally {
+      setResettingScores(false);
+    }
+  };
+
   if (authLoading || roleLoading) {
     return <div className="min-h-screen bg-background flex items-center justify-center"><Loader2 className="h-8 w-8 animate-spin text-primary" /></div>;
   }
