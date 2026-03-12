@@ -2,6 +2,7 @@ import { useSearchParams, Link } from "react-router-dom";
 import type { LoungeWithCity } from "@/lib/types";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import QueryErrorBanner from "@/components/QueryErrorBanner";
 import { Helmet } from "react-helmet-async";
 import { motion } from "framer-motion";
 import { Search, MapPin, ArrowLeft } from "lucide-react";
