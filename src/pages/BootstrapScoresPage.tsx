@@ -181,6 +181,9 @@ const BootstrapScoresPage = () => {
           await new Promise(r => setTimeout(r, 300));
         }
 
+        // Refresh session to prevent token expiry during long operations
+        await supabase.auth.getSession();
+
         const { data, error } = await supabase.functions.invoke("bootstrap-scores", {
           body: { action: "bulk-full-pipeline-chunk", limit: chunkSize, concurrency: 3 },
         });
@@ -233,6 +236,7 @@ const BootstrapScoresPage = () => {
         while (pausedRef.current) {
           await new Promise(r => setTimeout(r, 300));
         }
+        await supabase.auth.getSession();
         const { data, error } = await supabase.functions.invoke("bootstrap-scores", {
           body: { action: "bulk-pipeline-chunk", offset, limit },
         });
@@ -269,6 +273,7 @@ const BootstrapScoresPage = () => {
         while (pausedRef.current) {
           await new Promise(r => setTimeout(r, 300));
         }
+        await supabase.auth.getSession();
         const { data, error } = await supabase.functions.invoke("bootstrap-scores", {
           body: { action: "recalculate-scores-chunk", offset, limit },
         });
