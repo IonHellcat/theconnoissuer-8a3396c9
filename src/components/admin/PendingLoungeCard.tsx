@@ -12,6 +12,7 @@ interface Props {
   onApprove: (lounge: PendingLounge) => void;
   onReject: (lounge: PendingLounge) => void;
   onEdit: (lounge: PendingLounge) => void;
+  onDelete: (lounge: PendingLounge) => void;
   selected?: boolean;
   onSelectChange?: (checked: boolean) => void;
   isPossibleDuplicate?: boolean;
