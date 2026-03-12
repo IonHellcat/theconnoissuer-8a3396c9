@@ -173,7 +173,7 @@ const BootstrapScoresPage = () => {
     try {
       toast({ title: "Bulk pipeline started", description: "Fetching reviews → classifying → scoring → summarizing..." });
       let totalScored = 0, totalNoReviews = 0, totalErrors = 0;
-      const chunkSize = 5; // Process 5 venues per chunk to stay under edge function timeout
+      const chunkSize = 10; // Process 10 venues per chunk with 3 concurrent
 
       while (true) {
         // Check for pause
@@ -182,7 +182,7 @@ const BootstrapScoresPage = () => {
         }
 
         const { data, error } = await supabase.functions.invoke("bootstrap-scores", {
-          body: { action: "bulk-full-pipeline-chunk", limit: chunkSize },
+          body: { action: "bulk-full-pipeline-chunk", limit: chunkSize, concurrency: 3 },
         });
         if (error) throw error;
 
@@ -199,13 +199,13 @@ const BootstrapScoresPage = () => {
 
         if (data?.done || remaining <= 0) break;
 
-        // Refresh table data periodically (every 5 chunks)
-        if ((totalScored + totalNoReviews + totalErrors) % 25 === 0) {
+        // Refresh table data periodically
+        if ((totalScored + totalNoReviews + totalErrors) % 30 === 0) {
           queryClient.invalidateQueries({ queryKey: ["admin-lounges-scores"] });
         }
 
-        // Small delay between chunks
-        await new Promise(r => setTimeout(r, 500));
+        // Minimal delay between chunks
+        await new Promise(r => setTimeout(r, 100));
       }
 
       toast({
