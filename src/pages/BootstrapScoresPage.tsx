@@ -181,6 +181,9 @@ const BootstrapScoresPage = () => {
           await new Promise(r => setTimeout(r, 300));
         }
 
+        // Refresh session to prevent token expiry during long operations
+        await supabase.auth.getSession();
+
         const { data, error } = await supabase.functions.invoke("bootstrap-scores", {
           body: { action: "bulk-full-pipeline-chunk", limit: chunkSize, concurrency: 3 },
         });
