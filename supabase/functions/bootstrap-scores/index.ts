@@ -705,6 +705,163 @@ serve(async (req) => {
         { headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
 
+    // ═══ BULK FULL PIPELINE (fetch + classify + compute + summarize + save) ═══
+    if (action === "bulk-full-pipeline-chunk") {
+      const limitInput = Number(body.limit ?? 5);
+      const limit = Math.min(10, Math.max(1, Math.floor(limitInput)));
+
+      const GOOGLE_PLACES_API_KEY = Deno.env.get("GOOGLE_PLACES_API_KEY");
+      if (!GOOGLE_PLACES_API_KEY) throw new Error("GOOGLE_PLACES_API_KEY not configured");
+
+      // Count total unscored venues with google_place_id
+      const { count: totalCount } = await serviceClient
+        .from("lounges")
+        .select("id", { count: "exact", head: true })
+        .eq("score_source", "none")
+        .not("google_place_id", "is", null);
+
+      const total = totalCount ?? 0;
+      if (total === 0) {
+        return new Response(JSON.stringify({ scored: 0, no_reviews: 0, errors: 0, remaining: 0, done: true }),
+          { headers: { ...corsHeaders, "Content-Type": "application/json" } });
+      }
+
+      // Always fetch the NEXT batch of unscored venues (no offset needed — scored ones drop out)
+      const { data: lounges } = await serviceClient
+        .from("lounges")
+        .select("id, name, type, rating, review_count, google_place_id")
+        .eq("score_source", "none")
+        .not("google_place_id", "is", null)
+        .order("review_count", { ascending: false })
+        .limit(limit);
+
+      if (!lounges || lounges.length === 0) {
+        return new Response(JSON.stringify({ scored: 0, no_reviews: 0, errors: 0, remaining: 0, done: true }),
+          { headers: { ...corsHeaders, "Content-Type": "application/json" } });
+      }
+
+      console.log(`Bulk full pipeline: processing ${lounges.length} venues (${total} remaining)`);
+
+      let scored = 0, no_reviews = 0, errors = 0;
+
+      for (const lounge of lounges) {
+        try {
+          // 1. Fetch reviews from Google
+          const url = `https://places.googleapis.com/v1/places/${lounge.google_place_id}?fields=reviews&key=${GOOGLE_PLACES_API_KEY}`;
+          const gResponse = await fetch(url);
+          if (!gResponse.ok) {
+            const t = await gResponse.text();
+            console.error(`Google API error for ${lounge.name}:`, gResponse.status, t);
+            errors++;
+            continue;
+          }
+
+          const gData = await gResponse.json();
+          const rawReviews = gData.reviews || [];
+          const textReviews = rawReviews.filter((r: any) => r.text?.text || r.originalText?.text);
+
+          if (textReviews.length === 0) {
+            // Mark as no_reviews so it doesn't get picked up again
+            await serviceClient.from("lounges").update({ score_source: "no_reviews" }).eq("id", lounge.id);
+            no_reviews++;
+            continue;
+          }
+
+          // Insert reviews (clear old ones first)
+          await serviceClient.from("review_classifications").delete().eq("lounge_id", lounge.id);
+          await serviceClient.from("google_reviews").delete().eq("lounge_id", lounge.id);
+
+          const reviewRows = textReviews.map((r: any) => ({
+            lounge_id: lounge.id,
+            google_place_id: lounge.google_place_id,
+            author_name: r.authorAttribution?.displayName || "Anonymous",
+            rating: r.rating || null,
+            review_text: r.text?.text || r.originalText?.text || "",
+            relative_time: r.relativePublishTimeDescription || "",
+          }));
+          await serviceClient.from("google_reviews").insert(reviewRows);
+
+          // 2. Classify sentiments
+          const reviewsForClassify = reviewRows.map((r: any, i: number) => ({
+            id: `temp-${i}`, review_text: r.review_text, rating: r.rating,
+          }));
+          // Re-fetch to get actual IDs
+          const { data: savedReviews } = await serviceClient
+            .from("google_reviews")
+            .select("id, review_text, rating")
+            .eq("lounge_id", lounge.id);
+
+          if (savedReviews && savedReviews.length > 0) {
+            try {
+              const classResults = await classifyReviewsBatch(savedReviews, lounge.type);
+              const classRows = classResults.map((r: any) => ({
+                review_id: r.review_id, lounge_id: lounge.id,
+                venue_type: lounge.type, aspects: r.aspects,
+              }));
+              if (classRows.length > 0) {
+                await serviceClient.from("review_classifications").upsert(classRows, { onConflict: "review_id" });
+              }
+            } catch (e: any) {
+              if (e.message === "RATE_LIMITED" || e.message === "CREDITS_EXHAUSTED") {
+                return new Response(JSON.stringify({
+                  error: e.message, scored, no_reviews, errors,
+                  remaining: total - scored - no_reviews - errors, done: false,
+                }), { status: e.message === "RATE_LIMITED" ? 429 : 402,
+                  headers: { ...corsHeaders, "Content-Type": "application/json" } });
+              }
+              console.error(`Classify error for ${lounge.name}:`, e.message);
+              errors++;
+              continue;
+            }
+          }
+
+          // 3. Compute score
+          const { data: allC } = await serviceClient
+            .from("review_classifications")
+            .select("aspects")
+            .eq("lounge_id", lounge.id);
+
+          if (!allC || allC.length === 0) { errors++; continue; }
+
+          const ratings = (savedReviews || []).map((r: any) => r.rating).filter((r: number | null): r is number => r !== null);
+          const aspects = getAspects(lounge.type);
+          const { score } = computeConnoisseurScore(Number(lounge.rating), lounge.review_count, allC, aspects, ratings);
+          const pillarScores = buildPillarScores(allC, aspects);
+          const confidence = computeConfidence(allC.length);
+          const scoreLabel = getScoreLabel(score);
+
+          // 4. Generate summary
+          const topSnippets = (savedReviews || []).slice(0, 3).map((r: any) => r.review_text?.slice(0, 200) || "");
+          let summary = "";
+          try {
+            summary = await generateSummary(lounge.name, pillarScores, topSnippets);
+          } catch { /* non-fatal */ }
+
+          // 5. Save
+          await serviceClient.from("lounges").update({
+            connoisseur_score: score, score_label: scoreLabel, score_source: "estimated",
+            pillar_scores: pillarScores, score_summary: summary || null,
+            confidence, review_data_count: allC.length, scored_at: new Date().toISOString(),
+          }).eq("id", lounge.id);
+
+          scored++;
+          console.log(`✓ ${lounge.name}: score ${score} (${scoreLabel || "unranked"})`);
+        } catch (e: any) {
+          console.error(`Error for ${lounge.name}:`, e.message);
+          errors++;
+        }
+
+        // Delay between venues to respect rate limits
+        await new Promise(r => setTimeout(r, 500));
+      }
+
+      const remaining = total - scored - no_reviews - errors;
+      return new Response(JSON.stringify({
+        scored, no_reviews, errors, remaining: Math.max(0, remaining),
+        done: remaining <= 0, total,
+      }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
+    }
+
     // ─── Reset All Scores ───
     if (action === "reset-all") {
       // Clear all review classifications
