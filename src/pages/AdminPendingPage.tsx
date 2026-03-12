@@ -187,6 +187,15 @@ const AdminPendingPage = () => {
     onSuccess: () => { toast({ title: "Bulk Rejected", description: `${selectedIds.size} lounges rejected` }); setSelectedIds(new Set()); queryClient.invalidateQueries({ queryKey: ["pending-lounges"] }); },
   });
 
+  const deleteMutation = useMutation({
+    mutationFn: async (lounge: PendingLounge) => {
+      const { error } = await supabase.from("pending_lounges").delete().eq("id", lounge.id);
+      if (error) throw error;
+    },
+    onSuccess: () => { toast({ title: "Deleted", description: "Lounge permanently removed" }); queryClient.invalidateQueries({ queryKey: ["pending-lounges"] }); },
+    onError: (err) => { toast({ title: "Error", description: err.message, variant: "destructive" }); },
+  });
+
   const editSaveMutation = useMutation({
     mutationFn: async ({ lounge, updates }: { lounge: PendingLounge; updates: Partial<PendingLounge> }) => {
       const { error } = await supabase.from("pending_lounges").update(updates).eq("id", lounge.id);
