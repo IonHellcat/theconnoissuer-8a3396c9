@@ -308,6 +308,7 @@ const BootstrapScoresPage = () => {
           editedCount={Object.keys(results).length} loungeCount={lounges?.length || 0}
           onBulkBootstrap={bulkBootstrap} onBulkRescore={bulkRescoreServer} onBulkSaveAll={bulkSaveAll}
           onResetAllScores={resetAllScores} resetting={resettingScores}
+          paused={paused} onTogglePause={() => { setPaused(p => !p); pausedRef.current = !pausedRef.current; }}
         />
 
         {isLoading ? (
