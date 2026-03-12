@@ -38,8 +38,9 @@ interface ScoreBulkActionsProps {
 export const ScoreBulkActions = ({
   bulkBootstrapping, bulkBootstrapProgress,
   bulkRescoring, bulkServerProgress,
+  bulkRecalculating, bulkRecalcProgress,
   unscoredCount, estimatedCount, editedCount, loungeCount,
-  paused, onBulkBootstrap, onBulkRescore, onBulkSaveAll, onResetAllScores, onTogglePause, resetting,
+  paused, onBulkBootstrap, onBulkRescore, onBulkRecalculate, onBulkSaveAll, onResetAllScores, onTogglePause, resetting,
 }: ScoreBulkActionsProps) => {
   const anyRunning = bulkBootstrapping || bulkRescoring || !!resetting;
 
