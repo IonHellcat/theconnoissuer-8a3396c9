@@ -704,6 +704,29 @@ serve(async (req) => {
         { headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
 
+    // ─── Reset All Scores ───
+    if (action === "reset-all") {
+      // Clear all review classifications
+      await admin.from("review_classifications").delete().neq("id", "00000000-0000-0000-0000-000000000000");
+
+      // Reset all lounge score columns
+      const { error: resetError } = await admin.from("lounges").update({
+        connoisseur_score: null,
+        pillar_scores: null,
+        score_label: null,
+        score_source: "none",
+        score_summary: null,
+        confidence: null,
+        review_data_count: 0,
+        scored_at: null,
+      }).neq("id", "00000000-0000-0000-0000-000000000000");
+
+      if (resetError) throw resetError;
+
+      return new Response(JSON.stringify({ success: true }),
+        { headers: { ...corsHeaders, "Content-Type": "application/json" } });
+    }
+
     return new Response(JSON.stringify({ error: "Unknown action" }),
       { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } });
   } catch (e) {
