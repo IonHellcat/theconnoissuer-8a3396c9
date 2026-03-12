@@ -720,23 +720,13 @@ serve(async (req) => {
           { headers: { ...corsHeaders, "Content-Type": "application/json" } });
       }
 
-      // Build city average review count map
+      // Build city averages + global review distribution stats
       const { data: cityAverages } = await serviceClient
         .from("lounges")
         .select("city_id, review_count");
 
-      const cityAvgMap = new Map<string, number>();
-      if (cityAverages) {
-        const cityGroups = new Map<string, number[]>();
-        for (const l of cityAverages) {
-          if (!l.city_id) continue;
-          if (!cityGroups.has(l.city_id)) cityGroups.set(l.city_id, []);
-          cityGroups.get(l.city_id)!.push(l.review_count);
-        }
-        cityGroups.forEach((counts, cityId) => {
-          cityAvgMap.set(cityId, counts.reduce((a, b) => a + b, 0) / counts.length);
-        });
-      }
+      const cityAvgMap = buildCityAverageMap(cityAverages || []);
+      const reviewStats = buildReviewStats(cityAverages || []);
 
       console.log(`Bulk pipeline chunk: ${lounges.length} lounges at offset ${offset}`);
 
