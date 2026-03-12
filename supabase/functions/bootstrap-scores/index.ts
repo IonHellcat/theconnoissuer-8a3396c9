@@ -76,23 +76,32 @@ function computeConsistencyScore(ratings: number[]): number {
   return Math.round(score);
 }
 
+function computePrestigeScore(reviewCount: number, cityAvgReviewCount: number): number {
+  if (cityAvgReviewCount <= 0) return 50;
+  const ratio = reviewCount / cityAvgReviewCount;
+  const raw = Math.log2(ratio + 1) / Math.log2(6);
+  return Math.round(Math.min(100, Math.max(0, raw * 100)));
+}
+
 function computeConnoisseurScore(
   rating: number,
   reviewCount: number,
   classifications: Array<{ aspects: Record<string, any> }>,
   aspects: string[],
-  ratings: number[]
-): { score: number; quality: number; sentiment: number; volume: number; consistency: number } {
+  ratings: number[],
+  cityAvgReviewCount: number
+): { score: number; quality: number; sentiment: number; volume: number; consistency: number; prestige: number } {
   const quality = computeQualityScore(rating, reviewCount);
   const sentiment = computeSentimentScore(classifications, aspects);
   const volume = computeVolumeScore(reviewCount);
   const consistency = computeConsistencyScore(ratings);
+  const prestige = computePrestigeScore(reviewCount, cityAvgReviewCount);
 
   const score = Math.round(
-    quality * 0.35 + sentiment * 0.30 + volume * 0.25 + consistency * 0.10
-  );
+    (quality * 0.30 + sentiment * 0.25 + volume * 0.20 + prestige * 0.15 + consistency * 0.10) * 10
+  ) / 10;
 
-  return { score, quality, sentiment, volume, consistency };
+  return { score, quality, sentiment, volume, consistency, prestige };
 }
 
 function computeConfidence(reviewCount: number): string {
