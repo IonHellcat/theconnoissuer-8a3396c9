@@ -707,10 +707,10 @@ serve(async (req) => {
     // ─── Reset All Scores ───
     if (action === "reset-all") {
       // Clear all review classifications
-      await admin.from("review_classifications").delete().neq("id", "00000000-0000-0000-0000-000000000000");
+      await serviceClient.from("review_classifications").delete().neq("id", "00000000-0000-0000-0000-000000000000");
 
       // Reset all lounge score columns
-      const { error: resetError } = await admin.from("lounges").update({
+      const { error: resetError } = await serviceClient.from("lounges").update({
         connoisseur_score: null,
         pillar_scores: null,
         score_label: null,
