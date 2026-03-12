@@ -16,7 +16,7 @@ const HeroSection = () => {
   };
 
   return (
-    <section className="relative min-h-[70vh] sm:min-h-[80vh] md:min-h-[90vh] flex items-center justify-center overflow-hidden">
+    <section className="relative min-h-[50vh] sm:min-h-[70vh] md:min-h-[80vh] lg:min-h-[90vh] flex items-center justify-center overflow-hidden">
       {/* Background gradient */}
       <div className="absolute inset-0 bg-gradient-to-b from-background via-background/95 to-background" />
       <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,hsl(41_55%_58%/0.08)_0%,transparent_70%)]" />
@@ -53,7 +53,7 @@ const HeroSection = () => {
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.8, delay: 0.4, ease: "easeOut" }}
-          className="mt-8 sm:mt-10 max-w-xl mx-auto px-2 sm:px-0"
+          className="mt-5 sm:mt-10 max-w-xl mx-auto px-2 sm:px-0"
         >
           <div className="relative group">
             <div className="absolute -inset-0.5 bg-gradient-to-r from-primary/50 to-gold-light/50 rounded-lg blur opacity-30 group-hover:opacity-50 transition-opacity" />
