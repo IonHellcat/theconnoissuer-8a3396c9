@@ -22,7 +22,7 @@ interface PendingLoungeListProps {
 export const PendingLoungeList = ({
   grouped, isPending, selectedIds,
   onToggleSelect, onToggleGroupSelect,
-  onApprove, onReject, onEdit,
+  onApprove, onReject, onEdit, onDelete,
   onBulkApprove, onBulkReject,
   isPossibleDuplicate,
 }: PendingLoungeListProps) => (
