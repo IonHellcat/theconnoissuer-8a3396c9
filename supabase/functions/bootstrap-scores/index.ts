@@ -561,21 +561,26 @@ serve(async (req) => {
         .select("rating")
         .eq("lounge_id", lounge_id);
 
-      // Get city average review count
-      const { data: cityData } = await serviceClient
+      // Build city averages + global review distribution stats
+      const { data: allReviewRows } = await serviceClient
         .from("lounges")
-        .select("review_count")
-        .eq("city_id", lounge.city_id);
+        .select("city_id, review_count");
 
-      const cityAvg = cityData && cityData.length > 0
-        ? cityData.reduce((sum: number, l: any) => sum + l.review_count, 0) / cityData.length
-        : 50;
+      const cityAvgMap = buildCityAverageMap(allReviewRows || []);
+      const reviewStats = buildReviewStats(allReviewRows || []);
 
       const ratings = (reviews || []).map((r: any) => r.rating).filter((r: number | null): r is number => r !== null);
       const aspects = getAspects(lounge.type);
+      const cityAvg = cityAvgMap.get(lounge.city_id) ?? reviewStats.median;
 
       const { score, quality, sentiment, volume, consistency, prestige } = computeConnoisseurScore(
-        Number(lounge.rating), lounge.review_count, classifications, aspects, ratings, cityAvg
+        Number(lounge.rating),
+        lounge.review_count,
+        classifications,
+        aspects,
+        ratings,
+        cityAvg,
+        reviewStats
       );
 
       const pillarScores = buildPillarScores(classifications, aspects);
