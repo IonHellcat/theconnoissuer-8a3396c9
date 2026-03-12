@@ -137,7 +137,7 @@ export const ScoreLoungeRow = ({
                   ].map((c) => (
                     <div key={c.label} className="bg-card rounded-md p-2">
                       <p className="text-[9px] text-muted-foreground font-body uppercase">{c.label} ({c.weight})</p>
-                      <p className="text-sm font-bold font-display text-foreground">{c.value}</p>
+                      <p className="text-sm font-bold font-display text-foreground">{Math.round(c.value)}</p>
                     </div>
                   ))}
                 </div>
