@@ -18,6 +18,7 @@ import OptimizedImage from "@/components/OptimizedImage";
 import ConnoisseurScoreBadge from "@/components/ConnoisseurScoreBadge";
 import GalleryLightbox from "@/components/GalleryLightbox";
 import FeatureChips from "@/components/FeatureChips";
+import LoungeDetailsCard from "@/components/LoungeDetailsCard";
 
 import LoungeJsonLd from "@/components/LoungeJsonLd";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
