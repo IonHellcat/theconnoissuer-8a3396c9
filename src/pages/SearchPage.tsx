@@ -93,7 +93,7 @@ const SearchPage = () => {
       relevance: () => 0,
       rating_desc: (a, b) => Number(b.rating) - Number(a.rating),
       rating_asc: (a, b) => Number(a.rating) - Number(b.rating),
-      score_desc: (a, b) => ((b as any).connoisseur_score ?? 0) - ((a as any).connoisseur_score ?? 0),
+      score_desc: (a, b) => (b.connoisseur_score ?? 0) - (a.connoisseur_score ?? 0),
       price_asc: (a, b) => a.price_tier - b.price_tier,
       price_desc: (a, b) => b.price_tier - a.price_tier,
       name_asc: (a, b) => a.name.localeCompare(b.name),
