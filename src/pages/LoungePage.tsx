@@ -337,30 +337,7 @@ const LoungePage = () => {
             </section>
 
             {/* Mobile sticky action bar */}
-            <div className="fixed bottom-14 left-0 right-0 z-40 md:hidden bg-background/95 backdrop-blur-md border-t border-border/50 px-4 py-3">
-              <div className="flex items-center gap-3">
-                {lounge.latitude && lounge.longitude && (
-                  <a
-                    href={`https://www.google.com/maps/dir/?api=1&destination=${lounge.latitude},${lounge.longitude}`}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg bg-primary text-primary-foreground text-sm font-medium font-body hover:bg-primary/90 transition-colors"
-                  >
-                    <Navigation className="h-4 w-4" />
-                    Get Directions
-                  </a>
-                )}
-                {lounge.phone && (
-                  <a
-                    href={`tel:${lounge.phone}`}
-                    className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg border border-border text-foreground text-sm font-medium font-body hover:bg-secondary transition-colors"
-                  >
-                    <Phone className="h-4 w-4" />
-                    Call
-                  </a>
-                )}
-              </div>
-            </div>
+            <MobileActionBar lounge={lounge} cityName={city?.name} />
           </>
         )}
       </main>
