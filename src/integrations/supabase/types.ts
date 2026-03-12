@@ -158,6 +158,7 @@ export type Database = {
           address: string | null
           cigar_highlights: string[] | null
           city_id: string
+          confidence: string | null
           connoisseur_score: number | null
           created_at: string
           description: string | null
@@ -177,9 +178,11 @@ export type Database = {
           price_tier: number
           rating: number
           review_count: number
+          review_data_count: number | null
           score_label: string | null
           score_source: string
           score_summary: string | null
+          scored_at: string | null
           slug: string
           type: string
           updated_at: string
@@ -190,6 +193,7 @@ export type Database = {
           address?: string | null
           cigar_highlights?: string[] | null
           city_id: string
+          confidence?: string | null
           connoisseur_score?: number | null
           created_at?: string
           description?: string | null
@@ -209,9 +213,11 @@ export type Database = {
           price_tier?: number
           rating?: number
           review_count?: number
+          review_data_count?: number | null
           score_label?: string | null
           score_source?: string
           score_summary?: string | null
+          scored_at?: string | null
           slug: string
           type?: string
           updated_at?: string
@@ -222,6 +228,7 @@ export type Database = {
           address?: string | null
           cigar_highlights?: string[] | null
           city_id?: string
+          confidence?: string | null
           connoisseur_score?: number | null
           created_at?: string
           description?: string | null
@@ -241,9 +248,11 @@ export type Database = {
           price_tier?: number
           rating?: number
           review_count?: number
+          review_data_count?: number | null
           score_label?: string | null
           score_source?: string
           score_summary?: string | null
+          scored_at?: string | null
           slug?: string
           type?: string
           updated_at?: string
@@ -412,6 +421,48 @@ export type Database = {
           user_id?: string
         }
         Relationships: []
+      }
+      review_classifications: {
+        Row: {
+          aspects: Json
+          classified_at: string
+          id: string
+          lounge_id: string
+          review_id: string
+          venue_type: string
+        }
+        Insert: {
+          aspects?: Json
+          classified_at?: string
+          id?: string
+          lounge_id: string
+          review_id: string
+          venue_type?: string
+        }
+        Update: {
+          aspects?: Json
+          classified_at?: string
+          id?: string
+          lounge_id?: string
+          review_id?: string
+          venue_type?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "review_classifications_lounge_id_fkey"
+            columns: ["lounge_id"]
+            isOneToOne: false
+            referencedRelation: "lounges"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "review_classifications_review_id_fkey"
+            columns: ["review_id"]
+            isOneToOne: true
+            referencedRelation: "google_reviews"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       reviews: {
         Row: {
