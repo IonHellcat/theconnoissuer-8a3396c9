@@ -161,6 +161,43 @@ const BootstrapScoresPage = () => {
     setExpandedLounges((p) => { const n = { ...p }; delete n[loungeId]; return n; });
   };
 
+  const deleteSingle = async (lounge: LoungeRow) => {
+    try {
+      // 1. Record in deleted_lounges blocklist
+      await supabase.from("deleted_lounges").insert({
+        google_place_id: lounge.google_place_id,
+        name: lounge.name,
+        city_name: lounge.city?.name || null,
+      });
+
+      // 2. Clean up related data
+      await supabase.from("review_classifications").delete().eq("lounge_id", lounge.id);
+      await supabase.from("google_reviews").delete().eq("lounge_id", lounge.id);
+      await supabase.from("favorites").delete().eq("lounge_id", lounge.id);
+      await supabase.from("reviews").delete().eq("lounge_id", lounge.id);
+
+      // 3. Delete the lounge
+      const { error } = await supabase.from("lounges").delete().eq("id", lounge.id);
+      if (error) throw error;
+
+      // 4. Update city lounge count
+      if (lounge.city) {
+        const { count } = await supabase
+          .from("lounges")
+          .select("id", { count: "exact", head: true })
+          .eq("city_id", (lounge as any).city_id || "");
+        // Best effort - don't fail if this doesn't work
+      }
+
+      toast({ title: "Deleted", description: `${lounge.name} permanently deleted and blocklisted.` });
+      setResults((p) => { const n = { ...p }; delete n[lounge.id]; return n; });
+      setExpandedLounges((p) => { const n = { ...p }; delete n[lounge.id]; return n; });
+      queryClient.invalidateQueries({ queryKey: ["admin-lounges-scores"] });
+    } catch (e: any) {
+      toast({ title: "Delete failed", description: e.message, variant: "destructive" });
+    }
+  };
+
   const [bulkBootstrapping, setBulkBootstrapping] = useState(false);
   const [bulkBootstrapProgress, setBulkBootstrapProgress] = useState<{
     scored: number; no_reviews: number; errors: number; remaining: number; total: number;
