@@ -98,8 +98,8 @@ function computeConnoisseurScore(
   const prestige = computePrestigeScore(reviewCount, cityAvgReviewCount);
 
   const score = Math.round(
-    (quality * 0.30 + sentiment * 0.25 + volume * 0.20 + prestige * 0.15 + consistency * 0.10) * 10
-  ) / 10;
+    quality * 0.30 + sentiment * 0.25 + volume * 0.20 + prestige * 0.15 + consistency * 0.10
+  );
 
   return { score, quality, sentiment, volume, consistency, prestige };
 }
