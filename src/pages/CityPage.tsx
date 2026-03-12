@@ -266,6 +266,8 @@ const CityPage = () => {
             </div>
           )}
         </section>
+        </>
+        )}
       </main>
       <Footer />
     </div>
