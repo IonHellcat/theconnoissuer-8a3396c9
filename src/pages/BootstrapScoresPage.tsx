@@ -230,6 +230,9 @@ const BootstrapScoresPage = () => {
       const limit = 10;
       let scored = 0, skipped = 0, errors = 0, total = stats?.estimated || 0;
       while (true) {
+        while (pausedRef.current) {
+          await new Promise(r => setTimeout(r, 300));
+        }
         const { data, error } = await supabase.functions.invoke("bootstrap-scores", {
           body: { action: "bulk-pipeline-chunk", offset, limit },
         });
