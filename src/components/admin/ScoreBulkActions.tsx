@@ -12,6 +12,8 @@ interface ScoreBulkActionsProps {
   onBulkBootstrap: () => void;
   onBulkRescore: () => void;
   onBulkSaveAll: () => void;
+  onResetAllScores?: () => void;
+  resetting?: boolean;
 }
 
 export const ScoreBulkActions = ({
