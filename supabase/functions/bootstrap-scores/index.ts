@@ -778,7 +778,15 @@ serve(async (req) => {
 
           const ratings = reviews.map((r: any) => r.rating).filter((r: number | null): r is number => r !== null);
           const aspects = getAspects(lounge.type);
-          const { score } = computeConnoisseurScore(Number(lounge.rating), lounge.review_count, allC, aspects, ratings, cityAvgMap.get(lounge.city_id) ?? 50);
+          const { score } = computeConnoisseurScore(
+            Number(lounge.rating),
+            lounge.review_count,
+            allC,
+            aspects,
+            ratings,
+            cityAvgMap.get(lounge.city_id) ?? reviewStats.median,
+            reviewStats
+          );
           const pillarScores = buildPillarScores(allC, aspects);
           const confidence = computeConfidence(allC.length);
           const scoreLabel = getScoreLabel(score);
