@@ -20,6 +20,7 @@ const BootstrapScoresPage = () => {
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
+  const [search, setSearch] = useState("");
   const [sortKey, setSortKey] = useState<SortKey>("status");
   const [sortAsc, setSortAsc] = useState(true);
   const [processing, setProcessing] = useState<Record<string, boolean>>({});
