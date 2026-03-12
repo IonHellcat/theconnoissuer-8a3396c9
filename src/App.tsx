@@ -8,6 +8,7 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { AuthProvider } from "@/hooks/useAuth";
 import { AdminRoute } from "@/components/AdminRoute";
 import { RouteErrorBoundary } from "@/components/RouteErrorBoundary";
+import BottomTabBar from "@/components/BottomTabBar";
 import {
   HomeSkeleton, CityPageSkeleton, LoungePageSkeleton, SearchPageSkeleton,
   ForYouSkeleton, AuthSkeleton, ProfileSkeleton, AdminSkeleton, GenericSkeleton,
@@ -81,6 +82,7 @@ const App = () => (
               <Route path="/admin/suggestions" element={<LazyRoute skeleton={<AdminSkeleton />}><AdminRoute><AdminSuggestionsPage /></AdminRoute></LazyRoute>} />
               <Route path="*" element={<LazyRoute skeleton={<GenericSkeleton />}><NotFound /></LazyRoute>} />
             </Routes>
+            <BottomTabBar />
           </BrowserRouter>
         </TooltipProvider>
       </AuthProvider>

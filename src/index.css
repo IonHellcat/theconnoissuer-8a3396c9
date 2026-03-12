@@ -82,6 +82,13 @@
       min-height: 44px;
     }
   }
+
+  /* Bottom padding for mobile bottom tab bar */
+  @media (max-width: 767px) {
+    main {
+      padding-bottom: 4rem; /* pb-16 = 64px */
+    }
+  }
 }
 
 @layer utilities {
