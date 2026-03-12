@@ -25,7 +25,7 @@ export interface PipelineResult {
   score_label: string | null;
   pillar_scores: Record<string, AspectData>;
   confidence: string;
-  components: { quality: number; sentiment: number; volume: number; consistency: number };
+  components: { quality: number; sentiment: number; volume: number; consistency: number; prestige: number };
   score_summary?: string;
   reviews: Array<{ author_name: string; rating: number | null; review_text: string; relative_time: string }>;
 }
