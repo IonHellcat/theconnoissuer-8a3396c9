@@ -30,7 +30,7 @@ const pillarLabel = (key: string) => key.replace(/_/g, " ").replace(/\b\w/g, (c)
 const LoungePage = () => {
   const { slug } = useParams<{ slug: string }>();
 
-  const { data: lounge, isLoading } = useQuery({
+  const { data: lounge, isLoading, isError, refetch } = useQuery({
     queryKey: ["lounge", slug],
     queryFn: async () => {
       const { data, error } = await supabase
