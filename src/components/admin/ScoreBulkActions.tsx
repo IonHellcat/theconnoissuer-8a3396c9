@@ -1,6 +1,6 @@
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
-import { Loader2, Wand2, Save, Zap, Trash2, Pause, Play } from "lucide-react";
+import { Loader2, Wand2, Save, Zap, Trash2, Pause, Play, Calculator } from "lucide-react";
 import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger,
