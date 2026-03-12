@@ -72,6 +72,7 @@ const App = () => (
               <Route path="/reset-password" element={<LazyRoute skeleton={<AuthSkeleton />}><ResetPasswordPage /></LazyRoute>} />
               <Route path="/explore" element={<LazyRoute skeleton={<CityPageSkeleton />}><ExplorePage /></LazyRoute>} />
               <Route path="/for-you" element={<LazyRoute skeleton={<ForYouSkeleton />}><ForYouPage /></LazyRoute>} />
+              <Route path="/leaderboard" element={<LazyRoute skeleton={<GenericSkeleton />}><LeaderboardPage /></LazyRoute>} />
               <Route path="/favorites" element={<LazyRoute skeleton={<ProfileSkeleton />}><FavoritesPage /></LazyRoute>} />
               <Route path="/profile" element={<LazyRoute skeleton={<ProfileSkeleton />}><ProfilePage /></LazyRoute>} />
               <Route path="/user/:userId" element={<LazyRoute skeleton={<ProfileSkeleton />}><PublicProfilePage /></LazyRoute>} />
