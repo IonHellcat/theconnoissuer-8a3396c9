@@ -22,6 +22,7 @@ import LoungeDetailsCard from "@/components/LoungeDetailsCard";
 
 import LoungeJsonLd from "@/components/LoungeJsonLd";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
+import { useToast } from "@/hooks/use-toast";
 
 const priceTierLabel = (tier: number) => "$".repeat(tier);
 
