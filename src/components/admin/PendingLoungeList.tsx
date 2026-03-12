@@ -78,6 +78,7 @@ export const PendingLoungeList = ({
                 onApprove={(l) => onApprove(l)}
                 onReject={(l) => onReject(l)}
                 onEdit={(l) => onEdit(l)}
+                onDelete={(l) => onDelete(l)}
                 isPossibleDuplicate={isPossibleDuplicate(lounge.name)}
               />
             ))}
