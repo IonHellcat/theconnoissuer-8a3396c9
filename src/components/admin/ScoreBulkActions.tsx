@@ -42,7 +42,7 @@ export const ScoreBulkActions = ({
   unscoredCount, estimatedCount, editedCount, loungeCount,
   paused, onBulkBootstrap, onBulkRescore, onBulkRecalculate, onBulkSaveAll, onResetAllScores, onTogglePause, resetting,
 }: ScoreBulkActionsProps) => {
-  const anyRunning = bulkBootstrapping || bulkRescoring || !!resetting;
+  const anyRunning = bulkBootstrapping || bulkRescoring || !!bulkRecalculating || !!resetting;
 
   return (
     <>
