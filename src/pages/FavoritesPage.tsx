@@ -24,7 +24,7 @@ const FavoritesPage = () => {
         .select("*, cities!inner(name, slug)")
         .in("id", favoriteIds);
       if (error) throw error;
-      return data;
+      return data as unknown as LoungeWithCity[];
     },
     enabled: !!user && favoriteIds.length > 0,
   });
