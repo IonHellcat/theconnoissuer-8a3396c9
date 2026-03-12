@@ -42,7 +42,13 @@ export const ScoreBulkActions = ({
 
   return (
     <>
-      <div className="flex gap-2 mb-6 flex-wrap">
+        <div className="flex gap-2 mb-6 flex-wrap">
+        {(bulkBootstrapping || bulkRescoring) && (
+          <Button onClick={onTogglePause} variant={paused ? "default" : "outline"} className="gap-2">
+            {paused ? <Play className="h-4 w-4" /> : <Pause className="h-4 w-4" />}
+            {paused ? "Resume" : "Pause"}
+          </Button>
+        )}
         <Button onClick={onBulkBootstrap} disabled={anyRunning || !unscoredCount} className="gap-2">
           {bulkBootstrapping ? <Loader2 className="h-4 w-4 animate-spin" /> : <Wand2 className="h-4 w-4" />}
           Score All Unscored ({unscoredCount})

@@ -27,6 +27,8 @@ const BootstrapScoresPage = () => {
   const [expandedLounges, setExpandedLounges] = useState<Record<string, boolean>>({});
   const [bulkRescoring, setBulkRescoring] = useState(false);
   const [bulkServerProgress, setBulkServerProgress] = useState<{ processed: number; total: number } | null>(null);
+  const [paused, setPaused] = useState(false);
+  const pausedRef = useRef(false);
 
   const { data: lounges, isLoading } = useQuery({
     queryKey: ["admin-lounges-scores"],
