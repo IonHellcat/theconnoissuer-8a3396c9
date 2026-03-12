@@ -9,7 +9,7 @@ const Footer = () => {
           {/* Brand */}
           <div className="md:col-span-2">
             <div className="flex items-center gap-2">
-              <img src={logo} alt="The Connoisseur" className="h-8 w-8 object-contain" />
+              <img src={logo} alt="The Connoisseur" className="h-8 w-8 object-contain" width={32} height={32} />
               <span className="font-display text-xl font-bold text-gradient-gold">
                 The Connoisseur
               </span>

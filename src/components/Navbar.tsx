@@ -32,7 +32,7 @@ const Navbar = () => {
       <nav className="fixed top-0 left-0 right-0 z-50 bg-background/80 backdrop-blur-xl border-b border-border/50">
         <div className="container mx-auto px-4 h-16 flex items-center justify-between gap-4">
           <Link to="/" className="flex-shrink-0 flex items-center gap-2">
-            <img src={logo} alt="The Connoisseur" className="h-8 w-8 object-contain" />
+            <img src={logo} alt="The Connoisseur" className="h-8 w-8 object-contain" width={32} height={32} />
             <span className="font-display text-xl font-bold text-gradient-gold">
               The Connoisseur
             </span>
