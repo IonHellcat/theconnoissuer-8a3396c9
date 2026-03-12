@@ -415,6 +415,7 @@ const BootstrapScoresPage = () => {
                 onToggleExpand={(id) => setExpandedLounges((p) => ({ ...p, [id]: !p[id] }))}
                 onSkip={skipSingle}
                 onSave={saveSingle}
+                onDelete={deleteSingle}
               />
             ))}
           </div>
