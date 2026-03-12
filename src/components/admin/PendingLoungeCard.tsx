@@ -80,19 +80,24 @@ export const PendingLoungeCard = ({ lounge, onApprove, onReject, onEdit, onDelet
               </div>
             </div>
           </div>
-          {lounge.status === "pending" && (
-            <div className="flex gap-1 shrink-0">
-              <Button size="sm" variant="ghost" onClick={() => onEdit(lounge)} title="Edit">
-                <Pencil className="h-4 w-4" />
-              </Button>
-              <Button size="sm" variant="ghost" className="text-green-400 hover:text-green-300" onClick={() => onApprove(lounge)} title="Approve">
-                <Check className="h-4 w-4" />
-              </Button>
-              <Button size="sm" variant="ghost" className="text-red-400 hover:text-red-300" onClick={() => onReject(lounge)} title="Reject">
-                <X className="h-4 w-4" />
-              </Button>
-            </div>
-          )}
+          <div className="flex gap-1 shrink-0">
+            {lounge.status === "pending" && (
+              <>
+                <Button size="sm" variant="ghost" onClick={() => onEdit(lounge)} title="Edit">
+                  <Pencil className="h-4 w-4" />
+                </Button>
+                <Button size="sm" variant="ghost" className="text-green-400 hover:text-green-300" onClick={() => onApprove(lounge)} title="Approve">
+                  <Check className="h-4 w-4" />
+                </Button>
+                <Button size="sm" variant="ghost" className="text-red-400 hover:text-red-300" onClick={() => onReject(lounge)} title="Reject">
+                  <X className="h-4 w-4" />
+                </Button>
+              </>
+            )}
+            <Button size="sm" variant="ghost" className="text-destructive hover:text-destructive/80" onClick={() => onDelete(lounge)} title="Delete permanently">
+              <Trash2 className="h-4 w-4" />
+            </Button>
+          </div>
         </div>
       </CardContent>
     </Card>
