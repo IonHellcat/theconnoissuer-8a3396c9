@@ -1,4 +1,4 @@
-import { MapPin, Plane, Clock, Wine, Search, Locate, Armchair, Store, Sparkles } from "lucide-react";
+import { MapPin, Plane, Clock, Wine, Search, Locate, Armchair, Store, Sparkles, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { PillToggle } from "./PillToggle";
