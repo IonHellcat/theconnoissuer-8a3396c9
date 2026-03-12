@@ -34,7 +34,7 @@ const MobileActionBar = ({ lounge, cityName }: { lounge: LoungeWithCity; cityNam
   const { toast } = useToast();
 
   const handleShare = async () => {
-    const url = `https://theconnoisseur.co/lounge/${lounge.slug}`;
+    const url = `https://theconnoisseur.app/lounge/${lounge.slug}`;
     const title = `${lounge.name} — The Connoisseur`;
     const text = `Check out ${lounge.name}${cityName ? ` in ${cityName}` : ""}`;
 
@@ -120,7 +120,7 @@ const LoungePage = () => {
             {lounge.image_url && <meta property="og:image" content={lounge.image_url} />}
             <meta property="og:type" content="website" />
             <meta name="twitter:card" content="summary_large_image" />
-            <link rel="canonical" href={`https://theconnoisseur.co/lounge/${lounge.slug}`} />
+            <link rel="canonical" href={`https://theconnoisseur.app/lounge/${lounge.slug}`} />
           </>
         )}
       </Helmet>

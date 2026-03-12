@@ -12,16 +12,16 @@ const Index = () => {
       <Helmet>
         <title>The Connoisseur — Discover the World's Finest Cigar Lounges</title>
         <meta name="description" content="The world's most curated guide to cigar lounges. Discover top-rated cigar lounges and shops across the globe with the Connoisseur Score." />
-        <link rel="canonical" href="https://theconnoisseur.co/" />
+        <link rel="canonical" href="https://theconnoisseur.app/" />
         <script type="application/ld+json">{JSON.stringify({
           "@context": "https://schema.org",
           "@type": "WebSite",
           "name": "The Connoisseur",
-          "url": "https://theconnoisseur.co",
+          "url": "https://theconnoisseur.app",
           "description": "The world's most curated guide to cigar lounges and shops.",
           "potentialAction": {
             "@type": "SearchAction",
-            "target": "https://theconnoisseur.co/search?q={search_term_string}",
+            "target": "https://theconnoisseur.app/search?q={search_term_string}",
             "query-input": "required name=search_term_string"
           }
         })}</script>
