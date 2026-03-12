@@ -26,9 +26,29 @@ import { useToast } from "@/hooks/use-toast";
 
 const priceTierLabel = (tier: number) => "$".repeat(tier);
 
-const LOUNGE_PILLARS = ["cigar_selection", "ambiance", "service", "drinks", "value"];
-const SHOP_PILLARS = ["selection", "storage", "staff_knowledge", "pricing", "experience"];
-const pillarLabel = (key: string) => key.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
+const LOUNGE_ASPECTS = ["atmosphere", "service", "cigar_selection", "drinks"];
+const SHOP_ASPECTS = ["selection", "staff", "pricing"];
+const aspectLabel = (key: string) => key.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
+
+const sentimentColor = (sentiment: string) => {
+  switch (sentiment) {
+    case "strength": return "text-green-400";
+    case "positive": return "text-emerald-400";
+    case "mixed": return "text-yellow-400";
+    case "weakness": return "text-red-400";
+    default: return "text-muted-foreground";
+  }
+};
+
+const sentimentDisplay = (sentiment: string) => {
+  switch (sentiment) {
+    case "strength": return "Strength";
+    case "positive": return "Positive";
+    case "mixed": return "Mixed";
+    case "weakness": return "Weakness";
+    default: return "—";
+  }
+};
 
 const MobileActionBar = ({ lounge, cityName }: { lounge: LoungeWithCity; cityName?: string }) => {
   const { toast } = useToast();
