@@ -302,7 +302,7 @@ serve(async (req) => {
     const validActions = [
       "fetch-reviews", "classify", "compute-scores", "summarize",
       "mark-no-reviews", "save", "bulk-pipeline", "bulk-pipeline-chunk",
-      "bulk-full-pipeline-chunk", "reset-all",
+      "bulk-full-pipeline-chunk", "reset-all", "recalculate-scores-chunk",
     ];
     if (!action || !validActions.includes(action)) {
       return new Response(
@@ -923,6 +923,102 @@ serve(async (req) => {
       return new Response(JSON.stringify({
         scored, no_reviews, errors, remaining: Math.max(0, remaining),
         done: remaining <= 0, total,
+      }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
+    }
+
+    // ═══ RECALCULATE SCORES CHUNK (no API, no AI — pure math) ═══
+    if (action === "recalculate-scores-chunk") {
+      const { offset = 0, limit = 50 } = body;
+
+      // Count total estimated+verified lounges with classifications
+      const { count: total } = await serviceClient
+        .from("lounges")
+        .select("id", { count: "exact", head: true })
+        .in("score_source", ["estimated", "verified"]);
+
+      // Fetch chunk
+      const { data: lounges, error: lErr } = await serviceClient
+        .from("lounges")
+        .select("id, type, rating, review_count, city_id")
+        .in("score_source", ["estimated", "verified"])
+        .order("name")
+        .range(offset, offset + limit - 1);
+
+      if (lErr) throw lErr;
+      if (!lounges || lounges.length === 0) {
+        return new Response(JSON.stringify({ done: true, processed: 0, total: total || 0 }),
+          { headers: { ...corsHeaders, "Content-Type": "application/json" } });
+      }
+
+      // Build city average map (one query)
+      const { data: cityAverages } = await serviceClient
+        .from("lounges")
+        .select("city_id, review_count");
+
+      const cityAvgMap = new Map<string, number>();
+      if (cityAverages) {
+        const cityGroups = new Map<string, number[]>();
+        for (const l of cityAverages) {
+          if (!l.city_id) continue;
+          if (!cityGroups.has(l.city_id)) cityGroups.set(l.city_id, []);
+          cityGroups.get(l.city_id)!.push(l.review_count);
+        }
+        cityGroups.forEach((counts, cityId) => {
+          cityAvgMap.set(cityId, counts.reduce((a: number, b: number) => a + b, 0) / counts.length);
+        });
+      }
+
+      let recalculated = 0, skipped = 0;
+
+      for (const lounge of lounges) {
+        // Get existing classifications
+        const { data: classifications } = await serviceClient
+          .from("review_classifications")
+          .select("aspects")
+          .eq("lounge_id", lounge.id);
+
+        if (!classifications || classifications.length === 0) {
+          skipped++;
+          continue;
+        }
+
+        // Get ratings for consistency
+        const { data: reviews } = await serviceClient
+          .from("google_reviews")
+          .select("rating")
+          .eq("lounge_id", lounge.id);
+
+        const ratings = (reviews || []).map((r: any) => r.rating).filter((r: number | null): r is number => r !== null);
+        const aspects = getAspects(lounge.type);
+        const cityAvg = cityAvgMap.get(lounge.city_id) ?? 50;
+
+        const { score } = computeConnoisseurScore(
+          Number(lounge.rating), lounge.review_count, classifications, aspects, ratings, cityAvg
+        );
+
+        const pillarScores = buildPillarScores(classifications, aspects);
+        const confidence = computeConfidence(classifications.length);
+        const scoreLabel = getScoreLabel(score);
+
+        await serviceClient
+          .from("lounges")
+          .update({
+            connoisseur_score: score,
+            score_label: scoreLabel,
+            pillar_scores: pillarScores,
+            confidence,
+            scored_at: new Date().toISOString(),
+          })
+          .eq("id", lounge.id);
+
+        recalculated++;
+      }
+
+      const nextOffset = offset + lounges.length;
+      return new Response(JSON.stringify({
+        recalculated, skipped, total: total || 0,
+        next_offset: nextOffset,
+        done: nextOffset >= (total || 0),
       }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
 

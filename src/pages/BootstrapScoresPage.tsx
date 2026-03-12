@@ -254,6 +254,43 @@ const BootstrapScoresPage = () => {
     }
   };
 
+  const [bulkRecalculating, setBulkRecalculating] = useState(false);
+  const [bulkRecalcProgress, setBulkRecalcProgress] = useState<{ processed: number; total: number } | null>(null);
+
+  const bulkRecalculate = async () => {
+    setBulkRecalculating(true);
+    setBulkRecalcProgress(null);
+    try {
+      toast({ title: "Recalculation started", description: "Recomputing scores from existing data (no AI calls)..." });
+      let offset = 0;
+      const limit = 50;
+      let totalRecalculated = 0, totalSkipped = 0, total = 0;
+      while (true) {
+        while (pausedRef.current) {
+          await new Promise(r => setTimeout(r, 300));
+        }
+        const { data, error } = await supabase.functions.invoke("bootstrap-scores", {
+          body: { action: "recalculate-scores-chunk", offset, limit },
+        });
+        if (error) throw error;
+        totalRecalculated += data?.recalculated ?? 0;
+        totalSkipped += data?.skipped ?? 0;
+        total = data?.total ?? total;
+        const nextOffset = data?.next_offset ?? offset;
+        setBulkRecalcProgress({ processed: Math.min(nextOffset, total), total });
+        if (data?.done || nextOffset <= offset) break;
+        offset = nextOffset;
+      }
+      toast({ title: "Recalculation complete", description: `${totalRecalculated} recalculated, ${totalSkipped} skipped out of ${total}.` });
+      queryClient.invalidateQueries({ queryKey: ["admin-lounges-scores"] });
+    } catch (e: any) {
+      toast({ title: "Recalculation failed", description: e.message, variant: "destructive" });
+    } finally {
+      setBulkRecalculating(false);
+      setBulkRecalcProgress(null);
+    }
+  };
+
   const bulkSaveAll = async () => {
     const entries = Object.entries(results);
     let saved = 0;
@@ -304,9 +341,11 @@ const BootstrapScoresPage = () => {
         <ScoreBulkActions
           bulkBootstrapping={bulkBootstrapping} bulkBootstrapProgress={bulkBootstrapProgress}
           bulkRescoring={bulkRescoring} bulkServerProgress={bulkServerProgress}
+          bulkRecalculating={bulkRecalculating} bulkRecalcProgress={bulkRecalcProgress}
           unscoredCount={stats?.none || 0} estimatedCount={stats?.estimated || 0}
           editedCount={Object.keys(results).length} loungeCount={lounges?.length || 0}
-          onBulkBootstrap={bulkBootstrap} onBulkRescore={bulkRescoreServer} onBulkSaveAll={bulkSaveAll}
+          onBulkBootstrap={bulkBootstrap} onBulkRescore={bulkRescoreServer}
+          onBulkRecalculate={bulkRecalculate} onBulkSaveAll={bulkSaveAll}
           onResetAllScores={resetAllScores} resetting={resettingScores}
           paused={paused} onTogglePause={() => { setPaused(p => !p); pausedRef.current = !pausedRef.current; }}
         />

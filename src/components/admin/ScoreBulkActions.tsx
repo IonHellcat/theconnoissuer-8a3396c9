@@ -1,6 +1,6 @@
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
-import { Loader2, Wand2, Save, Zap, Trash2, Pause, Play } from "lucide-react";
+import { Loader2, Wand2, Save, Zap, Trash2, Pause, Play, Calculator } from "lucide-react";
 import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger,
@@ -19,6 +19,8 @@ interface ScoreBulkActionsProps {
   bulkBootstrapProgress: BulkBootstrapProgress | null;
   bulkRescoring: boolean;
   bulkServerProgress: { processed: number; total: number } | null;
+  bulkRecalculating?: boolean;
+  bulkRecalcProgress?: { processed: number; total: number } | null;
   unscoredCount: number;
   estimatedCount: number;
   editedCount: number;
@@ -26,6 +28,7 @@ interface ScoreBulkActionsProps {
   paused: boolean;
   onBulkBootstrap: () => void;
   onBulkRescore: () => void;
+  onBulkRecalculate?: () => void;
   onBulkSaveAll: () => void;
   onResetAllScores?: () => void;
   onTogglePause: () => void;
@@ -35,10 +38,11 @@ interface ScoreBulkActionsProps {
 export const ScoreBulkActions = ({
   bulkBootstrapping, bulkBootstrapProgress,
   bulkRescoring, bulkServerProgress,
+  bulkRecalculating, bulkRecalcProgress,
   unscoredCount, estimatedCount, editedCount, loungeCount,
-  paused, onBulkBootstrap, onBulkRescore, onBulkSaveAll, onResetAllScores, onTogglePause, resetting,
+  paused, onBulkBootstrap, onBulkRescore, onBulkRecalculate, onBulkSaveAll, onResetAllScores, onTogglePause, resetting,
 }: ScoreBulkActionsProps) => {
-  const anyRunning = bulkBootstrapping || bulkRescoring || !!resetting;
+  const anyRunning = bulkBootstrapping || bulkRescoring || !!bulkRecalculating || !!resetting;
 
   return (
     <>
@@ -61,6 +65,15 @@ export const ScoreBulkActions = ({
         >
           {bulkRescoring ? <Loader2 className="h-4 w-4 animate-spin" /> : <Zap className="h-4 w-4" />}
           Re-score Estimated ({estimatedCount})
+        </Button>
+        <Button
+          onClick={onBulkRecalculate}
+          disabled={anyRunning || !estimatedCount}
+          variant="outline"
+          className="gap-2"
+        >
+          {bulkRecalculating ? <Loader2 className="h-4 w-4 animate-spin" /> : <Calculator className="h-4 w-4" />}
+          Recalculate Scores ({estimatedCount})
         </Button>
         {editedCount > 0 && (
           <Button onClick={onBulkSaveAll} variant="outline" className="gap-2">
@@ -136,6 +149,31 @@ export const ScoreBulkActions = ({
           </div>
           {bulkServerProgress && (
             <Progress value={(bulkServerProgress.processed / bulkServerProgress.total) * 100} />
+          )}
+        </div>
+      )}
+
+      {/* Recalculate Progress */}
+      {bulkRecalculating && (
+        <div className="mb-6 p-4 rounded-lg border border-primary/30 bg-primary/5 space-y-3">
+          <div className="flex items-center gap-3">
+            {paused ? <Pause className="h-5 w-5 text-amber-500" /> : <Loader2 className="h-5 w-5 animate-spin text-primary" />}
+            <div className="flex-1">
+              <p className="text-sm font-medium text-foreground">{paused ? "Recalculation paused" : "Recalculating scores (no AI)..."}</p>
+              <p className="text-xs text-muted-foreground font-body">
+                {bulkRecalcProgress
+                  ? `Processed ${bulkRecalcProgress.processed} of ${bulkRecalcProgress.total} venues.`
+                  : "Starting score recalculation..."}
+              </p>
+            </div>
+            {bulkRecalcProgress && bulkRecalcProgress.total > 0 && (
+              <span className="text-sm font-bold font-display text-primary">
+                {Math.round((bulkRecalcProgress.processed / bulkRecalcProgress.total) * 100)}%
+              </span>
+            )}
+          </div>
+          {bulkRecalcProgress && bulkRecalcProgress.total > 0 && (
+            <Progress value={(bulkRecalcProgress.processed / bulkRecalcProgress.total) * 100} />
           )}
         </div>
       )}
