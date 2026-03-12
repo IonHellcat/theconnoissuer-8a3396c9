@@ -5,6 +5,7 @@ import { useAdminRole } from "@/hooks/useAdminRole";
 import { useAuth } from "@/hooks/useAuth";
 import { Navigate } from "react-router-dom";
 import Navbar from "@/components/Navbar";
+import { Input } from "@/components/ui/input";
 import Footer from "@/components/Footer";
 import { useToast } from "@/hooks/use-toast";
 import { Loader2, ChevronUp, ChevronDown } from "lucide-react";
@@ -19,6 +20,7 @@ const BootstrapScoresPage = () => {
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
+  const [search, setSearch] = useState("");
   const [sortKey, setSortKey] = useState<SortKey>("status");
   const [sortAsc, setSortAsc] = useState(true);
   const [processing, setProcessing] = useState<Record<string, boolean>>({});
@@ -52,7 +54,13 @@ const BootstrapScoresPage = () => {
     withPlaceId: lounges.filter((l) => l.google_place_id && l.score_source === "none").length,
   } : null;
 
-  const sortedLounges = lounges ? [...lounges].sort((a, b) => {
+  const filteredLounges = lounges ? lounges.filter((l) => {
+    if (!search) return true;
+    const q = search.toLowerCase();
+    return l.name.toLowerCase().includes(q) || (l.city?.name || "").toLowerCase().includes(q) || (l.city?.country || "").toLowerCase().includes(q);
+  }) : [];
+
+  const sortedLounges = [...filteredLounges].sort((a, b) => {
     let cmp = 0;
     switch (sortKey) {
       case "name": cmp = a.name.localeCompare(b.name); break;
@@ -65,7 +73,7 @@ const BootstrapScoresPage = () => {
       }
     }
     return sortAsc ? cmp : -cmp;
-  }) : [];
+  });
 
   const toggleSort = (key: SortKey) => {
     if (sortKey === key) setSortAsc(!sortAsc);
@@ -391,6 +399,16 @@ const BootstrapScoresPage = () => {
           onResetAllScores={resetAllScores} resetting={resettingScores}
           paused={paused} onTogglePause={() => { setPaused(p => !p); pausedRef.current = !pausedRef.current; }}
         />
+
+        <div className="flex items-center gap-3 mb-4">
+          <Input
+            placeholder="Search by name, city, or country..."
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            className="max-w-sm"
+          />
+          <span className="text-sm text-muted-foreground">{sortedLounges.length} results</span>
+        </div>
 
         {isLoading ? (
           <div className="flex justify-center py-16"><Loader2 className="h-8 w-8 animate-spin text-primary" /></div>
