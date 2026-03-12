@@ -459,7 +459,7 @@ serve(async (req) => {
       // Get lounge data
       const { data: lounge, error: lErr } = await serviceClient
         .from("lounges")
-        .select("id, type, rating, review_count")
+        .select("id, type, rating, review_count, city_id")
         .eq("id", lounge_id)
         .single();
       if (lErr || !lounge) throw lErr || new Error("Lounge not found");
@@ -482,11 +482,21 @@ serve(async (req) => {
         .select("rating")
         .eq("lounge_id", lounge_id);
 
+      // Get city average review count
+      const { data: cityData } = await serviceClient
+        .from("lounges")
+        .select("review_count")
+        .eq("city_id", lounge.city_id);
+
+      const cityAvg = cityData && cityData.length > 0
+        ? cityData.reduce((sum: number, l: any) => sum + l.review_count, 0) / cityData.length
+        : 50;
+
       const ratings = (reviews || []).map((r: any) => r.rating).filter((r: number | null): r is number => r !== null);
       const aspects = getAspects(lounge.type);
 
-      const { score, quality, sentiment, volume, consistency } = computeConnoisseurScore(
-        Number(lounge.rating), lounge.review_count, classifications, aspects, ratings
+      const { score, quality, sentiment, volume, consistency, prestige } = computeConnoisseurScore(
+        Number(lounge.rating), lounge.review_count, classifications, aspects, ratings, cityAvg
       );
 
       const pillarScores = buildPillarScores(classifications, aspects);
@@ -514,7 +524,7 @@ serve(async (req) => {
         score_label: scoreLabel,
         pillar_scores: pillarScores,
         confidence,
-        components: { quality, sentiment, volume, consistency },
+        components: { quality, sentiment, volume, consistency, prestige },
       }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
 
