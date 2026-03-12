@@ -23,7 +23,7 @@ const BootstrapScoresPage = () => {
   const [sortAsc, setSortAsc] = useState(true);
   const [processing, setProcessing] = useState<Record<string, boolean>>({});
   const [results, setResults] = useState<Record<string, PipelineResult>>({});
-  const [bulkProgress, setBulkProgress] = useState<{ current: number; total: number; currentName: string } | null>(null);
+  const [bulkProgress] = useState<{ current: number; total: number; currentName: string } | null>(null);
   const [expandedLounges, setExpandedLounges] = useState<Record<string, boolean>>({});
   const [bulkRescoring, setBulkRescoring] = useState(false);
   const [bulkServerProgress, setBulkServerProgress] = useState<{ processed: number; total: number } | null>(null);
