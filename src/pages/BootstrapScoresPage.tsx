@@ -5,6 +5,7 @@ import { useAdminRole } from "@/hooks/useAdminRole";
 import { useAuth } from "@/hooks/useAuth";
 import { Navigate } from "react-router-dom";
 import Navbar from "@/components/Navbar";
+import { Input } from "@/components/ui/input";
 import Footer from "@/components/Footer";
 import { useToast } from "@/hooks/use-toast";
 import { Loader2, ChevronUp, ChevronDown } from "lucide-react";
