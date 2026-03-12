@@ -124,7 +124,7 @@ const CityPage = () => {
     enabled: !!slug,
   });
 
-  const { data: lounges, isLoading: loungesLoading } = useQuery({
+  const { data: lounges, isLoading: loungesLoading, isError: loungesError, refetch: refetchLounges } = useQuery({
     queryKey: ["lounges", city?.id],
     queryFn: async () => {
       const { data, error } = await supabase
