@@ -2,7 +2,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Check, X, Pencil, MapPin, Phone, Globe, Star, AlertTriangle } from "lucide-react";
+import { Check, X, Pencil, MapPin, Phone, Globe, Star, AlertTriangle, Trash2 } from "lucide-react";
 import type { Tables } from "@/integrations/supabase/types";
 
 type PendingLounge = Tables<"pending_lounges">;
