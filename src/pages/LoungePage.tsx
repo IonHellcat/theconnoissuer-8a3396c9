@@ -77,6 +77,8 @@ const LoungePage = () => {
             <div className="h-8 w-1/3 rounded bg-secondary animate-pulse" />
             <div className="h-4 w-2/3 rounded bg-secondary animate-pulse" />
           </div>
+        ) : isError ? (
+          <QueryErrorBanner message="Could not load this lounge." onRetry={() => refetch()} />
         ) : !lounge ? (
           <div className="text-center py-32">
             <p className="text-muted-foreground font-body text-lg">Lounge not found</p>
