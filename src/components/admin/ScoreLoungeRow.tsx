@@ -28,8 +28,9 @@ interface ScoreLoungeRowProps {
 
 export const ScoreLoungeRow = ({
   lounge, processing, expanded, result, hasResult,
-  onBootstrap, onToggleExpand, onSave, onSkip,
+  onBootstrap, onToggleExpand, onSave, onSkip, onDelete,
 }: ScoreLoungeRowProps) => {
+  const [deleteOpen, setDeleteOpen] = useState(false);
   const aspects = lounge.type === "shop" ? SHOP_ASPECTS : LOUNGE_ASPECTS;
 
   return (
