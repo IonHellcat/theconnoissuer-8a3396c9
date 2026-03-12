@@ -341,9 +341,11 @@ const BootstrapScoresPage = () => {
         <ScoreBulkActions
           bulkBootstrapping={bulkBootstrapping} bulkBootstrapProgress={bulkBootstrapProgress}
           bulkRescoring={bulkRescoring} bulkServerProgress={bulkServerProgress}
+          bulkRecalculating={bulkRecalculating} bulkRecalcProgress={bulkRecalcProgress}
           unscoredCount={stats?.none || 0} estimatedCount={stats?.estimated || 0}
           editedCount={Object.keys(results).length} loungeCount={lounges?.length || 0}
-          onBulkBootstrap={bulkBootstrap} onBulkRescore={bulkRescoreServer} onBulkSaveAll={bulkSaveAll}
+          onBulkBootstrap={bulkBootstrap} onBulkRescore={bulkRescoreServer}
+          onBulkRecalculate={bulkRecalculate} onBulkSaveAll={bulkSaveAll}
           onResetAllScores={resetAllScores} resetting={resettingScores}
           paused={paused} onTogglePause={() => { setPaused(p => !p); pausedRef.current = !pausedRef.current; }}
         />
