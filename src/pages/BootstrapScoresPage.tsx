@@ -236,6 +236,7 @@ const BootstrapScoresPage = () => {
         while (pausedRef.current) {
           await new Promise(r => setTimeout(r, 300));
         }
+        await supabase.auth.getSession();
         const { data, error } = await supabase.functions.invoke("bootstrap-scores", {
           body: { action: "bulk-pipeline-chunk", offset, limit },
         });
