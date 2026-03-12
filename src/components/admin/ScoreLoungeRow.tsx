@@ -1,11 +1,17 @@
+import { useState } from "react";
 import { Button } from "@/components/ui/button";
-import { Loader2, Sparkles, ChevronUp } from "lucide-react";
+import { Loader2, Sparkles, ChevronUp, Trash2 } from "lucide-react";
 import {
   statusBadge, confidenceBadge, aspectLabel, sentimentColor, sentimentLabel,
   LOUNGE_ASPECTS, SHOP_ASPECTS,
 } from "./scoreHelpers";
 import type { LoungeRow, PipelineResult } from "./scoreHelpers";
 import { Star } from "lucide-react";
+import {
+  AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
+  AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 
 interface ScoreLoungeRowProps {
   lounge: LoungeRow;
@@ -17,6 +23,7 @@ interface ScoreLoungeRowProps {
   onToggleExpand: (id: string) => void;
   onSave: (lounge: LoungeRow) => void;
   onSkip: (loungeId: string) => void;
+  onDelete: (lounge: LoungeRow) => void;
 }
 
 export const ScoreLoungeRow = ({
