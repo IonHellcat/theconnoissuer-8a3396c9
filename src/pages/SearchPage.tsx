@@ -48,7 +48,7 @@ const SearchPage = () => {
     enabled: !!q,
   });
 
-  const { data: rawLounges, isLoading: loungesLoading } = useQuery({
+  const { data: rawLounges, isLoading: loungesLoading, isError: loungesError, refetch: refetchLounges } = useQuery({
     queryKey: ["search-lounges", q],
     queryFn: async () => {
       if (!q) return [];
