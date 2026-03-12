@@ -36,7 +36,7 @@ export const ScoreBulkActions = ({
   bulkBootstrapping, bulkBootstrapProgress,
   bulkRescoring, bulkServerProgress,
   unscoredCount, estimatedCount, editedCount, loungeCount,
-  onBulkBootstrap, onBulkRescore, onBulkSaveAll, onResetAllScores, resetting,
+  paused, onBulkBootstrap, onBulkRescore, onBulkSaveAll, onResetAllScores, onTogglePause, resetting,
 }: ScoreBulkActionsProps) => {
   const anyRunning = bulkBootstrapping || bulkRescoring || !!resetting;
 
