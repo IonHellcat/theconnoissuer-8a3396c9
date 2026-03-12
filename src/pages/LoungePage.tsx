@@ -1,6 +1,7 @@
 import { useParams, Link } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import type { LoungeWithCity } from "@/lib/types";
+import QueryErrorBanner from "@/components/QueryErrorBanner";
 import { supabase } from "@/integrations/supabase/client";
 import { Helmet } from "react-helmet-async";
 import { motion } from "framer-motion";
@@ -30,7 +31,7 @@ const pillarLabel = (key: string) => key.replace(/_/g, " ").replace(/\b\w/g, (c)
 const LoungePage = () => {
   const { slug } = useParams<{ slug: string }>();
 
-  const { data: lounge, isLoading } = useQuery({
+  const { data: lounge, isLoading, isError, refetch } = useQuery({
     queryKey: ["lounge", slug],
     queryFn: async () => {
       const { data, error } = await supabase
@@ -77,6 +78,8 @@ const LoungePage = () => {
             <div className="h-8 w-1/3 rounded bg-secondary animate-pulse" />
             <div className="h-4 w-2/3 rounded bg-secondary animate-pulse" />
           </div>
+        ) : isError ? (
+          <QueryErrorBanner message="Could not load this lounge." onRetry={() => refetch()} />
         ) : !lounge ? (
           <div className="text-center py-32">
             <p className="text-muted-foreground font-body text-lg">Lounge not found</p>

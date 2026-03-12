@@ -2,6 +2,7 @@ import { useState } from "react";
 import { useParams, Link } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import QueryErrorBanner from "@/components/QueryErrorBanner";
 import { Helmet } from "react-helmet-async";
 import { motion } from "framer-motion";
 import { MapPin, Star, ArrowLeft, Trophy, Crown, Store, Sofa } from "lucide-react";
@@ -109,7 +110,7 @@ const CityPage = () => {
   const { slug } = useParams<{ slug: string }>();
   const [venueFilter, setVenueFilter] = useState<"all" | "lounge" | "shop">("all");
 
-  const { data: city, isLoading: cityLoading } = useQuery({
+  const { data: city, isLoading: cityLoading, isError: cityError, refetch: refetchCity } = useQuery({
     queryKey: ["city", slug],
     queryFn: async () => {
       const { data, error } = await supabase
@@ -123,7 +124,7 @@ const CityPage = () => {
     enabled: !!slug,
   });
 
-  const { data: lounges, isLoading: loungesLoading } = useQuery({
+  const { data: lounges, isLoading: loungesLoading, isError: loungesError, refetch: refetchLounges } = useQuery({
     queryKey: ["lounges", city?.id],
     queryFn: async () => {
       const { data, error } = await supabase
@@ -158,6 +159,10 @@ const CityPage = () => {
       {city && <CityJsonLd city={city} />}
       <Navbar />
       <main className="pt-16">
+        {(cityError || loungesError) ? (
+          <QueryErrorBanner message="Could not load city data." onRetry={() => { refetchCity(); refetchLounges(); }} />
+        ) : (
+        <>
         {/* Hero */}
         <section className="relative h-64 md:h-80 overflow-hidden">
           {city?.image_url && (
@@ -261,6 +266,8 @@ const CityPage = () => {
             </div>
           )}
         </section>
+        </>
+        )}
       </main>
       <Footer />
     </div>
