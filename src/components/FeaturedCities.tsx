@@ -39,7 +39,8 @@ const FeaturedCities = () => {
         </h3>
       </motion.div>
 
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6">
+      {/* Mobile: horizontal scroll | Desktop: grid */}
+      <div className="flex overflow-x-auto gap-4 snap-x snap-mandatory pb-4 scrollbar-hide md:grid md:grid-cols-4 md:gap-6 md:overflow-visible md:snap-none md:pb-0">
         {cities.map((city, index) => (
           <motion.div
             key={city.id}
@@ -47,6 +48,7 @@ const FeaturedCities = () => {
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true, margin: "-50px" }}
             transition={{ duration: 0.5, delay: index * 0.1 }}
+            className="min-w-[70vw] snap-center md:min-w-0"
           >
             <Link
               to={`/city/${city.slug}`}
@@ -57,7 +59,7 @@ const FeaturedCities = () => {
                 alt={`${city.name} cigar lounges`}
                 width={640}
                 height={480}
-                sizes="(max-width: 640px) 50vw, 25vw"
+                sizes="(max-width: 768px) 70vw, 25vw"
                 widths={[320, 640, 960]}
                 className="absolute inset-0 w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
               />
