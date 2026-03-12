@@ -1,5 +1,6 @@
 import { useParams, Link } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
+import type { LoungeWithCity } from "@/lib/types";
 import { supabase } from "@/integrations/supabase/client";
 import { Helmet } from "react-helmet-async";
 import { motion } from "framer-motion";
@@ -38,12 +39,12 @@ const LoungePage = () => {
         .eq("slug", slug!)
         .single();
       if (error) throw error;
-      return data;
+      return data as unknown as LoungeWithCity;
     },
     enabled: !!slug,
   });
 
-  const city = (lounge as any)?.cities;
+  const city = lounge?.cities;
   const hoursData = lounge?.hours as { weekday_descriptions?: string[]; periods?: any[] } | Record<string, string> | null;
   const weekdayDescriptions = hoursData && 'weekday_descriptions' in hoursData 
     ? (hoursData as { weekday_descriptions?: string[] }).weekday_descriptions 
@@ -55,9 +56,9 @@ const LoungePage = () => {
         <title>{lounge ? `${lounge.name}, ${city?.name} — The Connoisseur` : "Loading... — The Connoisseur"}</title>
         {lounge && (
           <>
-            <meta name="description" content={`${lounge.name} in ${city?.name}, ${city?.country}. ${(lounge as any).score_summary || `Rated ${Number(lounge.rating).toFixed(1)} stars.`}`} />
+            <meta name="description" content={`${lounge.name} in ${city?.name}, ${city?.country}. ${lounge.score_summary || `Rated ${Number(lounge.rating).toFixed(1)} stars.`}`} />
             <meta property="og:title" content={`${lounge.name}, ${city?.name} — The Connoisseur`} />
-            <meta property="og:description" content={`${(lounge as any).score_summary || `Rated ${Number(lounge.rating).toFixed(1)} stars with ${lounge.review_count} reviews.`}`} />
+            <meta property="og:description" content={`${lounge.score_summary || `Rated ${Number(lounge.rating).toFixed(1)} stars with ${lounge.review_count} reviews.`}`} />
             {lounge.image_url && <meta property="og:image" content={lounge.image_url} />}
             <meta property="og:type" content="website" />
             <meta name="twitter:card" content="summary_large_image" />
@@ -143,11 +144,11 @@ const LoungePage = () => {
                 <div className="lg:col-span-2 space-y-10">
                   {/* Connoisseur Score */}
                   {(() => {
-                    const scoreSource = (lounge as any).score_source || "none";
-                    const connoisseurScore = (lounge as any).connoisseur_score;
-                    const scoreLabel = (lounge as any).score_label;
-                    const scoreSummary = (lounge as any).score_summary;
-                    const pillarScores = (lounge as any).pillar_scores as Record<string, number | null> | null;
+                    const scoreSource = lounge.score_source || "none";
+                    const connoisseurScore = lounge.connoisseur_score;
+                    const scoreLabel = lounge.score_label;
+                    const scoreSummary = lounge.score_summary;
+                    const pillarScores = lounge.pillar_scores as Record<string, number | null> | null;
                     const pillars = lounge.type === "shop" ? SHOP_PILLARS : LOUNGE_PILLARS;
 
                     if (scoreSource === "none") {

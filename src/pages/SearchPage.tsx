@@ -1,4 +1,5 @@
 import { useSearchParams, Link } from "react-router-dom";
+import type { LoungeWithCity } from "@/lib/types";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Helmet } from "react-helmet-async";
@@ -56,7 +57,7 @@ const SearchPage = () => {
         .or(`name.ilike.%${q}%,description.ilike.%${q}%,address.ilike.%${q}%`)
         .order("rating", { ascending: false });
       if (error) throw error;
-      return data;
+      return data as unknown as LoungeWithCity[];
     },
     enabled: !!q,
   });
@@ -92,7 +93,7 @@ const SearchPage = () => {
       relevance: () => 0,
       rating_desc: (a, b) => Number(b.rating) - Number(a.rating),
       rating_asc: (a, b) => Number(a.rating) - Number(b.rating),
-      score_desc: (a, b) => ((b as any).connoisseur_score ?? 0) - ((a as any).connoisseur_score ?? 0),
+      score_desc: (a, b) => (b.connoisseur_score ?? 0) - (a.connoisseur_score ?? 0),
       price_asc: (a, b) => a.price_tier - b.price_tier,
       price_desc: (a, b) => b.price_tier - a.price_tier,
       name_asc: (a, b) => a.name.localeCompare(b.name),
@@ -264,20 +265,20 @@ const SearchPage = () => {
                                       <h3 className="font-display text-lg font-bold text-foreground group-hover:text-primary transition-colors">
                                         {lounge.name}
                                       </h3>
-                                      {(lounge as any).score_summary && (
+                                      {lounge.score_summary && (
                                         <p className="text-xs font-body italic text-muted-foreground line-clamp-1 mt-0.5">
-                                          {(lounge as any).score_summary}
+                                          {lounge.score_summary}
                                         </p>
                                       )}
                                       <p className="text-xs text-muted-foreground font-body mt-0.5">
-                                        {(lounge as any).cities?.name}
+                                        {lounge.cities?.name}
                                       </p>
                                     </div>
                                     <div className="flex items-center gap-3 flex-shrink-0">
                                       <ConnoisseurScoreBadge
-                                        score={(lounge as any).connoisseur_score}
-                                        scoreLabel={(lounge as any).score_label}
-                                        scoreSource={(lounge as any).score_source || "none"}
+                                        score={lounge.connoisseur_score}
+                                        scoreLabel={lounge.score_label}
+                                        scoreSource={lounge.score_source || "none"}
                                         googleRating={Number(lounge.rating)}
                                         size="sm"
                                       />

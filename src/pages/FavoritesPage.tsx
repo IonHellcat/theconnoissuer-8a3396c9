@@ -1,4 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
+import type { LoungeWithCity } from "@/lib/types";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { Link, Navigate } from "react-router-dom";
@@ -23,7 +24,7 @@ const FavoritesPage = () => {
         .select("*, cities!inner(name, slug)")
         .in("id", favoriteIds);
       if (error) throw error;
-      return data;
+      return data as unknown as LoungeWithCity[];
     },
     enabled: !!user && favoriteIds.length > 0,
   });
@@ -62,7 +63,7 @@ const FavoritesPage = () => {
           ) : (
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
               {lounges.map((lounge) => {
-                const city = (lounge as any).cities;
+                const city = lounge.cities;
                 return (
                   <Link
                     key={lounge.id}
