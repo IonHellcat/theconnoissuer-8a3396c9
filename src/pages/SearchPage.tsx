@@ -33,7 +33,7 @@ const SearchPage = () => {
   const [localQuery, setLocalQuery] = useState(q);
   const [filters, setFilters] = useState<SearchFilterValues>(DEFAULT_FILTERS);
 
-  const { data: cities, isLoading: citiesLoading } = useQuery({
+  const { data: cities, isLoading: citiesLoading, isError: citiesError, refetch: refetchCities } = useQuery({
     queryKey: ["search-cities", q],
     queryFn: async () => {
       if (!q) return [];
