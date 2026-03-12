@@ -1,19 +1,29 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Link } from "react-router-dom";
 import { Helmet } from "react-helmet-async";
-import { motion } from "framer-motion";
-import { Trophy, Crown, Medal, Award, ChevronRight, Star } from "lucide-react";
+import { Trophy, Crown, Medal, Award, ChevronRight } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
-import OptimizedImage from "@/components/OptimizedImage";
 import ConnoisseurScoreBadge from "@/components/ConnoisseurScoreBadge";
 import QueryErrorBanner from "@/components/QueryErrorBanner";
-import type { LoungeWithCity } from "@/lib/types";
 
 type VenueFilter = "all" | "lounge" | "shop";
+
+interface LeaderboardLounge {
+  id: string;
+  name: string;
+  slug: string;
+  type: string;
+  image_url: string | null;
+  connoisseur_score: number | null;
+  score_label: string | null;
+  score_source: string;
+  rating: number;
+  cities: { name: string; slug: string; country: string };
+}
 
 const RankIcon = ({ rank }: { rank: number }) => {
   if (rank === 1) return <Crown className="h-6 w-6 text-primary" />;
@@ -29,76 +39,69 @@ const RankIcon = ({ rank }: { rank: number }) => {
 const LeaderboardRow = ({
   lounge,
   rank,
-  index,
 }: {
-  lounge: LoungeWithCity;
+  lounge: LeaderboardLounge;
   rank: number;
-  index: number;
 }) => {
   const city = lounge.cities;
   const isTop3 = rank <= 3;
 
   return (
-    <motion.div
-      initial={{ opacity: 0, y: 12 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ delay: Math.min(index * 0.03, 0.6) }}
+    <Link
+      to={`/lounge/${lounge.slug}`}
+      className={`flex items-center gap-3 sm:gap-4 p-3 sm:p-4 rounded-xl transition-colors hover:bg-secondary/80 ${
+        isTop3 ? "bg-secondary/50 border border-border/50" : ""
+      }`}
     >
-      <Link
-        to={`/lounge/${lounge.slug}`}
-        className={`flex items-center gap-3 sm:gap-4 p-3 sm:p-4 rounded-xl transition-colors hover:bg-secondary/80 ${
-          isTop3 ? "bg-secondary/50 border border-border/50" : ""
-        }`}
-      >
-        {/* Rank */}
-        <div className="flex-shrink-0 w-8 flex items-center justify-center">
-          <RankIcon rank={rank} />
-        </div>
+      {/* Rank */}
+      <div className="flex-shrink-0 w-8 flex items-center justify-center">
+        <RankIcon rank={rank} />
+      </div>
 
-        {/* Image */}
-        <div className="flex-shrink-0 h-12 w-12 sm:h-14 sm:w-14 rounded-lg overflow-hidden bg-secondary">
-          <OptimizedImage
-            src={lounge.image_url || "/placeholder.svg"}
-            alt={lounge.name}
-            width={112}
-            height={112}
+      {/* Image — small thumbnail, eager for top 10, lazy rest */}
+      <div className="flex-shrink-0 h-12 w-12 sm:h-14 sm:w-14 rounded-lg overflow-hidden bg-secondary">
+        {lounge.image_url ? (
+          <img
+            src={lounge.image_url}
+            alt=""
+            width={56}
+            height={56}
+            loading={rank <= 10 ? "eager" : "lazy"}
+            decoding="async"
             className="h-full w-full object-cover"
           />
-        </div>
+        ) : (
+          <div className="h-full w-full bg-secondary" />
+        )}
+      </div>
 
-        {/* Info */}
-        <div className="flex-1 min-w-0">
-          <h3 className={`font-display font-semibold text-foreground truncate ${isTop3 ? "text-base" : "text-sm"}`}>
-            {lounge.name}
-          </h3>
-          <div className="flex items-center gap-2 mt-0.5">
-            <span className="text-xs font-body text-muted-foreground truncate">
-              {city?.name}{city?.country ? `, ${city.country}` : ""}
-            </span>
-            <span className="text-[10px] font-body px-1.5 py-0.5 rounded-full bg-secondary text-muted-foreground capitalize">
-              {lounge.type}
-            </span>
-          </div>
-          {lounge.score_summary && (
-            <p className="text-[11px] font-body italic text-muted-foreground mt-1 line-clamp-1 hidden sm:block">
-              {lounge.score_summary}
-            </p>
-          )}
+      {/* Info */}
+      <div className="flex-1 min-w-0">
+        <h3 className={`font-display font-semibold text-foreground truncate ${isTop3 ? "text-base" : "text-sm"}`}>
+          {lounge.name}
+        </h3>
+        <div className="flex items-center gap-2 mt-0.5">
+          <span className="text-xs font-body text-muted-foreground truncate">
+            {city?.name}{city?.country ? `, ${city.country}` : ""}
+          </span>
+          <span className="text-[10px] font-body px-1.5 py-0.5 rounded-full bg-secondary text-muted-foreground capitalize">
+            {lounge.type}
+          </span>
         </div>
+      </div>
 
-        {/* Score */}
-        <div className="flex-shrink-0 flex items-center gap-2">
-          <ConnoisseurScoreBadge
-            score={lounge.connoisseur_score}
-            scoreLabel={lounge.score_label}
-            scoreSource={lounge.score_source}
-            googleRating={Number(lounge.rating)}
-            size="sm"
-          />
-          <ChevronRight className="h-4 w-4 text-muted-foreground/50 hidden sm:block" />
-        </div>
-      </Link>
-    </motion.div>
+      {/* Score */}
+      <div className="flex-shrink-0 flex items-center gap-2">
+        <ConnoisseurScoreBadge
+          score={lounge.connoisseur_score}
+          scoreLabel={lounge.score_label}
+          scoreSource={lounge.score_source}
+          googleRating={Number(lounge.rating)}
+          size="sm"
+        />
+        <ChevronRight className="h-4 w-4 text-muted-foreground/50 hidden sm:block" />
+      </div>
+    </Link>
   );
 };
 
@@ -110,21 +113,25 @@ const LeaderboardPage = () => {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("lounges")
-        .select("*, cities!inner(name, slug, country)")
+        .select("id, name, slug, type, image_url, connoisseur_score, score_label, score_source, rating, cities!inner(name, slug, country)")
         .not("connoisseur_score", "is", null)
         .order("connoisseur_score", { ascending: false })
         .limit(100);
       if (error) throw error;
-      return data as unknown as LoungeWithCity[];
+      return data as unknown as LeaderboardLounge[];
     },
+    staleTime: 5 * 60 * 1000, // 5 min cache
   });
 
-  const filtered = lounges?.filter((l) => {
-    if (venueFilter === "all") return true;
-    if (venueFilter === "lounge") return l.type === "lounge" || l.type === "both";
-    if (venueFilter === "shop") return l.type === "shop" || l.type === "both";
-    return true;
-  });
+  const filtered = useMemo(() => {
+    if (!lounges) return undefined;
+    if (venueFilter === "all") return lounges;
+    return lounges.filter((l) => {
+      if (venueFilter === "lounge") return l.type === "lounge" || l.type === "both";
+      if (venueFilter === "shop") return l.type === "shop" || l.type === "both";
+      return true;
+    });
+  }, [lounges, venueFilter]);
 
   return (
     <div className="min-h-screen bg-background">
@@ -192,7 +199,6 @@ const LeaderboardPage = () => {
                   key={lounge.id}
                   lounge={lounge}
                   rank={i + 1}
-                  index={i}
                 />
               ))}
             </div>
