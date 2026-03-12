@@ -159,6 +159,10 @@ const CityPage = () => {
       {city && <CityJsonLd city={city} />}
       <Navbar />
       <main className="pt-16">
+        {(cityError || loungesError) ? (
+          <QueryErrorBanner message="Could not load city data." onRetry={() => { refetchCity(); refetchLounges(); }} />
+        ) : (
+        <>
         {/* Hero */}
         <section className="relative h-64 md:h-80 overflow-hidden">
           {city?.image_url && (
