@@ -44,6 +44,30 @@ export type Database = {
         }
         Relationships: []
       }
+      deleted_lounges: {
+        Row: {
+          city_name: string | null
+          deleted_at: string
+          google_place_id: string | null
+          id: string
+          name: string
+        }
+        Insert: {
+          city_name?: string | null
+          deleted_at?: string
+          google_place_id?: string | null
+          id?: string
+          name: string
+        }
+        Update: {
+          city_name?: string | null
+          deleted_at?: string
+          google_place_id?: string | null
+          id?: string
+          name?: string
+        }
+        Relationships: []
+      }
       favorites: {
         Row: {
           created_at: string
