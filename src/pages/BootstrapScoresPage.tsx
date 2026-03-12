@@ -176,6 +176,11 @@ const BootstrapScoresPage = () => {
       const chunkSize = 5; // Process 5 venues per chunk to stay under edge function timeout
 
       while (true) {
+        // Check for pause
+        while (pausedRef.current) {
+          await new Promise(r => setTimeout(r, 300));
+        }
+
         const { data, error } = await supabase.functions.invoke("bootstrap-scores", {
           body: { action: "bulk-full-pipeline-chunk", limit: chunkSize },
         });
