@@ -1,6 +1,6 @@
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
-import { Loader2, Wand2, Save, Zap, Trash2 } from "lucide-react";
+import { Loader2, Wand2, Save, Zap, Trash2, Pause, Play } from "lucide-react";
 import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger,
@@ -23,10 +23,12 @@ interface ScoreBulkActionsProps {
   estimatedCount: number;
   editedCount: number;
   loungeCount: number;
+  paused: boolean;
   onBulkBootstrap: () => void;
   onBulkRescore: () => void;
   onBulkSaveAll: () => void;
   onResetAllScores?: () => void;
+  onTogglePause: () => void;
   resetting?: boolean;
 }
 
@@ -34,13 +36,19 @@ export const ScoreBulkActions = ({
   bulkBootstrapping, bulkBootstrapProgress,
   bulkRescoring, bulkServerProgress,
   unscoredCount, estimatedCount, editedCount, loungeCount,
-  onBulkBootstrap, onBulkRescore, onBulkSaveAll, onResetAllScores, resetting,
+  paused, onBulkBootstrap, onBulkRescore, onBulkSaveAll, onResetAllScores, onTogglePause, resetting,
 }: ScoreBulkActionsProps) => {
   const anyRunning = bulkBootstrapping || bulkRescoring || !!resetting;
 
   return (
     <>
-      <div className="flex gap-2 mb-6 flex-wrap">
+        <div className="flex gap-2 mb-6 flex-wrap">
+        {(bulkBootstrapping || bulkRescoring) && (
+          <Button onClick={onTogglePause} variant={paused ? "default" : "outline"} className="gap-2">
+            {paused ? <Play className="h-4 w-4" /> : <Pause className="h-4 w-4" />}
+            {paused ? "Resume" : "Pause"}
+          </Button>
+        )}
         <Button onClick={onBulkBootstrap} disabled={anyRunning || !unscoredCount} className="gap-2">
           {bulkBootstrapping ? <Loader2 className="h-4 w-4 animate-spin" /> : <Wand2 className="h-4 w-4" />}
           Score All Unscored ({unscoredCount})
@@ -86,9 +94,9 @@ export const ScoreBulkActions = ({
       {bulkBootstrapping && (
         <div className="mb-6 p-4 rounded-lg border border-primary/30 bg-primary/5 space-y-3">
           <div className="flex items-center gap-3">
-            <Loader2 className="h-5 w-5 animate-spin text-primary" />
+            {paused ? <Pause className="h-5 w-5 text-amber-500" /> : <Loader2 className="h-5 w-5 animate-spin text-primary" />}
             <div className="flex-1">
-              <p className="text-sm font-medium text-foreground">Full pipeline in progress...</p>
+              <p className="text-sm font-medium text-foreground">{paused ? "Pipeline paused" : "Full pipeline in progress..."}</p>
               <p className="text-xs text-muted-foreground font-body">
                 {bulkBootstrapProgress
                   ? `✓ ${bulkBootstrapProgress.scored} scored · ${bulkBootstrapProgress.no_reviews} no reviews · ${bulkBootstrapProgress.errors} errors · ${bulkBootstrapProgress.remaining} remaining`
@@ -111,9 +119,9 @@ export const ScoreBulkActions = ({
       {bulkRescoring && (
         <div className="mb-6 p-4 rounded-lg border border-primary/30 bg-primary/5 space-y-3">
           <div className="flex items-center gap-3">
-            <Loader2 className="h-5 w-5 animate-spin text-primary" />
+            {paused ? <Pause className="h-5 w-5 text-amber-500" /> : <Loader2 className="h-5 w-5 animate-spin text-primary" />}
             <div className="flex-1">
-              <p className="text-sm font-medium text-foreground">Bulk rescore in progress...</p>
+              <p className="text-sm font-medium text-foreground">{paused ? "Rescore paused" : "Bulk rescore in progress..."}</p>
               <p className="text-xs text-muted-foreground font-body">
                 {bulkServerProgress
                   ? `Processed ${bulkServerProgress.processed} of ${bulkServerProgress.total} estimated venues.`

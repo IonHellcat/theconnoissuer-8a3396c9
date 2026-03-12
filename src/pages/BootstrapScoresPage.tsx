@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useRef, useCallback } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAdminRole } from "@/hooks/useAdminRole";
@@ -27,6 +27,8 @@ const BootstrapScoresPage = () => {
   const [expandedLounges, setExpandedLounges] = useState<Record<string, boolean>>({});
   const [bulkRescoring, setBulkRescoring] = useState(false);
   const [bulkServerProgress, setBulkServerProgress] = useState<{ processed: number; total: number } | null>(null);
+  const [paused, setPaused] = useState(false);
+  const pausedRef = useRef(false);
 
   const { data: lounges, isLoading } = useQuery({
     queryKey: ["admin-lounges-scores"],
@@ -174,6 +176,11 @@ const BootstrapScoresPage = () => {
       const chunkSize = 5; // Process 5 venues per chunk to stay under edge function timeout
 
       while (true) {
+        // Check for pause
+        while (pausedRef.current) {
+          await new Promise(r => setTimeout(r, 300));
+        }
+
         const { data, error } = await supabase.functions.invoke("bootstrap-scores", {
           body: { action: "bulk-full-pipeline-chunk", limit: chunkSize },
         });
@@ -223,6 +230,9 @@ const BootstrapScoresPage = () => {
       const limit = 10;
       let scored = 0, skipped = 0, errors = 0, total = stats?.estimated || 0;
       while (true) {
+        while (pausedRef.current) {
+          await new Promise(r => setTimeout(r, 300));
+        }
         const { data, error } = await supabase.functions.invoke("bootstrap-scores", {
           body: { action: "bulk-pipeline-chunk", offset, limit },
         });
@@ -298,6 +308,7 @@ const BootstrapScoresPage = () => {
           editedCount={Object.keys(results).length} loungeCount={lounges?.length || 0}
           onBulkBootstrap={bulkBootstrap} onBulkRescore={bulkRescoreServer} onBulkSaveAll={bulkSaveAll}
           onResetAllScores={resetAllScores} resetting={resettingScores}
+          paused={paused} onTogglePause={() => { setPaused(p => !p); pausedRef.current = !pausedRef.current; }}
         />
 
         {isLoading ? (
