@@ -400,6 +400,16 @@ const BootstrapScoresPage = () => {
           paused={paused} onTogglePause={() => { setPaused(p => !p); pausedRef.current = !pausedRef.current; }}
         />
 
+        <div className="flex items-center gap-3 mb-4">
+          <Input
+            placeholder="Search by name, city, or country..."
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            className="max-w-sm"
+          />
+          <span className="text-sm text-muted-foreground">{sortedLounges.length} results</span>
+        </div>
+
         {isLoading ? (
           <div className="flex justify-center py-16"><Loader2 className="h-8 w-8 animate-spin text-primary" /></div>
         ) : (
