@@ -273,6 +273,7 @@ const AdminPendingPage = () => {
             onToggleSelect={toggleSelect} onToggleGroupSelect={toggleGroupSelect}
             onApprove={(l) => approveMutation.mutate(l)} onReject={(l) => rejectMutation.mutate(l)}
             onEdit={(l) => setEditLounge(l)}
+            onDelete={(l) => { if (confirm(`Permanently delete "${l.name}"?`)) deleteMutation.mutate(l); }}
             onBulkApprove={(ids) => bulkApproveMutation.mutate(ids)}
             onBulkReject={(ids) => bulkRejectMutation.mutate(ids)}
             isPossibleDuplicate={isPossibleDuplicate}
