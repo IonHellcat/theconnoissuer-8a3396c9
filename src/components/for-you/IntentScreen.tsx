@@ -1,4 +1,4 @@
-import { MapPin, Plane, Clock, Wine, Search, Locate, Armchair, Store, Sparkles } from "lucide-react";
+import { MapPin, Plane, Clock, Wine, Search, Locate, Armchair, Store, Sparkles, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { PillToggle } from "./PillToggle";
@@ -24,6 +24,7 @@ interface IntentScreenProps {
   filteredCities: CityOption[];
   showCityDropdown: boolean;
   canSubmit: boolean;
+  finding?: boolean;
   onSetLocationMode: (mode: LocationMode) => void;
   onSetVisitType: (type: VisitType) => void;
   onSetVenueType: (type: VenueType) => void;
@@ -35,7 +36,7 @@ interface IntentScreenProps {
 
 export const IntentScreen = ({
   locationMode, visitType, venueType, userLat, geoLoading, geoError,
-  cityQuery, filteredCities, showCityDropdown, canSubmit,
+  cityQuery, filteredCities, showCityDropdown, canSubmit, finding,
   onSetLocationMode, onSetVisitType, onSetVenueType,
   onCityQueryChange, onCityFocus, onSelectCity, onFind,
 }: IntentScreenProps) => (
@@ -114,8 +115,8 @@ export const IntentScreen = ({
     {/* Sticky CTA */}
     <div className="fixed bottom-0 left-0 right-0 p-4 bg-background/90 backdrop-blur-sm border-t border-border/30 z-40">
       <div className="max-w-lg mx-auto">
-        <Button onClick={onFind} disabled={!canSubmit} className="w-full h-12 text-base font-body font-semibold">
-          Find lounges
+        <Button onClick={onFind} disabled={!canSubmit || finding} className="w-full h-12 text-base font-body font-semibold">
+          {finding ? <><Loader2 className="h-4 w-4 animate-spin mr-2" /> Finding…</> : "Find lounges"}
         </Button>
       </div>
     </div>

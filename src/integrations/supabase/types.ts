@@ -163,6 +163,7 @@ export type Database = {
           description: string | null
           features: string[] | null
           gallery: string[] | null
+          geog: unknown
           google_place_id: string | null
           google_types: Json | null
           hours: Json | null
@@ -194,6 +195,7 @@ export type Database = {
           description?: string | null
           features?: string[] | null
           gallery?: string[] | null
+          geog?: unknown
           google_place_id?: string | null
           google_types?: Json | null
           hours?: Json | null
@@ -225,6 +227,7 @@ export type Database = {
           description?: string | null
           features?: string[] | null
           gallery?: string[] | null
+          geog?: unknown
           google_place_id?: string | null
           google_types?: Json | null
           hours?: Json | null
@@ -486,6 +489,36 @@ export type Database = {
           _user_id: string
         }
         Returns: boolean
+      }
+      recommend_lounges: {
+        Args: {
+          radius_m?: number
+          user_lat: number
+          user_lng: number
+          venue_filter?: string
+          visit_style: string
+        }
+        Returns: {
+          address: string
+          city_id: string
+          city_name: string
+          city_slug: string
+          connoisseur_score: number
+          distance_km: number
+          id: string
+          image_url: string
+          latitude: number
+          longitude: number
+          name: string
+          rating: number
+          recommendation_score: number
+          score_label: string
+          score_source: string
+          score_summary: string
+          slug: string
+          type: string
+          visit_type: string
+        }[]
       }
     }
     Enums: {
