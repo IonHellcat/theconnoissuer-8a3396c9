@@ -1064,10 +1064,16 @@ serve(async (req) => {
 
         const ratings = (reviews || []).map((r: any) => r.rating).filter((r: number | null): r is number => r !== null);
         const aspects = getAspects(lounge.type);
-        const cityAvg = cityAvgMap.get(lounge.city_id) ?? 50;
+        const cityAvg = cityAvgMap.get(lounge.city_id) ?? reviewStats.median;
 
         const { score } = computeConnoisseurScore(
-          Number(lounge.rating), lounge.review_count, classifications, aspects, ratings, cityAvg
+          Number(lounge.rating),
+          lounge.review_count,
+          classifications,
+          aspects,
+          ratings,
+          cityAvg,
+          reviewStats
         );
 
         const pillarScores = buildPillarScores(classifications, aspects);
