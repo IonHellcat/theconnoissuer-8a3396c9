@@ -209,17 +209,19 @@ const CityPage = () => {
           {!isLoading && lounges && lounges.length > 0 && (
             <div className="flex items-center gap-4 mb-6">
               <Tabs value={venueFilter} onValueChange={(v) => setVenueFilter(v as any)}>
-                <TabsList>
-                  <TabsTrigger value="all">All ({lounges.length})</TabsTrigger>
-                  <TabsTrigger value="lounge" className="gap-1.5">
-                    <Sofa className="h-3.5 w-3.5" />
-                    Lounges ({lounges.filter(l => l.type === "lounge" || l.type === "both").length})
-                  </TabsTrigger>
-                  <TabsTrigger value="shop" className="gap-1.5">
-                    <Store className="h-3.5 w-3.5" />
-                    Shops ({lounges.filter(l => l.type === "shop" || l.type === "both").length})
-                  </TabsTrigger>
-                </TabsList>
+                <div className="overflow-x-auto scrollbar-hide -mx-4 px-4">
+                  <TabsList className="w-max">
+                    <TabsTrigger value="all">All ({lounges.length})</TabsTrigger>
+                    <TabsTrigger value="lounge" className="gap-1.5">
+                      <Sofa className="h-3.5 w-3.5" />
+                      Lounges ({lounges.filter(l => l.type === "lounge" || l.type === "both").length})
+                    </TabsTrigger>
+                    <TabsTrigger value="shop" className="gap-1.5">
+                      <Store className="h-3.5 w-3.5" />
+                      Shops ({lounges.filter(l => l.type === "shop" || l.type === "both").length})
+                    </TabsTrigger>
+                  </TabsList>
+                </div>
               </Tabs>
             </div>
           )}
