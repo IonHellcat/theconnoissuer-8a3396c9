@@ -44,7 +44,7 @@ const ForYouPage = () => {
       if (!data) return;
 
       const map = new Map<string, { lats: number[]; lngs: number[]; name: string }>();
-      data.forEach((l: any) => {
+      data.forEach((l) => {
         if (!l.city_id || l.latitude == null || l.longitude == null) return;
         const existing = map.get(l.city_id);
         if (existing) { existing.lats.push(l.latitude); existing.lngs.push(l.longitude); }

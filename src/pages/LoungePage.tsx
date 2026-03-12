@@ -39,12 +39,12 @@ const LoungePage = () => {
         .eq("slug", slug!)
         .single();
       if (error) throw error;
-      return data;
+      return data as unknown as LoungeWithCity;
     },
     enabled: !!slug,
   });
 
-  const city = (lounge as any)?.cities;
+  const city = lounge?.cities;
   const hoursData = lounge?.hours as { weekday_descriptions?: string[]; periods?: any[] } | Record<string, string> | null;
   const weekdayDescriptions = hoursData && 'weekday_descriptions' in hoursData 
     ? (hoursData as { weekday_descriptions?: string[] }).weekday_descriptions 

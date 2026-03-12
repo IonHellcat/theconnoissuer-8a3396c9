@@ -57,7 +57,7 @@ const SearchPage = () => {
         .or(`name.ilike.%${q}%,description.ilike.%${q}%,address.ilike.%${q}%`)
         .order("rating", { ascending: false });
       if (error) throw error;
-      return data;
+      return data as unknown as LoungeWithCity[];
     },
     enabled: !!q,
   });

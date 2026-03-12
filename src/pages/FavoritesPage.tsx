@@ -63,7 +63,7 @@ const FavoritesPage = () => {
           ) : (
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
               {lounges.map((lounge) => {
-                const city = (lounge as any).cities;
+                const city = lounge.cities;
                 return (
                   <Link
                     key={lounge.id}
