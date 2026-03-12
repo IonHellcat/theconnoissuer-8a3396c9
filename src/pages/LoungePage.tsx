@@ -144,11 +144,11 @@ const LoungePage = () => {
                 <div className="lg:col-span-2 space-y-10">
                   {/* Connoisseur Score */}
                   {(() => {
-                    const scoreSource = (lounge as any).score_source || "none";
-                    const connoisseurScore = (lounge as any).connoisseur_score;
-                    const scoreLabel = (lounge as any).score_label;
-                    const scoreSummary = (lounge as any).score_summary;
-                    const pillarScores = (lounge as any).pillar_scores as Record<string, number | null> | null;
+                    const scoreSource = lounge.score_source || "none";
+                    const connoisseurScore = lounge.connoisseur_score;
+                    const scoreLabel = lounge.score_label;
+                    const scoreSummary = lounge.score_summary;
+                    const pillarScores = lounge.pillar_scores as Record<string, number | null> | null;
                     const pillars = lounge.type === "shop" ? SHOP_PILLARS : LOUNGE_PILLARS;
 
                     if (scoreSource === "none") {
