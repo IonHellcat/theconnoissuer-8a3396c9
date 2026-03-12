@@ -1,4 +1,4 @@
-import { Info, Star, Trophy } from "lucide-react";
+import { Info, Star, Trophy, BarChart3, MessageSquare } from "lucide-react";
 
 const ScoreExplainer = () => {
   return (
@@ -11,24 +11,27 @@ const ScoreExplainer = () => {
         <div className="space-y-1">
           <div className="flex items-center gap-1.5 text-foreground font-semibold font-display">
             <Trophy className="h-3.5 w-3.5 text-primary" />
-            City Rankings
+            Connoisseur Score
           </div>
-          <p>Venues are ranked by their Connoisseur Score — a multi-pillar quality assessment. Venues without a score fall back to Google rating and review count.</p>
+          <p>A deterministic 0-100 score computed from four weighted components: Rating Quality (35%), Review Sentiment (30%), Review Volume (25%), and Rating Consistency (10%).</p>
         </div>
         <div className="space-y-1">
           <div className="flex items-center gap-1.5 text-foreground font-semibold font-display">
-            <Star className="h-3.5 w-3.5 text-primary" />
-            Connoisseur Score
+            <MessageSquare className="h-3.5 w-3.5 text-primary" />
+            Sentiment Analysis
           </div>
-          <p>The circular badge is a deeper quality score analyzing reviews across pillars like selection, ambiance, service, drinks, and value — more meaningful than star ratings alone.</p>
+          <p>AI classifies each review's sentiment per aspect (atmosphere, service, selection, etc.) as positive, negative, or not mentioned — no subjective ratings.</p>
+        </div>
+        <div className="space-y-1">
+          <div className="flex items-center gap-1.5 text-foreground font-semibold font-display">
+            <BarChart3 className="h-3.5 w-3.5 text-primary" />
+            Confidence Level
+          </div>
+          <p>Scores show a confidence indicator based on review count: High (10+ reviews), Medium (5-9), or Low (under 5). More reviews = more reliable scores.</p>
         </div>
         <div className="space-y-1">
           <span className="text-foreground font-semibold font-display text-xs">Estimated vs Verified</span>
-          <p>Estimated scores <span className="inline-block h-3 w-3 rounded-full border border-dashed border-muted-foreground/40 align-middle mx-0.5" /> are AI-analyzed from public reviews. Verified scores <span className="inline-block h-3 w-3 rounded-full border-2 border-primary shadow-[0_0_6px_hsl(var(--primary)/0.3)] align-middle mx-0.5" /> come from community ratings and carry more weight.</p>
-        </div>
-        <div className="space-y-1">
-          <span className="text-foreground font-semibold font-display text-xs">No Score Shown?</span>
-          <p>If a venue doesn't display a score, it simply means there wasn't enough data to rate it fairly — it's not a negative mark.</p>
+          <p>Estimated scores <span className="inline-block h-3 w-3 rounded-full border border-dashed border-muted-foreground/40 align-middle mx-0.5" /> are computed from public reviews. Verified scores <span className="inline-block h-3 w-3 rounded-full border-2 border-primary shadow-[0_0_6px_hsl(var(--primary)/0.3)] align-middle mx-0.5" /> come from community ratings.</p>
         </div>
       </div>
     </div>
