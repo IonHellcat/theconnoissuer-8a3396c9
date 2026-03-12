@@ -24,6 +24,7 @@ interface IntentScreenProps {
   filteredCities: CityOption[];
   showCityDropdown: boolean;
   canSubmit: boolean;
+  finding?: boolean;
   onSetLocationMode: (mode: LocationMode) => void;
   onSetVisitType: (type: VisitType) => void;
   onSetVenueType: (type: VenueType) => void;
