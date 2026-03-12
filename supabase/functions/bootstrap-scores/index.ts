@@ -292,7 +292,7 @@ serve(async (req) => {
 
     const validActions = [
       "fetch-reviews", "classify", "compute-scores", "summarize",
-      "mark-no-reviews", "save", "bulk-pipeline", "bulk-pipeline-chunk",
+      "mark-no-reviews", "save", "bulk-pipeline", "bulk-pipeline-chunk", "reset-all",
     ];
     if (!action || !validActions.includes(action)) {
       return new Response(
