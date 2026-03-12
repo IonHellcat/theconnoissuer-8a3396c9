@@ -757,7 +757,7 @@ serve(async (req) => {
       // Always fetch the NEXT batch of unscored venues (no offset needed — scored ones drop out)
       const { data: lounges } = await serviceClient
         .from("lounges")
-        .select("id, name, type, rating, review_count, google_place_id")
+        .select("id, name, type, rating, review_count, google_place_id, city_id")
         .eq("score_source", "none")
         .not("google_place_id", "is", null)
         .order("review_count", { ascending: false })
@@ -766,6 +766,24 @@ serve(async (req) => {
       if (!lounges || lounges.length === 0) {
         return new Response(JSON.stringify({ scored: 0, no_reviews: 0, errors: 0, remaining: 0, done: true }),
           { headers: { ...corsHeaders, "Content-Type": "application/json" } });
+      }
+
+      // Build city average review count map
+      const { data: cityAverages } = await serviceClient
+        .from("lounges")
+        .select("city_id, review_count");
+
+      const cityAvgMap = new Map<string, number>();
+      if (cityAverages) {
+        const cityGroups = new Map<string, number[]>();
+        for (const l of cityAverages) {
+          if (!l.city_id) continue;
+          if (!cityGroups.has(l.city_id)) cityGroups.set(l.city_id, []);
+          cityGroups.get(l.city_id)!.push(l.review_count);
+        }
+        cityGroups.forEach((counts, cityId) => {
+          cityAvgMap.set(cityId, counts.reduce((a, b) => a + b, 0) / counts.length);
+        });
       }
 
       console.log(`Bulk full pipeline: processing ${lounges.length} venues (${total} remaining), concurrency=${concurrency}`);
@@ -845,7 +863,7 @@ serve(async (req) => {
 
           const ratings = savedReviews.map((r: any) => r.rating).filter((r: number | null): r is number => r !== null);
           const aspects = getAspects(lounge.type);
-          const { score } = computeConnoisseurScore(Number(lounge.rating), lounge.review_count, allC, aspects, ratings);
+          const { score } = computeConnoisseurScore(Number(lounge.rating), lounge.review_count, allC, aspects, ratings, cityAvgMap.get(lounge.city_id) ?? 50);
           const pillarScores = buildPillarScores(allC, aspects);
           const confidence = computeConfidence(allC.length);
           const scoreLabel = getScoreLabel(score);
