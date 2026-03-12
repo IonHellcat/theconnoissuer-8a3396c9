@@ -110,7 +110,7 @@ const CityPage = () => {
   const { slug } = useParams<{ slug: string }>();
   const [venueFilter, setVenueFilter] = useState<"all" | "lounge" | "shop">("all");
 
-  const { data: city, isLoading: cityLoading } = useQuery({
+  const { data: city, isLoading: cityLoading, isError: cityError, refetch: refetchCity } = useQuery({
     queryKey: ["city", slug],
     queryFn: async () => {
       const { data, error } = await supabase
