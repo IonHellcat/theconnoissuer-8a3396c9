@@ -1,4 +1,5 @@
 import { useSearchParams, Link } from "react-router-dom";
+import type { LoungeWithCity } from "@/lib/types";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Helmet } from "react-helmet-async";
