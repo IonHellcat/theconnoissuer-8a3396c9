@@ -152,6 +152,31 @@ export const ScoreBulkActions = ({
           )}
         </div>
       )}
+
+      {/* Recalculate Progress */}
+      {bulkRecalculating && (
+        <div className="mb-6 p-4 rounded-lg border border-primary/30 bg-primary/5 space-y-3">
+          <div className="flex items-center gap-3">
+            {paused ? <Pause className="h-5 w-5 text-amber-500" /> : <Loader2 className="h-5 w-5 animate-spin text-primary" />}
+            <div className="flex-1">
+              <p className="text-sm font-medium text-foreground">{paused ? "Recalculation paused" : "Recalculating scores (no AI)..."}</p>
+              <p className="text-xs text-muted-foreground font-body">
+                {bulkRecalcProgress
+                  ? `Processed ${bulkRecalcProgress.processed} of ${bulkRecalcProgress.total} venues.`
+                  : "Starting score recalculation..."}
+              </p>
+            </div>
+            {bulkRecalcProgress && bulkRecalcProgress.total > 0 && (
+              <span className="text-sm font-bold font-display text-primary">
+                {Math.round((bulkRecalcProgress.processed / bulkRecalcProgress.total) * 100)}%
+              </span>
+            )}
+          </div>
+          {bulkRecalcProgress && bulkRecalcProgress.total > 0 && (
+            <Progress value={(bulkRecalcProgress.processed / bulkRecalcProgress.total) * 100} />
+          )}
+        </div>
+      )}
     </>
   );
 };
