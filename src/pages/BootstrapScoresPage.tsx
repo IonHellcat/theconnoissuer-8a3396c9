@@ -35,12 +35,21 @@ const BootstrapScoresPage = () => {
   const { data: lounges, isLoading } = useQuery({
     queryKey: ["admin-lounges-scores"],
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from("lounges")
-        .select("id, name, type, rating, review_count, google_place_id, connoisseur_score, score_source, score_label, confidence, review_data_count, city:cities(name, country)")
-        .order("name");
-      if (error) throw error;
-      return data as unknown as LoungeRow[];
+      const allData: LoungeRow[] = [];
+      let from = 0;
+      const pageSize = 1000;
+      while (true) {
+        const { data, error } = await supabase
+          .from("lounges")
+          .select("id, name, type, rating, review_count, google_place_id, connoisseur_score, score_source, score_label, confidence, review_data_count, city:cities(name, country)")
+          .order("name")
+          .range(from, from + pageSize - 1);
+        if (error) throw error;
+        allData.push(...(data as unknown as LoungeRow[]));
+        if (!data || data.length < pageSize) break;
+        from += pageSize;
+      }
+      return allData;
     },
     enabled: !!isAdmin,
   });
