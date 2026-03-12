@@ -1,6 +1,10 @@
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
-import { Loader2, Wand2, Save, Zap } from "lucide-react";
+import { Loader2, Wand2, Save, Zap, Trash2 } from "lucide-react";
+import {
+  AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
+  AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 
 interface ScoreBulkActionsProps {
   bulkProgress: { current: number; total: number; currentName: string } | null;
