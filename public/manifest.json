@@ -1,0 +1,16 @@
+{
+  "name": "The Connoisseur",
+  "short_name": "Connoisseur",
+  "description": "Discover the world's finest cigar lounges",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#1a1a1a",
+  "theme_color": "#c4973b",
+  "icons": [
+    {
+      "src": "/favicon.ico",
+      "sizes": "48x48",
+      "type": "image/x-icon"
+    }
+  ]
+}
