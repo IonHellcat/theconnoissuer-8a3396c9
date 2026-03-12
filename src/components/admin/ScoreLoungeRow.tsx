@@ -1,11 +1,17 @@
+import { useState } from "react";
 import { Button } from "@/components/ui/button";
-import { Loader2, Sparkles, ChevronUp } from "lucide-react";
+import { Loader2, Sparkles, ChevronUp, Trash2 } from "lucide-react";
 import {
   statusBadge, confidenceBadge, aspectLabel, sentimentColor, sentimentLabel,
   LOUNGE_ASPECTS, SHOP_ASPECTS,
 } from "./scoreHelpers";
 import type { LoungeRow, PipelineResult } from "./scoreHelpers";
 import { Star } from "lucide-react";
+import {
+  AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
+  AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 
 interface ScoreLoungeRowProps {
   lounge: LoungeRow;
@@ -17,12 +23,14 @@ interface ScoreLoungeRowProps {
   onToggleExpand: (id: string) => void;
   onSave: (lounge: LoungeRow) => void;
   onSkip: (loungeId: string) => void;
+  onDelete: (lounge: LoungeRow) => void;
 }
 
 export const ScoreLoungeRow = ({
   lounge, processing, expanded, result, hasResult,
-  onBootstrap, onToggleExpand, onSave, onSkip,
+  onBootstrap, onToggleExpand, onSave, onSkip, onDelete,
 }: ScoreLoungeRowProps) => {
+  const [deleteOpen, setDeleteOpen] = useState(false);
   const aspects = lounge.type === "shop" ? SHOP_ASPECTS : LOUNGE_ASPECTS;
 
   return (
@@ -56,6 +64,30 @@ export const ScoreLoungeRow = ({
               Score
             </Button>
           )}
+          <AlertDialog open={deleteOpen} onOpenChange={setDeleteOpen}>
+            <AlertDialogTrigger asChild>
+              <Button size="sm" variant="ghost" className="h-7 w-7 p-0 text-destructive hover:text-destructive">
+                <Trash2 className="h-3 w-3" />
+              </Button>
+            </AlertDialogTrigger>
+            <AlertDialogContent>
+              <AlertDialogHeader>
+                <AlertDialogTitle>Delete "{lounge.name}"?</AlertDialogTitle>
+                <AlertDialogDescription>
+                  This will permanently delete this lounge and add it to the blocklist so it won't be re-imported.
+                </AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter>
+                <AlertDialogCancel>Cancel</AlertDialogCancel>
+                <AlertDialogAction
+                  onClick={() => { onDelete(lounge); setDeleteOpen(false); }}
+                  className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                >
+                  Delete permanently
+                </AlertDialogAction>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialog>
           {expanded && (
             <Button size="sm" variant="ghost" onClick={() => onToggleExpand(lounge.id)} className="h-7 w-7 p-0">
               <ChevronUp className="h-3 w-3" />

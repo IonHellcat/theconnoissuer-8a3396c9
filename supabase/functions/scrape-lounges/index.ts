@@ -265,8 +265,17 @@ Deno.serve(async (req) => {
       }
     }
 
+    // Check deleted/blocklisted lounges
+    const { data: deletedLounges } = await serviceClient
+      .from("deleted_lounges")
+      .select("name, google_place_id");
+
+    const deletedNames = new Set(
+      (deletedLounges || []).map((d: { name: string }) => d.name.toLowerCase())
+    );
+
     const newLounges = lounges.filter(
-      (l) => !existingNames.has(l.name.toLowerCase())
+      (l) => !existingNames.has(l.name.toLowerCase()) && !deletedNames.has(l.name.toLowerCase())
     );
 
     console.log(`New lounges after dedup: ${newLounges.length}`);
