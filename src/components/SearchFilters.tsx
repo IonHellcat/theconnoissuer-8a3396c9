@@ -254,34 +254,38 @@ const SearchFilters = ({ filters, onChange, resultCount }: SearchFiltersProps) =
 
   return (
     <>
-      {/* Mobile toggle */}
+      {/* Mobile toggle + bottom sheet */}
       <div className="lg:hidden mb-4">
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={() => setMobileOpen(!mobileOpen)}
-          className="gap-2"
-        >
-          <SlidersHorizontal className="h-4 w-4" />
-          Filters{activeCount > 0 && ` (${activeCount})`}
-        </Button>
+        <Drawer.Root snapPoints={[0.6, 0.9]} open={mobileOpen} onOpenChange={setMobileOpen}>
+          <Drawer.Trigger asChild>
+            <Button
+              variant="outline"
+              size="sm"
+              className="gap-2"
+            >
+              <SlidersHorizontal className="h-4 w-4" />
+              Filters{activeCount > 0 && ` (${activeCount})`}
+            </Button>
+          </Drawer.Trigger>
+          <Drawer.Portal>
+            <Drawer.Overlay className="fixed inset-0 bg-black/40 z-50" />
+            <Drawer.Content className="fixed bottom-0 left-0 right-0 z-50 bg-background rounded-t-2xl border-t border-border/50 outline-none">
+              <div className="mx-auto mt-3 mb-4 w-12 h-1.5 rounded-full bg-muted-foreground/30" />
+              <div className="px-5 pb-8 overflow-y-auto max-h-[85vh]">
+                <div className="flex items-center justify-between mb-5">
+                  <h3 className="font-display text-sm font-semibold text-foreground">Filters</h3>
+                  {typeof resultCount === "number" && (
+                    <span className="text-xs text-muted-foreground font-body">
+                      {resultCount} results
+                    </span>
+                  )}
+                </div>
+                {filterContent}
+              </div>
+            </Drawer.Content>
+          </Drawer.Portal>
+        </Drawer.Root>
       </div>
-
-      {/* Mobile drawer */}
-      <AnimatePresence>
-        {mobileOpen && (
-          <motion.div
-            initial={{ height: 0, opacity: 0 }}
-            animate={{ height: "auto", opacity: 1 }}
-            exit={{ height: 0, opacity: 0 }}
-            className="lg:hidden overflow-hidden mb-6"
-          >
-            <div className="p-4 bg-card rounded-xl border border-border/50">
-              {filterContent}
-            </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
 
       {/* Desktop sidebar */}
       <div className="hidden lg:block w-64 flex-shrink-0">
