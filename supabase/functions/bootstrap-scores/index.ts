@@ -707,8 +707,9 @@ serve(async (req) => {
 
     // ═══ BULK FULL PIPELINE (fetch + classify + compute + summarize + save) ═══
     if (action === "bulk-full-pipeline-chunk") {
-      const limitInput = Number(body.limit ?? 5);
-      const limit = Math.min(10, Math.max(1, Math.floor(limitInput)));
+      const limitInput = Number(body.limit ?? 10);
+      const limit = Math.min(20, Math.max(1, Math.floor(limitInput)));
+      const concurrency = Math.min(Number(body.concurrency ?? 3), 5);
 
       const GOOGLE_PLACES_API_KEY = Deno.env.get("GOOGLE_PLACES_API_KEY");
       if (!GOOGLE_PLACES_API_KEY) throw new Error("GOOGLE_PLACES_API_KEY not configured");
@@ -740,20 +741,20 @@ serve(async (req) => {
           { headers: { ...corsHeaders, "Content-Type": "application/json" } });
       }
 
-      console.log(`Bulk full pipeline: processing ${lounges.length} venues (${total} remaining)`);
+      console.log(`Bulk full pipeline: processing ${lounges.length} venues (${total} remaining), concurrency=${concurrency}`);
 
       let scored = 0, no_reviews = 0, errors = 0;
+      let rateLimited = false;
 
-      for (const lounge of lounges) {
+      // Process a single venue through the full pipeline
+      const processVenue = async (lounge: any): Promise<"scored" | "no_reviews" | "error" | "rate_limited"> => {
         try {
           // 1. Fetch reviews from Google
           const url = `https://places.googleapis.com/v1/places/${lounge.google_place_id}?fields=reviews&key=${GOOGLE_PLACES_API_KEY}`;
           const gResponse = await fetch(url);
           if (!gResponse.ok) {
-            const t = await gResponse.text();
-            console.error(`Google API error for ${lounge.name}:`, gResponse.status, t);
-            errors++;
-            continue;
+            console.error(`Google API error for ${lounge.name}:`, gResponse.status);
+            return "error";
           }
 
           const gData = await gResponse.json();
@@ -761,15 +762,15 @@ serve(async (req) => {
           const textReviews = rawReviews.filter((r: any) => r.text?.text || r.originalText?.text);
 
           if (textReviews.length === 0) {
-            // Mark as no_reviews so it doesn't get picked up again
             await serviceClient.from("lounges").update({ score_source: "no_reviews" }).eq("id", lounge.id);
-            no_reviews++;
-            continue;
+            return "no_reviews";
           }
 
-          // Insert reviews (clear old ones first)
-          await serviceClient.from("review_classifications").delete().eq("lounge_id", lounge.id);
-          await serviceClient.from("google_reviews").delete().eq("lounge_id", lounge.id);
+          // Clear old data in parallel
+          await Promise.all([
+            serviceClient.from("review_classifications").delete().eq("lounge_id", lounge.id),
+            serviceClient.from("google_reviews").delete().eq("lounge_id", lounge.id),
+          ]);
 
           const reviewRows = textReviews.map((r: any) => ({
             lounge_id: lounge.id,
@@ -779,40 +780,32 @@ serve(async (req) => {
             review_text: r.text?.text || r.originalText?.text || "",
             relative_time: r.relativePublishTimeDescription || "",
           }));
-          await serviceClient.from("google_reviews").insert(reviewRows);
+
+          // Insert and get back IDs in one call
+          const { data: savedReviews, error: insertErr } = await serviceClient
+            .from("google_reviews")
+            .insert(reviewRows)
+            .select("id, review_text, rating");
+
+          if (insertErr || !savedReviews || savedReviews.length === 0) {
+            console.error(`Insert error for ${lounge.name}:`, insertErr?.message);
+            return "error";
+          }
 
           // 2. Classify sentiments
-          const reviewsForClassify = reviewRows.map((r: any, i: number) => ({
-            id: `temp-${i}`, review_text: r.review_text, rating: r.rating,
-          }));
-          // Re-fetch to get actual IDs
-          const { data: savedReviews } = await serviceClient
-            .from("google_reviews")
-            .select("id, review_text, rating")
-            .eq("lounge_id", lounge.id);
-
-          if (savedReviews && savedReviews.length > 0) {
-            try {
-              const classResults = await classifyReviewsBatch(savedReviews, lounge.type);
-              const classRows = classResults.map((r: any) => ({
-                review_id: r.review_id, lounge_id: lounge.id,
-                venue_type: lounge.type, aspects: r.aspects,
-              }));
-              if (classRows.length > 0) {
-                await serviceClient.from("review_classifications").upsert(classRows, { onConflict: "review_id" });
-              }
-            } catch (e: any) {
-              if (e.message === "RATE_LIMITED" || e.message === "CREDITS_EXHAUSTED") {
-                return new Response(JSON.stringify({
-                  error: e.message, scored, no_reviews, errors,
-                  remaining: total - scored - no_reviews - errors, done: false,
-                }), { status: e.message === "RATE_LIMITED" ? 429 : 402,
-                  headers: { ...corsHeaders, "Content-Type": "application/json" } });
-              }
-              console.error(`Classify error for ${lounge.name}:`, e.message);
-              errors++;
-              continue;
+          try {
+            const classResults = await classifyReviewsBatch(savedReviews, lounge.type);
+            const classRows = classResults.map((r: any) => ({
+              review_id: r.review_id, lounge_id: lounge.id,
+              venue_type: lounge.type, aspects: r.aspects,
+            }));
+            if (classRows.length > 0) {
+              await serviceClient.from("review_classifications").upsert(classRows, { onConflict: "review_id" });
             }
+          } catch (e: any) {
+            if (e.message === "RATE_LIMITED" || e.message === "CREDITS_EXHAUSTED") return "rate_limited";
+            console.error(`Classify error for ${lounge.name}:`, e.message);
+            return "error";
           }
 
           // 3. Compute score
@@ -821,9 +814,9 @@ serve(async (req) => {
             .select("aspects")
             .eq("lounge_id", lounge.id);
 
-          if (!allC || allC.length === 0) { errors++; continue; }
+          if (!allC || allC.length === 0) return "error";
 
-          const ratings = (savedReviews || []).map((r: any) => r.rating).filter((r: number | null): r is number => r !== null);
+          const ratings = savedReviews.map((r: any) => r.rating).filter((r: number | null): r is number => r !== null);
           const aspects = getAspects(lounge.type);
           const { score } = computeConnoisseurScore(Number(lounge.rating), lounge.review_count, allC, aspects, ratings);
           const pillarScores = buildPillarScores(allC, aspects);
@@ -831,7 +824,7 @@ serve(async (req) => {
           const scoreLabel = getScoreLabel(score);
 
           // 4. Generate summary
-          const topSnippets = (savedReviews || []).slice(0, 3).map((r: any) => r.review_text?.slice(0, 200) || "");
+          const topSnippets = savedReviews.slice(0, 3).map((r: any) => r.review_text?.slice(0, 200) || "");
           let summary = "";
           try {
             summary = await generateSummary(lounge.name, pillarScores, topSnippets);
@@ -844,15 +837,31 @@ serve(async (req) => {
             confidence, review_data_count: allC.length, scored_at: new Date().toISOString(),
           }).eq("id", lounge.id);
 
-          scored++;
           console.log(`✓ ${lounge.name}: score ${score} (${scoreLabel || "unranked"})`);
+          return "scored";
         } catch (e: any) {
           console.error(`Error for ${lounge.name}:`, e.message);
-          errors++;
+          return "error";
         }
+      };
 
-        // Delay between venues to respect rate limits
-        await new Promise(r => setTimeout(r, 500));
+      // Process venues with controlled concurrency
+      for (let i = 0; i < lounges.length && !rateLimited; i += concurrency) {
+        const batch = lounges.slice(i, i + concurrency);
+        const results = await Promise.all(batch.map(processVenue));
+        for (const r of results) {
+          if (r === "scored") scored++;
+          else if (r === "no_reviews") no_reviews++;
+          else if (r === "rate_limited") { rateLimited = true; errors++; }
+          else errors++;
+        }
+      }
+
+      if (rateLimited) {
+        return new Response(JSON.stringify({
+          error: "Rate limited", scored, no_reviews, errors,
+          remaining: total - scored - no_reviews - errors, done: false,
+        }), { status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" } });
       }
 
       const remaining = total - scored - no_reviews - errors;
