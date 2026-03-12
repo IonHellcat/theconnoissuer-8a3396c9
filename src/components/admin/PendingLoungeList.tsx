@@ -13,6 +13,7 @@ interface PendingLoungeListProps {
   onApprove: (lounge: PendingLounge) => void;
   onReject: (lounge: PendingLounge) => void;
   onEdit: (lounge: PendingLounge) => void;
+  onDelete: (lounge: PendingLounge) => void;
   onBulkApprove: (ids: string[]) => void;
   onBulkReject: (ids: string[]) => void;
   isPossibleDuplicate: (name: string) => boolean;
