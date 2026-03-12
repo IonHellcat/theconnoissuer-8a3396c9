@@ -36,7 +36,7 @@ interface IntentScreenProps {
 
 export const IntentScreen = ({
   locationMode, visitType, venueType, userLat, geoLoading, geoError,
-  cityQuery, filteredCities, showCityDropdown, canSubmit,
+  cityQuery, filteredCities, showCityDropdown, canSubmit, finding,
   onSetLocationMode, onSetVisitType, onSetVenueType,
   onCityQueryChange, onCityFocus, onSelectCity, onFind,
 }: IntentScreenProps) => (
