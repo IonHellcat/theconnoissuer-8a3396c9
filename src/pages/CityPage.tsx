@@ -152,7 +152,7 @@ const CityPage = () => {
             {city.image_url && <meta property="og:image" content={city.image_url} />}
             <meta property="og:type" content="website" />
             <meta name="twitter:card" content="summary_large_image" />
-            <link rel="canonical" href={`https://theconnoisseur.co/city/${city.slug}`} />
+            <link rel="canonical" href={`https://theconnoisseur.app/city/${city.slug}`} />
           </>
         )}
       </Helmet>
