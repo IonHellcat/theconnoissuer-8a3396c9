@@ -7,22 +7,7 @@ const corsHeaders = {
     "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
-const LOUNGE_WEIGHTS: Record<string, number> = {
-  cigar_selection: 0.25,
-  ambiance: 0.30,
-  service: 0.20,
-  drinks: 0.15,
-  value: 0.10,
-};
-
-const SHOP_WEIGHTS: Record<string, number> = {
-  selection: 0.25,
-  storage: 0.30,
-  staff_knowledge: 0.20,
-  pricing: 0.15,
-  experience: 0.10,
-};
-
+// ─── Score Label Tiers ───
 function getScoreLabel(score: number): string | null {
   if (score >= 93) return "Legendary";
   if (score >= 88) return "Exceptional";
@@ -32,63 +17,124 @@ function getScoreLabel(score: number): string | null {
   return null;
 }
 
-function calculateCompositeScore(
-  pillarScores: Record<string, number | null>,
-  weights: Record<string, number>
-): number {
-  let totalWeight = 0;
-  let weightedSum = 0;
+// ─── Aspect definitions per venue type ───
+const LOUNGE_ASPECTS = ["atmosphere", "service", "cigar_selection", "drinks"];
+const SHOP_ASPECTS = ["selection", "staff", "pricing"];
 
-  for (const [pillar, weight] of Object.entries(weights)) {
-    const score = pillarScores[pillar];
-    if (score !== null && score !== undefined) {
-      totalWeight += weight;
-      weightedSum += (score / 5) * 100 * weight;
+function getAspects(type: string): string[] {
+  return type === "shop" ? SHOP_ASPECTS : LOUNGE_ASPECTS;
+}
+
+// ─── Deterministic Scoring Formula ───
+
+function computeQualityScore(rating: number, reviewCount: number): number {
+  // Bayesian average: pulls toward global mean (3.8) for low-count venues
+  const globalMean = 3.8;
+  const C = 10; // confidence parameter
+  const bayesian = (rating * reviewCount + globalMean * C) / (reviewCount + C);
+  // Map 1-5 to 0-100
+  return Math.max(0, Math.min(100, ((bayesian - 1) / 4) * 100));
+}
+
+function computeSentimentScore(
+  classifications: Array<{ aspects: Record<string, any> }>,
+  aspects: string[]
+): number {
+  if (classifications.length === 0) return 50;
+
+  let totalPositive = 0;
+  let totalNegative = 0;
+  let totalMentioned = 0;
+
+  for (const c of classifications) {
+    for (const aspect of aspects) {
+      const val = c.aspects?.[aspect];
+      if (val === "positive") { totalPositive++; totalMentioned++; }
+      else if (val === "negative") { totalNegative++; totalMentioned++; }
     }
   }
 
-  if (totalWeight === 0) return 0;
-  return Math.round(weightedSum / totalWeight);
+  if (totalMentioned === 0) return 50; // neutral fallback
+  const ratio = totalPositive / totalMentioned;
+  return Math.round(ratio * 100);
 }
 
-/** Compute rating distribution stats and outlier flags */
-function computeRatingStats(reviews: Array<{ rating: number | null }>): string {
-  const ratings = reviews.map(r => r.rating).filter((r): r is number => r !== null && r !== undefined);
-  if (ratings.length === 0) return "";
+function computeVolumeScore(reviewCount: number): number {
+  // Log-scaled: log2(count+1) / log2(51) * 100 — maxes around 50 reviews
+  if (reviewCount <= 0) return 0;
+  const raw = Math.log2(reviewCount + 1) / Math.log2(51);
+  return Math.round(Math.min(100, raw * 100));
+}
 
-  // Count per star
-  const counts: Record<number, number> = {};
-  for (const r of ratings) {
-    counts[r] = (counts[r] || 0) + 1;
-  }
+function computeConsistencyScore(ratings: number[]): number {
+  if (ratings.length < 2) return 50; // not enough data
+  const mean = ratings.reduce((a, b) => a + b, 0) / ratings.length;
+  const variance = ratings.reduce((sum, r) => sum + (r - mean) ** 2, 0) / ratings.length;
+  const stdDev = Math.sqrt(variance);
+  // Low std dev = high consistency. Max std dev on 1-5 scale ~2
+  const score = Math.max(0, Math.min(100, (1 - stdDev / 2) * 100));
+  return Math.round(score);
+}
 
-  // Median
-  const sorted = [...ratings].sort((a, b) => a - b);
-  const median = sorted.length % 2 === 0
-    ? (sorted[sorted.length / 2 - 1] + sorted[sorted.length / 2]) / 2
-    : sorted[Math.floor(sorted.length / 2)];
+function computeConnoisseurScore(
+  rating: number,
+  reviewCount: number,
+  classifications: Array<{ aspects: Record<string, any> }>,
+  aspects: string[],
+  ratings: number[]
+): { score: number; quality: number; sentiment: number; volume: number; consistency: number } {
+  const quality = computeQualityScore(rating, reviewCount);
+  const sentiment = computeSentimentScore(classifications, aspects);
+  const volume = computeVolumeScore(reviewCount);
+  const consistency = computeConsistencyScore(ratings);
 
-  // Distribution string
-  const distParts = [5, 4, 3, 2, 1]
-    .filter(s => counts[s])
-    .map(s => `${s}★×${counts[s]}`);
+  const score = Math.round(
+    quality * 0.35 + sentiment * 0.30 + volume * 0.25 + consistency * 0.10
+  );
 
-  let result = `\nRATING DISTRIBUTION: ${distParts.join(", ")}. Median: ${median}★.`;
+  return { score, quality, sentiment, volume, consistency };
+}
 
-  // Flag outliers
-  const outliers = ratings.filter(r => r <= median - 2);
-  if (outliers.length > 0 && outliers.length < ratings.length / 2) {
-    result += ` NOTE: ${outliers.length} review(s) rated ${outliers.join("★, ")}★ — these are statistical outliers (2+ stars below the median). Do NOT let these outlier(s) dominate pillar scores. Weight the majority consensus heavily.`;
+function computeConfidence(reviewCount: number): string {
+  if (reviewCount >= 10) return "high";
+  if (reviewCount >= 5) return "medium";
+  return "low";
+}
+
+// ─── Build pillar_scores from classifications ───
+function buildPillarScores(
+  classifications: Array<{ aspects: Record<string, any> }>,
+  aspects: string[]
+): Record<string, { sentiment: string; positive: number; negative: number; total: number }> {
+  const result: Record<string, { sentiment: string; positive: number; negative: number; total: number }> = {};
+
+  for (const aspect of aspects) {
+    let pos = 0, neg = 0, total = 0;
+    for (const c of classifications) {
+      const val = c.aspects?.[aspect];
+      if (val === "positive") { pos++; total++; }
+      else if (val === "negative") { neg++; total++; }
+    }
+
+    let sentiment = "not_mentioned";
+    if (total > 0) {
+      const ratio = pos / total;
+      if (ratio >= 0.8) sentiment = "strength";
+      else if (ratio >= 0.6) sentiment = "positive";
+      else if (ratio >= 0.4) sentiment = "mixed";
+      else sentiment = "weakness";
+    }
+
+    result[aspect] = { sentiment, positive: pos, negative: neg, total };
   }
 
   return result;
 }
 
+// ─── Auth ───
 async function verifyAdmin(req: Request) {
   const authHeader = req.headers.get("Authorization");
-  if (!authHeader?.startsWith("Bearer ")) {
-    throw new Error("Unauthorized");
-  }
+  if (!authHeader?.startsWith("Bearer ")) throw new Error("Unauthorized");
 
   const supabase = createClient(
     Deno.env.get("SUPABASE_URL")!,
@@ -98,175 +144,145 @@ async function verifyAdmin(req: Request) {
 
   const token = authHeader.replace("Bearer ", "");
   const { data: claimsData, error: claimsError } = await supabase.auth.getClaims(token);
-  if (claimsError || !claimsData?.claims) {
-    throw new Error("Unauthorized");
-  }
+  if (claimsError || !claimsData?.claims) throw new Error("Unauthorized");
 
   const userId = claimsData.claims.sub as string;
-
   const { data: isAdmin } = await supabase.rpc("has_role", { _user_id: userId, _role: "admin" });
-  if (!isAdmin) {
-    throw new Error("Forbidden");
-  }
+  if (!isAdmin) throw new Error("Forbidden");
 
   return userId;
 }
 
-function buildAnalysisPrompt(
-  lounge_name: string,
-  lounge_type: string,
-  city: string,
-  country: string,
-  reviews: Array<{ rating: number | null; review_text: string }>,
-  weights: Record<string, number>
-): string {
-  const isShop = lounge_type === "shop";
-  const isBoth = lounge_type === "both";
-  const pillarKeys = isShop
-    ? "selection, storage, staff_knowledge, pricing, experience"
-    : "cigar_selection, ambiance, service, drinks, value";
-
-  const reviewTexts = reviews
-    .map((r, i) => `Review ${i + 1} (${r.rating || "?"}★): ${r.review_text}`)
-    .join("\n\n");
-
-  const venueLabel = isShop ? "cigar shop/tobacconist" : isBoth ? "cigar lounge & shop" : "cigar lounge";
-
-  const ratingStats = computeRatingStats(reviews);
-
-  return `You are a strict, calibrated cigar venue analyst. Analyze the Google reviews below for "${lounge_name}" (${venueLabel}) in ${city}, ${country}.
-${ratingStats}
-
-═══════════════════════════════════════════════════════
-MOST IMPORTANT RULE — FAIRNESS & OUTLIER HANDLING:
-A single negative review among mostly positive ones is an OUTLIER, not the truth.
-Score based on the CONSENSUS of the MAJORITY of reviewers.
-
-EXAMPLE: If 4 reviews give 4-5★ praising the ambiance and 1 review gives 1★ complaining about it,
-the consensus is clearly positive. Score ambiance 3.5-4.0, NOT 2.0-2.5.
-
-EXAMPLE: If 3 reviews mention great service and 1 says service was slow on a busy night,
-score service 3.5-4.0. One bad night is not representative.
-
-NEVER let a single outlier review tank a pillar score below what the majority suggests.
-═══════════════════════════════════════════════════════
-
-VENUE TYPE: This is classified as a "${lounge_type}". ${isShop
-    ? "Score ONLY on shop-specific pillars. Do NOT evaluate lounge amenities like seating, drinks, or ambiance."
-    : isBoth
-      ? "This venue is both a lounge and a shop. Score on lounge pillars but consider retail quality in the selection pillar."
-      : "Score ONLY on lounge-specific pillars. If this seems to actually be a retail shop, still score the lounge pillars but note this in the summary."}
-
-CALIBRATION — most venues should score between 3.0 and 4.0:
-- 5.0 = World-class, best-in-category globally. Reserve for truly extraordinary mentions.
-- 4.5 = Among the best in the country. Multiple reviewers rave about this specific aspect.
-- 4.0 = Clearly above average. Positive mentions from several reviewers.
-- 3.5 = Solid, good. Generally positive but nothing remarkable.
-- 3.0 = Average, acceptable. No complaints but no praise either.
-- 2.5 = Below average. Some complaints or mediocre mentions.
-- 2.0 = Poor. Multiple complaints about this aspect.
-- 1.0-1.5 = Terrible. Consistent negative feedback.
-
-IMPORTANT: Do NOT inflate scores. A Google rating of 4.0-4.5 does NOT automatically mean pillar scores should be 4.0+. Google ratings are inflated — a 4.2 Google-rated venue is typically average (3.0-3.5 on our scale). Be skeptical and conservative.
-
-${isShop ? `SHOP PILLARS (rate 1.0-5.0, half-point increments):
-- selection: Inventory breadth, brand variety, premium/rare cigar availability, range from budget to high-end
-- storage: Humidor conditions, temperature/humidity control, cigar freshness as mentioned by reviewers
-- staff_knowledge: Quality of recommendations, product expertise, honesty, helpfulness
-- pricing: Competitiveness vs market, perceived value, deals/loyalty programs
-- experience: Store layout, browsability, atmosphere, sampling availability, overall shopping experience`
-    : `LOUNGE PILLARS (rate 1.0-5.0, half-point increments):
-- cigar_selection: Range of cigars available, quality, rare finds, humidor condition, brand variety
-- ambiance: Interior design, comfort, mood/atmosphere, cleanliness, seating quality, noise level, ventilation
-- service: Staff attentiveness, knowledge, friendliness, speed, quality of recommendations
-- drinks: Spirits/whiskey selection, coffee quality, cocktails, pairing expertise, bar quality
-- value: Price fairness for cigars AND drinks, overall value proposition, price-to-quality ratio`}
-
-RULES:
-1. FAIRNESS (REPEATED): Do NOT let a single negative review tank a pillar score. Weight the consensus of the majority. One bad experience among many positive ones is an outlier.
-2. If NO reviews mention a pillar AT ALL → return null (not a guess)
-3. If only 1 vague mention → return null (insufficient data)
-4. Generic praise like "great place" does NOT justify high scores across all pillars
-5. A single enthusiastic review should not override multiple moderate ones
-6. Consider review recency and specificity — vague complaints carry less weight than detailed criticism
-7. The summary must be honest and balanced, not promotional — but also not unfairly harsh based on one outlier
-
-Reviews:
-${reviewTexts}
-
-Return ONLY a JSON object with keys: ${pillarKeys}, summary
-The summary should be one honest sentence — mention both strengths AND weaknesses if present.
-Example: {"cigar_selection": 3.5, "ambiance": 4.0, "service": null, "drinks": 3.0, "value": 3.5, "summary": "A sentence here"}`;
-}
-
-async function analyzeWithAI(prompt: string): Promise<Record<string, any>> {
+// ─── AI Classification ───
+async function classifyReviewsBatch(
+  reviews: Array<{ id: string; review_text: string; rating: number | null }>,
+  venueType: string
+): Promise<Array<{ review_id: string; aspects: Record<string, string> }>> {
   const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
   if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY not configured");
 
-  const aiResponse = await fetch(
-    "https://ai.gateway.lovable.dev/v1/chat/completions",
-    {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${LOVABLE_API_KEY}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        model: "google/gemini-2.5-flash",
-        messages: [
-          {
-            role: "system",
-            content: "You are a cigar lounge expert analyst. Return ONLY valid JSON, no markdown fences, no explanation.",
-          },
-          { role: "user", content: prompt },
-        ],
-      }),
-    }
-  );
+  const aspects = getAspects(venueType);
+  const aspectList = aspects.join(", ");
+
+  const reviewBlock = reviews.map((r, i) =>
+    `Review ${i + 1} (ID: ${r.id}, ${r.rating ?? "?"}★): ${r.review_text}`
+  ).join("\n\n");
+
+  const prompt = `Classify each review's sentiment for these aspects: ${aspectList}.
+
+For each aspect in each review, classify as:
+- "positive" — reviewer explicitly praises or is satisfied with this aspect
+- "negative" — reviewer explicitly complains or is dissatisfied with this aspect  
+- "not_mentioned" — reviewer does not mention this aspect
+
+Also classify "overall_sentiment" as "positive", "negative", or "neutral" for each review.
+
+RULES:
+- Only classify based on what is EXPLICITLY mentioned
+- Generic praise like "great place" = overall_sentiment positive, but individual aspects should be "not_mentioned" unless specifically discussed
+- Be conservative: if uncertain, use "not_mentioned"
+
+Reviews:
+${reviewBlock}
+
+Return a JSON array where each element has:
+- "review_id": the ID from the review
+- "aspects": object with keys ${aspectList}, overall_sentiment — each valued "positive", "negative", or "not_mentioned"`;
+
+  const aiResponse = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${LOVABLE_API_KEY}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      model: "google/gemini-2.5-flash",
+      messages: [
+        { role: "system", content: "You are a review sentiment classifier. Return ONLY valid JSON, no markdown fences." },
+        { role: "user", content: prompt },
+      ],
+    }),
+  });
 
   if (!aiResponse.ok) {
-    if (aiResponse.status === 429) {
-      throw new Error("RATE_LIMITED");
-    }
-    if (aiResponse.status === 402) {
-      throw new Error("CREDITS_EXHAUSTED");
-    }
+    if (aiResponse.status === 429) throw new Error("RATE_LIMITED");
+    if (aiResponse.status === 402) throw new Error("CREDITS_EXHAUSTED");
     const t = await aiResponse.text();
     console.error("AI error:", aiResponse.status, t);
-    throw new Error("AI analysis failed");
+    throw new Error("AI classification failed");
   }
 
   const aiData = await aiResponse.json();
-  let raw = aiData.choices?.[0]?.message?.content?.trim() || "{}";
+  let raw = aiData.choices?.[0]?.message?.content?.trim() || "[]";
   raw = raw.replace(/^```(?:json)?\s*/, "").replace(/\s*```$/, "");
 
   try {
-    return JSON.parse(raw);
+    const parsed = JSON.parse(raw);
+    if (!Array.isArray(parsed)) throw new Error("Expected array");
+    return parsed;
   } catch {
-    console.error("Failed to parse AI response:", raw);
+    console.error("Failed to parse classification:", raw);
     throw new Error("AI_PARSE_FAILED");
   }
 }
 
-function processAnalysisResult(parsed: Record<string, any>, weights: Record<string, number>) {
-  const summary = parsed.summary || null;
-  delete parsed.summary;
+// ─── AI Summary ───
+async function generateSummary(
+  loungeName: string,
+  pillarScores: Record<string, any>,
+  topReviews: string[]
+): Promise<string> {
+  const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
+  if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY not configured");
 
-  const pillarScores: Record<string, number | null> = {};
-  for (const key of Object.keys(weights)) {
-    pillarScores[key] = parsed[key] !== undefined ? parsed[key] : null;
+  const strengths = Object.entries(pillarScores)
+    .filter(([_, v]) => v.sentiment === "strength" || v.sentiment === "positive")
+    .map(([k]) => k.replace(/_/g, " "));
+  const weaknesses = Object.entries(pillarScores)
+    .filter(([_, v]) => v.sentiment === "weakness")
+    .map(([k]) => k.replace(/_/g, " "));
+
+  const snippets = topReviews.slice(0, 3).join("\n");
+
+  const prompt = `Write ONE concise sentence summarizing "${loungeName}" as a cigar venue.
+${strengths.length > 0 ? `Strengths: ${strengths.join(", ")}` : ""}
+${weaknesses.length > 0 ? `Weaknesses: ${weaknesses.join(", ")}` : ""}
+Top review snippets:
+${snippets}
+
+Rules:
+- One sentence only, no more than 25 words
+- Mention the key strength, and if there's a notable weakness, mention it briefly
+- Be honest, not promotional
+- Do not start with the venue name`;
+
+  const aiResponse = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${LOVABLE_API_KEY}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      model: "google/gemini-2.5-flash",
+      messages: [
+        { role: "system", content: "You write concise, honest one-sentence venue summaries. Return ONLY the sentence, nothing else." },
+        { role: "user", content: prompt },
+      ],
+    }),
+  });
+
+  if (!aiResponse.ok) {
+    const t = await aiResponse.text();
+    console.error("Summary AI error:", aiResponse.status, t);
+    return "";
   }
 
-  const compositeScore = calculateCompositeScore(pillarScores, weights);
-  const finalScore = compositeScore === 0 ? null : compositeScore;
-  const finalLabel = finalScore === null ? null : getScoreLabel(compositeScore);
-
-  return { pillar_scores: pillarScores, connoisseur_score: finalScore, score_label: finalLabel, score_summary: summary };
+  const aiData = await aiResponse.json();
+  return (aiData.choices?.[0]?.message?.content?.trim() || "").replace(/^["']|["']$/g, "");
 }
 
 serve(async (req) => {
-  if (req.method === "OPTIONS")
-    return new Response(null, { headers: corsHeaders });
+  if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
   try {
     await verifyAdmin(req);
@@ -274,7 +290,10 @@ serve(async (req) => {
     const body = await req.json();
     const { action } = body;
 
-    const validActions = ["fetch-reviews", "analyze", "mark-no-reviews", "save", "bulk-rescore", "bulk-rescore-chunk"];
+    const validActions = [
+      "fetch-reviews", "classify", "compute-scores", "summarize",
+      "mark-no-reviews", "save", "bulk-pipeline", "bulk-pipeline-chunk",
+    ];
     if (!action || !validActions.includes(action)) {
       return new Response(
         JSON.stringify({ error: `Invalid action. Must be one of: ${validActions.join(", ")}` }),
@@ -287,19 +306,16 @@ serve(async (req) => {
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
     );
 
+    // ═══ FETCH REVIEWS ═══
     if (action === "fetch-reviews") {
       const { lounge_id, google_place_id } = body;
       if (lounge_id && (typeof lounge_id !== "string" || lounge_id.length > 100)) {
-        return new Response(
-          JSON.stringify({ error: "Invalid lounge_id" }),
-          { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-        );
+        return new Response(JSON.stringify({ error: "Invalid lounge_id" }),
+          { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } });
       }
       if (!google_place_id) {
-        return new Response(
-          JSON.stringify({ reviews: [], message: "No google_place_id" }),
-          { headers: { ...corsHeaders, "Content-Type": "application/json" } }
-        );
+        return new Response(JSON.stringify({ reviews: [], message: "No google_place_id" }),
+          { headers: { ...corsHeaders, "Content-Type": "application/json" } });
       }
 
       const GOOGLE_PLACES_API_KEY = Deno.env.get("GOOGLE_PLACES_API_KEY");
@@ -323,10 +339,8 @@ serve(async (req) => {
       const textReviews = rawReviews.filter((r: any) => r.text?.text || r.originalText?.text);
 
       if (textReviews.length === 0) {
-        return new Response(
-          JSON.stringify({ reviews: [], message: "No text reviews found" }),
-          { headers: { ...corsHeaders, "Content-Type": "application/json" } }
-        );
+        return new Response(JSON.stringify({ reviews: [], message: "No text reviews found" }),
+          { headers: { ...corsHeaders, "Content-Type": "application/json" } });
       }
 
       const reviewRows = textReviews.map((r: any) => ({
@@ -338,279 +352,364 @@ serve(async (req) => {
         relative_time: r.relativePublishTimeDescription || "",
       }));
 
-      await serviceClient
+      // Clear old reviews and classifications
+      await serviceClient.from("review_classifications").delete().eq("lounge_id", lounge_id);
+      await serviceClient.from("google_reviews").delete().eq("lounge_id", lounge_id);
+
+      const { error: insertError } = await serviceClient.from("google_reviews").insert(reviewRows);
+      if (insertError) console.error("Error inserting reviews:", insertError);
+
+      return new Response(JSON.stringify({
+        reviews: reviewRows.map((r: any) => ({
+          author_name: r.author_name, rating: r.rating, review_text: r.review_text, relative_time: r.relative_time,
+        })),
+      }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
+    }
+
+    // ═══ CLASSIFY ═══
+    if (action === "classify") {
+      const { lounge_id, venue_type } = body;
+      if (!lounge_id) return new Response(JSON.stringify({ error: "lounge_id required" }),
+        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+
+      // Get reviews that haven't been classified yet
+      const { data: reviews, error: revErr } = await serviceClient
         .from("google_reviews")
-        .delete()
+        .select("id, review_text, rating")
         .eq("lounge_id", lounge_id);
 
-      const { error: insertError } = await serviceClient
+      if (revErr) throw revErr;
+      if (!reviews || reviews.length === 0) {
+        return new Response(JSON.stringify({ classified: 0, message: "No reviews to classify" }),
+          { headers: { ...corsHeaders, "Content-Type": "application/json" } });
+      }
+
+      // Check which are already classified
+      const { data: existing } = await serviceClient
+        .from("review_classifications")
+        .select("review_id")
+        .eq("lounge_id", lounge_id);
+
+      const existingIds = new Set((existing || []).map((e: any) => e.review_id));
+      const unclassified = reviews.filter((r: any) => !existingIds.has(r.id));
+
+      if (unclassified.length === 0) {
+        return new Response(JSON.stringify({ classified: 0, message: "All reviews already classified" }),
+          { headers: { ...corsHeaders, "Content-Type": "application/json" } });
+      }
+
+      // Process in batches of 15
+      const BATCH = 15;
+      let classifiedCount = 0;
+
+      for (let i = 0; i < unclassified.length; i += BATCH) {
+        const batch = unclassified.slice(i, i + BATCH);
+        try {
+          const results = await classifyReviewsBatch(batch, venue_type || "lounge");
+
+          const rows = results.map((r: any) => ({
+            review_id: r.review_id,
+            lounge_id,
+            venue_type: venue_type || "lounge",
+            aspects: r.aspects,
+          }));
+
+          if (rows.length > 0) {
+            const { error: insErr } = await serviceClient
+              .from("review_classifications")
+              .upsert(rows, { onConflict: "review_id" });
+            if (insErr) console.error("Classification insert error:", insErr);
+            else classifiedCount += rows.length;
+          }
+        } catch (e: any) {
+          console.error("Classification batch error:", e.message);
+          if (e.message === "RATE_LIMITED") {
+            return new Response(JSON.stringify({ error: "Rate limited" }),
+              { status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+          }
+          if (e.message === "CREDITS_EXHAUSTED") {
+            return new Response(JSON.stringify({ error: "Credits exhausted" }),
+              { status: 402, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+          }
+        }
+
+        if (i + BATCH < unclassified.length) await new Promise(r => setTimeout(r, 500));
+      }
+
+      return new Response(JSON.stringify({ classified: classifiedCount, total_reviews: reviews.length }),
+        { headers: { ...corsHeaders, "Content-Type": "application/json" } });
+    }
+
+    // ═══ COMPUTE SCORES ═══
+    if (action === "compute-scores") {
+      const { lounge_id } = body;
+      if (!lounge_id) return new Response(JSON.stringify({ error: "lounge_id required" }),
+        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+
+      // Get lounge data
+      const { data: lounge, error: lErr } = await serviceClient
+        .from("lounges")
+        .select("id, type, rating, review_count")
+        .eq("id", lounge_id)
+        .single();
+      if (lErr || !lounge) throw lErr || new Error("Lounge not found");
+
+      // Get classifications
+      const { data: classifications, error: cErr } = await serviceClient
+        .from("review_classifications")
+        .select("aspects")
+        .eq("lounge_id", lounge_id);
+      if (cErr) throw cErr;
+
+      if (!classifications || classifications.length === 0) {
+        return new Response(JSON.stringify({ error: "No classifications found. Run classify first." }),
+          { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+      }
+
+      // Get ratings for consistency calc
+      const { data: reviews } = await serviceClient
         .from("google_reviews")
-        .insert(reviewRows);
+        .select("rating")
+        .eq("lounge_id", lounge_id);
 
-      if (insertError) {
-        console.error("Error inserting reviews:", insertError);
-      }
+      const ratings = (reviews || []).map((r: any) => r.rating).filter((r: number | null): r is number => r !== null);
+      const aspects = getAspects(lounge.type);
 
-      return new Response(
-        JSON.stringify({
-          reviews: reviewRows.map((r: any) => ({
-            author_name: r.author_name,
-            rating: r.rating,
-            review_text: r.review_text,
-            relative_time: r.relative_time,
-          })),
-        }),
-        { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      const { score, quality, sentiment, volume, consistency } = computeConnoisseurScore(
+        Number(lounge.rating), lounge.review_count, classifications, aspects, ratings
       );
+
+      const pillarScores = buildPillarScores(classifications, aspects);
+      const confidence = computeConfidence(classifications.length);
+      const scoreLabel = getScoreLabel(score);
+
+      // Update lounge
+      const { error: updateErr } = await serviceClient
+        .from("lounges")
+        .update({
+          connoisseur_score: score,
+          score_label: scoreLabel,
+          score_source: "estimated",
+          pillar_scores: pillarScores,
+          confidence,
+          review_data_count: classifications.length,
+          scored_at: new Date().toISOString(),
+        })
+        .eq("id", lounge_id);
+
+      if (updateErr) throw updateErr;
+
+      return new Response(JSON.stringify({
+        connoisseur_score: score,
+        score_label: scoreLabel,
+        pillar_scores: pillarScores,
+        confidence,
+        components: { quality, sentiment, volume, consistency },
+      }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
 
-    if (action === "analyze") {
-      const { lounge_name, lounge_type, city, country, reviews } = body;
+    // ═══ SUMMARIZE ═══
+    if (action === "summarize") {
+      const { lounge_id } = body;
+      if (!lounge_id) return new Response(JSON.stringify({ error: "lounge_id required" }),
+        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } });
 
-      if (typeof lounge_name !== "string" || lounge_name.length > 200) {
-        return new Response(
-          JSON.stringify({ error: "Invalid lounge_name (max 200 chars)" }),
-          { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-        );
-      }
-      if (lounge_type && !["lounge", "shop", "both"].includes(lounge_type)) {
-        return new Response(
-          JSON.stringify({ error: "Invalid lounge_type" }),
-          { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-        );
-      }
-      if (typeof city !== "string" || city.length > 100 || typeof country !== "string" || country.length > 100) {
-        return new Response(
-          JSON.stringify({ error: "Invalid city/country (max 100 chars)" }),
-          { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-        );
-      }
-      if (!reviews || !Array.isArray(reviews) || reviews.length === 0) {
-        return new Response(
-          JSON.stringify({ error: "No reviews to analyze" }),
-          { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-        );
-      }
+      const { data: lounge } = await serviceClient
+        .from("lounges")
+        .select("name, pillar_scores")
+        .eq("id", lounge_id)
+        .single();
 
-      const isShop = lounge_type === "shop";
-      const weights = isShop ? SHOP_WEIGHTS : LOUNGE_WEIGHTS;
+      if (!lounge) throw new Error("Lounge not found");
 
-      const prompt = buildAnalysisPrompt(lounge_name, lounge_type, city, country, reviews, weights);
+      const { data: reviews } = await serviceClient
+        .from("google_reviews")
+        .select("review_text")
+        .eq("lounge_id", lounge_id)
+        .limit(5);
 
-      try {
-        const parsed = await analyzeWithAI(prompt);
-        const result = processAnalysisResult(parsed, weights);
-        return new Response(JSON.stringify(result), {
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
-        });
-      } catch (e: any) {
-        if (e.message === "RATE_LIMITED") {
-          return new Response(
-            JSON.stringify({ error: "Rate limited, please try again later." }),
-            { status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-          );
-        }
-        if (e.message === "CREDITS_EXHAUSTED") {
-          return new Response(
-            JSON.stringify({ error: "AI credits exhausted. Please add funds." }),
-            { status: 402, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-          );
-        }
-        if (e.message === "AI_PARSE_FAILED") {
-          return new Response(
-            JSON.stringify({ error: "ai_refused", message: "AI could not analyze this venue." }),
-            { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-          );
-        }
-        throw e;
-      }
+      const topSnippets = (reviews || []).map((r: any) => r.review_text?.slice(0, 200) || "");
+      const summary = await generateSummary(lounge.name, lounge.pillar_scores || {}, topSnippets);
+
+      const { error } = await serviceClient
+        .from("lounges")
+        .update({ score_summary: summary })
+        .eq("id", lounge_id);
+
+      if (error) throw error;
+
+      return new Response(JSON.stringify({ summary }),
+        { headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
 
+    // ═══ MARK NO REVIEWS ═══
     if (action === "mark-no-reviews") {
       const { lounge_id } = body;
       if (!lounge_id || typeof lounge_id !== "string" || lounge_id.length > 100) {
-        return new Response(
-          JSON.stringify({ error: "Invalid lounge_id" }),
-          { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-        );
+        return new Response(JSON.stringify({ error: "Invalid lounge_id" }),
+          { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } });
       }
 
       const { error } = await serviceClient
         .from("lounges")
         .update({ score_source: "no_reviews" })
         .eq("id", lounge_id);
-
       if (error) throw error;
 
-      return new Response(
-        JSON.stringify({ success: true }),
-        { headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
+      return new Response(JSON.stringify({ success: true }),
+        { headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
 
+    // ═══ SAVE (manual override) ═══
     if (action === "save") {
       const { lounge_id, connoisseur_score, score_label, pillar_scores, score_summary } = body;
-      if (!lounge_id || typeof lounge_id !== "string" || lounge_id.length > 100) {
-        return new Response(
-          JSON.stringify({ error: "Invalid lounge_id" }),
-          { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-        );
-      }
-      if (connoisseur_score !== null && connoisseur_score !== undefined && (typeof connoisseur_score !== "number" || connoisseur_score < 0 || connoisseur_score > 100)) {
-        return new Response(
-          JSON.stringify({ error: "Invalid connoisseur_score (0-100)" }),
-          { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-        );
+      if (!lounge_id || typeof lounge_id !== "string") {
+        return new Response(JSON.stringify({ error: "Invalid lounge_id" }),
+          { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } });
       }
 
       const { error } = await serviceClient
         .from("lounges")
         .update({
-          connoisseur_score,
-          score_label,
-          score_source: "estimated",
-          score_summary,
-          pillar_scores,
+          connoisseur_score, score_label, score_source: "estimated",
+          score_summary, pillar_scores, scored_at: new Date().toISOString(),
         })
         .eq("id", lounge_id);
 
       if (error) throw error;
-
-      return new Response(
-        JSON.stringify({ success: true }),
-        { headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
+      return new Response(JSON.stringify({ success: true }),
+        { headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
 
-    if (action === "bulk-rescore" || action === "bulk-rescore-chunk") {
+    // ═══ BULK PIPELINE (chunk) ═══
+    if (action === "bulk-pipeline" || action === "bulk-pipeline-chunk") {
       const offsetInput = Number(body.offset ?? 0);
-      const limitInput = Number(body.limit ?? 15);
-      const offset = Number.isFinite(offsetInput) ? Math.max(0, Math.floor(offsetInput)) : 0;
-      const limit = Number.isFinite(limitInput)
-        ? Math.min(50, Math.max(1, Math.floor(limitInput)))
-        : 15;
+      const limitInput = Number(body.limit ?? 10);
+      const offset = Math.max(0, Math.floor(offsetInput));
+      const limit = Math.min(30, Math.max(1, Math.floor(limitInput)));
 
-      // Total target count for progress reporting
       const { count: totalCount, error: totalError } = await serviceClient
         .from("lounges")
         .select("id", { count: "exact", head: true })
-        .eq("score_source", "estimated")
         .not("google_place_id", "is", null);
-
       if (totalError) throw totalError;
 
       const total = totalCount ?? 0;
       if (total === 0 || offset >= total) {
-        return new Response(
-          JSON.stringify({ rescored: 0, skipped: 0, errors: 0, total, processed: 0, next_offset: offset, done: true }),
-          { headers: { ...corsHeaders, "Content-Type": "application/json" } }
-        );
+        return new Response(JSON.stringify({ processed: 0, total, next_offset: offset, done: true }),
+          { headers: { ...corsHeaders, "Content-Type": "application/json" } });
       }
 
-      // Fetch one chunk only (client loops until done)
       const { data: lounges, error: loungeError } = await serviceClient
         .from("lounges")
-        .select("id, name, type, google_place_id, city:cities(name, country)")
-        .eq("score_source", "estimated")
+        .select("id, name, type, rating, review_count, google_place_id")
         .not("google_place_id", "is", null)
         .order("id", { ascending: true })
         .range(offset, offset + limit - 1);
-
       if (loungeError) throw loungeError;
-
       if (!lounges || lounges.length === 0) {
-        return new Response(
-          JSON.stringify({ rescored: 0, skipped: 0, errors: 0, total, processed: 0, next_offset: offset, done: true }),
-          { headers: { ...corsHeaders, "Content-Type": "application/json" } }
-        );
+        return new Response(JSON.stringify({ processed: 0, total, next_offset: offset, done: true }),
+          { headers: { ...corsHeaders, "Content-Type": "application/json" } });
       }
 
-      console.log(`Bulk rescore chunk: processing ${lounges.length} lounges (offset ${offset}, limit ${limit}, total ${total})`);
+      console.log(`Bulk pipeline chunk: ${lounges.length} lounges at offset ${offset}`);
 
-      let rescored = 0;
-      let skipped = 0;
-      let errors = 0;
-      const BATCH_SIZE = 3;
+      let scored = 0, skipped = 0, errors = 0;
 
-      for (let i = 0; i < lounges.length; i += BATCH_SIZE) {
-        const batch = lounges.slice(i, i + BATCH_SIZE);
+      for (const lounge of lounges) {
+        try {
+          // 1. Check if reviews exist
+          const { data: reviews } = await serviceClient
+            .from("google_reviews")
+            .select("id, review_text, rating")
+            .eq("lounge_id", lounge.id);
 
-        const batchPromises = batch.map(async (lounge: any) => {
-          try {
-            // Load cached reviews only
-            const { data: reviews, error: revError } = await serviceClient
-              .from("google_reviews")
-              .select("author_name, rating, review_text, relative_time")
-              .eq("lounge_id", lounge.id);
+          if (!reviews || reviews.length === 0) { skipped++; continue; }
 
-            if (revError) throw revError;
-            if (!reviews || reviews.length === 0) {
-              skipped++;
-              return;
-            }
+          // 2. Classify (skip already-classified)
+          const { data: existingC } = await serviceClient
+            .from("review_classifications")
+            .select("review_id")
+            .eq("lounge_id", lounge.id);
+          const existingIds = new Set((existingC || []).map((e: any) => e.review_id));
+          const unclassified = reviews.filter((r: any) => !existingIds.has(r.id));
 
-            const isShop = lounge.type === "shop";
-            const weights = isShop ? SHOP_WEIGHTS : LOUNGE_WEIGHTS;
-            const city = lounge.city?.name || "Unknown";
-            const country = lounge.city?.country || "Unknown";
-
-            const prompt = buildAnalysisPrompt(lounge.name, lounge.type, city, country, reviews, weights);
-            const parsed = await analyzeWithAI(prompt);
-            const result = processAnalysisResult(parsed, weights);
-
-            // Auto-save
-            const { error: saveError } = await serviceClient
-              .from("lounges")
-              .update({
-                connoisseur_score: result.connoisseur_score,
-                score_label: result.score_label,
-                score_source: "estimated",
-                score_summary: result.score_summary,
-                pillar_scores: result.pillar_scores,
-              })
-              .eq("id", lounge.id);
-
-            if (saveError) {
-              console.error(`Save error for ${lounge.name}:`, saveError);
+          if (unclassified.length > 0) {
+            try {
+              const results = await classifyReviewsBatch(unclassified, lounge.type);
+              const rows = results.map((r: any) => ({
+                review_id: r.review_id, lounge_id: lounge.id,
+                venue_type: lounge.type, aspects: r.aspects,
+              }));
+              if (rows.length > 0) {
+                await serviceClient.from("review_classifications").upsert(rows, { onConflict: "review_id" });
+              }
+            } catch (e: any) {
+              if (e.message === "RATE_LIMITED" || e.message === "CREDITS_EXHAUSTED") throw e;
+              console.error(`Classify error for ${lounge.name}:`, e.message);
               errors++;
-            } else {
-              rescored++;
+              continue;
             }
-          } catch (e: any) {
-            console.error(`Error processing ${lounge.name}:`, e.message);
-            errors++;
           }
-        });
 
-        await Promise.all(batchPromises);
+          // 3. Compute score
+          const { data: allC } = await serviceClient
+            .from("review_classifications")
+            .select("aspects")
+            .eq("lounge_id", lounge.id);
 
-        // Brief delay between mini-batches
-        if (i + BATCH_SIZE < lounges.length) {
-          await new Promise(r => setTimeout(r, 300));
+          if (!allC || allC.length === 0) { skipped++; continue; }
+
+          const ratings = reviews.map((r: any) => r.rating).filter((r: number | null): r is number => r !== null);
+          const aspects = getAspects(lounge.type);
+          const { score } = computeConnoisseurScore(Number(lounge.rating), lounge.review_count, allC, aspects, ratings);
+          const pillarScores = buildPillarScores(allC, aspects);
+          const confidence = computeConfidence(allC.length);
+          const scoreLabel = getScoreLabel(score);
+
+          // 4. Generate summary
+          const topSnippets = reviews.slice(0, 3).map((r: any) => r.review_text?.slice(0, 200) || "");
+          let summary = "";
+          try {
+            summary = await generateSummary(lounge.name, pillarScores, topSnippets);
+          } catch { /* non-fatal */ }
+
+          // 5. Save
+          await serviceClient.from("lounges").update({
+            connoisseur_score: score, score_label: scoreLabel, score_source: "estimated",
+            pillar_scores: pillarScores, score_summary: summary || null,
+            confidence, review_data_count: allC.length, scored_at: new Date().toISOString(),
+          }).eq("id", lounge.id);
+
+          scored++;
+        } catch (e: any) {
+          if (e.message === "RATE_LIMITED") {
+            return new Response(JSON.stringify({ error: "Rate limited", scored, skipped, errors, next_offset: offset, done: false }),
+              { status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+          }
+          if (e.message === "CREDITS_EXHAUSTED") {
+            return new Response(JSON.stringify({ error: "Credits exhausted", scored, skipped, errors, next_offset: offset, done: false }),
+              { status: 402, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+          }
+          console.error(`Error for ${lounge.name}:`, e.message);
+          errors++;
         }
+
+        // Brief delay between venues
+        await new Promise(r => setTimeout(r, 300));
       }
 
-      const processed = lounges.length;
-      const nextOffset = offset + processed;
-      const done = nextOffset >= total;
-
-      console.log(`Bulk rescore chunk complete: ${rescored} rescored, ${skipped} skipped, ${errors} errors. nextOffset=${nextOffset}/${total}`);
-
-      return new Response(
-        JSON.stringify({ rescored, skipped, errors, processed, total, next_offset: nextOffset, done }),
-        { headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
+      const nextOffset = offset + lounges.length;
+      return new Response(JSON.stringify({ scored, skipped, errors, total, next_offset: nextOffset, done: nextOffset >= total }),
+        { headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
 
-    return new Response(
-      JSON.stringify({ error: "Unknown action" }),
-      { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-    );
+    return new Response(JSON.stringify({ error: "Unknown action" }),
+      { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } });
   } catch (e) {
     console.error("bootstrap-scores error:", e);
     const status = e instanceof Error && e.message === "Unauthorized" ? 401
-      : e instanceof Error && e.message === "Forbidden" ? 403
-      : 500;
+      : e instanceof Error && e.message === "Forbidden" ? 403 : 500;
     return new Response(
       JSON.stringify({ error: e instanceof Error ? e.message : "Unknown error" }),
       { status, headers: { ...corsHeaders, "Content-Type": "application/json" } }
