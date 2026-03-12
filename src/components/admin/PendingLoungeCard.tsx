@@ -18,7 +18,7 @@ interface Props {
   isPossibleDuplicate?: boolean;
 }
 
-export const PendingLoungeCard = ({ lounge, onApprove, onReject, onEdit, selected, onSelectChange, isPossibleDuplicate }: Props) => {
+export const PendingLoungeCard = ({ lounge, onApprove, onReject, onEdit, onDelete, selected, onSelectChange, isPossibleDuplicate }: Props) => {
   const statusColor = {
     pending: "bg-yellow-500/20 text-yellow-400",
     approved: "bg-green-500/20 text-green-400",
