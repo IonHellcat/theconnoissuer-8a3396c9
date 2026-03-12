@@ -19,6 +19,8 @@ interface ScoreBulkActionsProps {
   bulkBootstrapProgress: BulkBootstrapProgress | null;
   bulkRescoring: boolean;
   bulkServerProgress: { processed: number; total: number } | null;
+  bulkRecalculating?: boolean;
+  bulkRecalcProgress?: { processed: number; total: number } | null;
   unscoredCount: number;
   estimatedCount: number;
   editedCount: number;
@@ -26,6 +28,7 @@ interface ScoreBulkActionsProps {
   paused: boolean;
   onBulkBootstrap: () => void;
   onBulkRescore: () => void;
+  onBulkRecalculate?: () => void;
   onBulkSaveAll: () => void;
   onResetAllScores?: () => void;
   onTogglePause: () => void;
