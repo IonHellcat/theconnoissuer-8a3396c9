@@ -98,8 +98,8 @@ function computeConnoisseurScore(
   const prestige = computePrestigeScore(reviewCount, cityAvgReviewCount);
 
   const score = Math.round(
-    (quality * 0.30 + sentiment * 0.25 + volume * 0.20 + prestige * 0.15 + consistency * 0.10) * 10
-  ) / 10;
+    quality * 0.30 + sentiment * 0.25 + volume * 0.20 + prestige * 0.15 + consistency * 0.10
+  );
 
   return { score, quality, sentiment, volume, consistency, prestige };
 }
@@ -588,10 +588,14 @@ serve(async (req) => {
           { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } });
       }
 
+      const normalizedScore = typeof connoisseur_score === "number"
+        ? Math.max(0, Math.min(100, Math.round(connoisseur_score)))
+        : null;
+
       const { error } = await serviceClient
         .from("lounges")
         .update({
-          connoisseur_score, score_label, score_source: "estimated",
+          connoisseur_score: normalizedScore, score_label, score_source: "estimated",
           score_summary, pillar_scores, scored_at: new Date().toISOString(),
         })
         .eq("id", lounge_id);
