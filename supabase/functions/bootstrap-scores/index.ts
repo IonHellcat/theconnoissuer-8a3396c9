@@ -302,7 +302,7 @@ serve(async (req) => {
     const validActions = [
       "fetch-reviews", "classify", "compute-scores", "summarize",
       "mark-no-reviews", "save", "bulk-pipeline", "bulk-pipeline-chunk",
-      "bulk-full-pipeline-chunk", "reset-all",
+      "bulk-full-pipeline-chunk", "reset-all", "recalculate-scores-chunk",
     ];
     if (!action || !validActions.includes(action)) {
       return new Response(
