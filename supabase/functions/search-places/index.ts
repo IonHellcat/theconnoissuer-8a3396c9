@@ -361,6 +361,17 @@ serve(async (req) => {
       .select("google_place_id")
       .in("google_place_id", placeIds);
 
+    // Check deleted/blocklisted lounges
+    const { data: deletedLounges } = await supabase
+      .from("deleted_lounges")
+      .select("google_place_id, name");
+    const deletedPlaceIds = new Set(
+      (deletedLounges || []).filter((d: any) => d.google_place_id).map((d: any) => d.google_place_id)
+    );
+    const deletedNames = new Set(
+      (deletedLounges || []).map((d: any) => (d.name as string).toLowerCase())
+    );
+
     const existingIds = new Set([
       ...(existingLounges || []).map((l: any) => l.google_place_id),
       ...(existingPending || []).map((l: any) => l.google_place_id),
@@ -369,7 +380,8 @@ serve(async (req) => {
     const afterIdDedup = new Map<string, { place: PlaceResult; type: string }>();
     let skippedByPlaceId = 0;
     for (const [id, entry] of relevantPlaces) {
-      if (existingIds.has(id)) {
+      const name = entry.place.displayName?.text?.toLowerCase() || "";
+      if (existingIds.has(id) || deletedPlaceIds.has(id) || deletedNames.has(name)) {
         skippedByPlaceId++;
       } else {
         afterIdDedup.set(id, entry);
