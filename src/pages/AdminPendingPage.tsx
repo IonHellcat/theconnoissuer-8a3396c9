@@ -6,94 +6,15 @@ import { useAdminRole } from "@/hooks/useAdminRole";
 import { useNavigate } from "react-router-dom";
 import { Input } from "@/components/ui/input";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Button } from "@/components/ui/button";
-import { Checkbox } from "@/components/ui/checkbox";
 import { ImportForm } from "@/components/admin/ImportForm";
 import { DiscoverCitiesForm } from "@/components/admin/DiscoverCitiesForm";
-import { PendingLoungeCard } from "@/components/admin/PendingLoungeCard";
 import { EditPendingDialog } from "@/components/admin/EditPendingDialog";
 import { BulkActionBar } from "@/components/admin/BulkActionBar";
-import { FetchCityImagesButton } from "@/components/admin/FetchCityImagesButton";
+import { AdminToolsBar } from "@/components/admin/AdminToolsBar";
+import { PendingLoungeList } from "@/components/admin/PendingLoungeList";
+import { approveLounge, type PendingLounge } from "@/components/admin/adminPendingHelpers";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2, ShieldAlert, Check, X, Download, RefreshCw, Database } from "lucide-react";
-import type { Tables } from "@/integrations/supabase/types";
-
-type PendingLounge = Tables<"pending_lounges">;
-
-// Cache to prevent parallel city creation race conditions
-const cityCache = new Map<string, string>();
-
-async function getOrCreateCity(cityName: string, country: string): Promise<string> {
-  const cacheKey = `${cityName}|${country}`;
-  if (cityCache.has(cacheKey)) return cityCache.get(cacheKey)!;
-
-  let { data: city } = await supabase
-    .from("cities")
-    .select("id")
-    .eq("name", cityName)
-    .maybeSingle();
-
-  if (!city) {
-    const slug = cityName.toLowerCase().replace(/\s+/g, "-").replace(/[^\w-]/g, "");
-    // Try insert, but handle conflict gracefully (race condition)
-    const { data: newCity, error: cityErr } = await supabase
-      .from("cities")
-      .insert({ name: cityName, country, slug })
-      .select("id")
-      .single();
-
-    if (cityErr) {
-      // If duplicate, just fetch the existing one
-      const { data: existing } = await supabase
-        .from("cities")
-        .select("id")
-        .eq("name", cityName)
-        .maybeSingle();
-      if (!existing) {
-        // Try by slug as fallback
-        const { data: bySlug } = await supabase
-          .from("cities")
-          .select("id")
-          .eq("slug", slug)
-          .maybeSingle();
-        if (!bySlug) throw cityErr;
-        city = bySlug;
-      } else {
-        city = existing;
-      }
-    } else {
-      city = newCity;
-    }
-  }
-
-  cityCache.set(cacheKey, city!.id);
-  return city!.id;
-}
-
-async function approveLounge(lounge: PendingLounge, userId: string) {
-  const cityId = await getOrCreateCity(lounge.city_name, lounge.country);
-
-  // Use upsert to handle duplicate lounges gracefully
-  const { error: loungeErr } = await supabase.from("lounges").upsert({
-    name: lounge.name, slug: lounge.slug, city_id: cityId, type: lounge.type,
-    address: lounge.address, description: lounge.description, phone: lounge.phone,
-    website: lounge.website, rating: lounge.rating || 0, review_count: lounge.review_count || 0,
-    price_tier: lounge.price_tier || 2, features: lounge.features,
-    cigar_highlights: lounge.cigar_highlights, image_url: lounge.image_url,
-    gallery: lounge.gallery, latitude: lounge.latitude, longitude: lounge.longitude,
-    hours: lounge.hours, google_place_id: lounge.google_place_id,
-  }, { onConflict: "city_id,slug" });
-  if (loungeErr) throw loungeErr;
-
-  const { count } = await supabase.from("lounges").select("id", { count: "exact", head: true }).eq("city_id", cityId);
-  await supabase.from("cities").update({ lounge_count: count || 0 }).eq("id", cityId);
-
-  const { error: statusErr } = await supabase
-    .from("pending_lounges")
-    .update({ status: "approved" })
-    .eq("id", lounge.id);
-  if (statusErr) throw statusErr;
-}
+import { Loader2, ShieldAlert } from "lucide-react";
 
 const AdminPendingPage = () => {
   const { user, session, loading: authLoading } = useAuth();
@@ -106,6 +27,11 @@ const AdminPendingPage = () => {
   const [reclassifyProgress, setReclassifyProgress] = useState("");
   const [backfilling, setBackfilling] = useState(false);
   const [backfillProgress, setBackfillProgress] = useState("");
+  const [statusFilter, setStatusFilter] = useState("pending");
+  const [search, setSearch] = useState("");
+  const [editLounge, setEditLounge] = useState<PendingLounge | null>(null);
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [discoveredCities, setDiscoveredCities] = useState<{ city: string; country: string }[] | undefined>();
 
   const handleBackfillGoogleTypes = async (targetTable: "lounges" | "pending_lounges" = "lounges") => {
     if (!session?.access_token) return;
@@ -113,31 +39,21 @@ const AdminPendingPage = () => {
     setBackfillProgress("Starting...");
     let offset = 0;
     let totalUpdated = 0;
-
     try {
       while (true) {
         setBackfillProgress(`Updated ${totalUpdated}, processing...`);
         const res = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/backfill-google-types`, {
           method: "POST",
-          headers: {
-            Authorization: `Bearer ${session.access_token}`,
-            "Content-Type": "application/json",
-          },
+          headers: { Authorization: `Bearer ${session.access_token}`, "Content-Type": "application/json" },
           body: JSON.stringify({ table: targetTable, offset }),
         });
-
         if (!res.ok) throw new Error(await res.text());
         const data = await res.json();
         totalUpdated += data.updated || 0;
-
         if (!data.next_offset) break;
         offset = data.next_offset;
       }
-
-      toast({
-        title: "Backfill complete",
-        description: `${totalUpdated} venues updated with Google types`,
-      });
+      toast({ title: "Backfill complete", description: `${totalUpdated} venues updated with Google types` });
     } catch (err: any) {
       toast({ title: "Backfill failed", description: err.message, variant: "destructive" });
     } finally {
@@ -153,33 +69,22 @@ const AdminPendingPage = () => {
     let offset = 0;
     let totalClassified = 0;
     let totalReclassified = 0;
-
     try {
       while (true) {
         setReclassifyProgress(`Processing batch at offset ${offset}...`);
         const res = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/reclassify-venues`, {
           method: "POST",
-          headers: {
-            Authorization: `Bearer ${session.access_token}`,
-            "Content-Type": "application/json",
-          },
+          headers: { Authorization: `Bearer ${session.access_token}`, "Content-Type": "application/json" },
           body: JSON.stringify({ table: targetTable, offset }),
         });
-
         if (!res.ok) throw new Error(await res.text());
         const data = await res.json();
-        
         totalClassified += data.classified || 0;
         totalReclassified += data.reclassified || 0;
-
         if (!data.next_offset) break;
         offset = data.next_offset;
       }
-
-      toast({
-        title: "Reclassification complete",
-        description: `${totalClassified} venues processed, ${totalReclassified} reclassified as shop/both`,
-      });
+      toast({ title: "Reclassification complete", description: `${totalClassified} venues processed, ${totalReclassified} reclassified as shop/both` });
       queryClient.invalidateQueries();
     } catch (err: any) {
       toast({ title: "Reclassification failed", description: err.message, variant: "destructive" });
@@ -195,9 +100,7 @@ const AdminPendingPage = () => {
     try {
       const exportUrl = new URL(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/export-database`);
       if (tablesParam) exportUrl.searchParams.set("tables", tablesParam);
-      const res = await fetch(exportUrl.toString(), {
-        headers: { Authorization: `Bearer ${session.access_token}` },
-      });
+      const res = await fetch(exportUrl.toString(), { headers: { Authorization: `Bearer ${session.access_token}` } });
       if (!res.ok) throw new Error(await res.text());
       const blob = await res.blob();
       const blobUrl = URL.createObjectURL(blob);
@@ -214,13 +117,6 @@ const AdminPendingPage = () => {
     }
   };
 
-  const [statusFilter, setStatusFilter] = useState("pending");
-  const [search, setSearch] = useState("");
-  const [editLounge, setEditLounge] = useState<PendingLounge | null>(null);
-  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
-  const [discoveredCities, setDiscoveredCities] = useState<{ city: string; country: string }[] | undefined>();
-
-  // Fetch existing lounge names for duplicate detection
   const { data: existingLoungeNames = [] } = useQuery({
     queryKey: ["existing-lounge-names"],
     queryFn: async () => {
@@ -242,10 +138,7 @@ const AdminPendingPage = () => {
     queryKey: ["pending-lounges", statusFilter],
     queryFn: async () => {
       const { data, error } = await supabase
-        .from("pending_lounges")
-        .select("*")
-        .eq("status", statusFilter)
-        .order("created_at", { ascending: false });
+        .from("pending_lounges").select("*").eq("status", statusFilter).order("created_at", { ascending: false });
       if (error) throw error;
       return data as PendingLounge[];
     },
@@ -253,112 +146,64 @@ const AdminPendingPage = () => {
   });
 
   const toggleSelect = useCallback((id: string, checked: boolean) => {
-    setSelectedIds((prev) => {
-      const next = new Set(prev);
-      checked ? next.add(id) : next.delete(id);
-      return next;
-    });
+    setSelectedIds((prev) => { const next = new Set(prev); checked ? next.add(id) : next.delete(id); return next; });
   }, []);
 
   const toggleGroupSelect = useCallback((ids: string[], checked: boolean) => {
-    setSelectedIds((prev) => {
-      const next = new Set(prev);
-      ids.forEach((id) => (checked ? next.add(id) : next.delete(id)));
-      return next;
-    });
+    setSelectedIds((prev) => { const next = new Set(prev); ids.forEach((id) => (checked ? next.add(id) : next.delete(id))); return next; });
   }, []);
 
   const approveMutation = useMutation({
     mutationFn: (lounge: PendingLounge) => approveLounge(lounge, user!.id),
-    onSuccess: () => {
-      toast({ title: "Approved", description: "Lounge added to directory" });
-      queryClient.invalidateQueries({ queryKey: ["pending-lounges"] });
-    },
-    onError: (err) => {
-      toast({ title: "Error", description: err.message, variant: "destructive" });
-    },
+    onSuccess: () => { toast({ title: "Approved", description: "Lounge added to directory" }); queryClient.invalidateQueries({ queryKey: ["pending-lounges"] }); },
+    onError: (err) => { toast({ title: "Error", description: err.message, variant: "destructive" }); },
   });
 
   const rejectMutation = useMutation({
     mutationFn: async (lounge: PendingLounge) => {
-      const { error } = await supabase
-        .from("pending_lounges")
-        .update({ status: "rejected" })
-        .eq("id", lounge.id);
+      const { error } = await supabase.from("pending_lounges").update({ status: "rejected" }).eq("id", lounge.id);
       if (error) throw error;
     },
-    onSuccess: () => {
-      toast({ title: "Rejected" });
-      queryClient.invalidateQueries({ queryKey: ["pending-lounges"] });
-    },
+    onSuccess: () => { toast({ title: "Rejected" }); queryClient.invalidateQueries({ queryKey: ["pending-lounges"] }); },
   });
 
   const bulkApproveMutation = useMutation({
     mutationFn: async (ids: string[]) => {
       const toApprove = lounges.filter((l) => ids.includes(l.id));
-      // Process in batches of 5
       for (let i = 0; i < toApprove.length; i += 5) {
         const batch = toApprove.slice(i, i + 5);
         await Promise.all(batch.map((l) => approveLounge(l, user!.id)));
       }
     },
-    onSuccess: () => {
-      toast({ title: "Bulk Approved", description: `${selectedIds.size} lounges approved` });
-      setSelectedIds(new Set());
-      queryClient.invalidateQueries({ queryKey: ["pending-lounges"] });
-    },
-    onError: (err) => {
-      toast({ title: "Error", description: err.message, variant: "destructive" });
-    },
+    onSuccess: () => { toast({ title: "Bulk Approved", description: `${selectedIds.size} lounges approved` }); setSelectedIds(new Set()); queryClient.invalidateQueries({ queryKey: ["pending-lounges"] }); },
+    onError: (err) => { toast({ title: "Error", description: err.message, variant: "destructive" }); },
   });
 
   const bulkRejectMutation = useMutation({
     mutationFn: async (ids: string[]) => {
-      const { error } = await supabase
-        .from("pending_lounges")
-        .update({ status: "rejected" })
-        .in("id", ids);
+      const { error } = await supabase.from("pending_lounges").update({ status: "rejected" }).in("id", ids);
       if (error) throw error;
     },
-    onSuccess: () => {
-      toast({ title: "Bulk Rejected", description: `${selectedIds.size} lounges rejected` });
-      setSelectedIds(new Set());
-      queryClient.invalidateQueries({ queryKey: ["pending-lounges"] });
-    },
+    onSuccess: () => { toast({ title: "Bulk Rejected", description: `${selectedIds.size} lounges rejected` }); setSelectedIds(new Set()); queryClient.invalidateQueries({ queryKey: ["pending-lounges"] }); },
   });
 
   const editSaveMutation = useMutation({
     mutationFn: async ({ lounge, updates }: { lounge: PendingLounge; updates: Partial<PendingLounge> }) => {
-      const { error } = await supabase
-        .from("pending_lounges")
-        .update(updates)
-        .eq("id", lounge.id);
+      const { error } = await supabase.from("pending_lounges").update(updates).eq("id", lounge.id);
       if (error) throw error;
       await approveLounge({ ...lounge, ...updates } as PendingLounge, user!.id);
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["pending-lounges"] });
-    },
+    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ["pending-lounges"] }); },
   });
 
   useEffect(() => {
-    if (!authLoading && !roleLoading && !user) {
-      navigate("/auth");
-    }
+    if (!authLoading && !roleLoading && !user) navigate("/auth");
   }, [user, authLoading, roleLoading, navigate]);
 
   if (authLoading || roleLoading) {
-    return (
-      <div className="flex items-center justify-center min-h-screen bg-background">
-        <Loader2 className="h-8 w-8 animate-spin text-primary" />
-      </div>
-    );
+    return <div className="flex items-center justify-center min-h-screen bg-background"><Loader2 className="h-8 w-8 animate-spin text-primary" /></div>;
   }
-
-  if (!user) {
-    return null;
-  }
-
+  if (!user) return null;
   if (!isAdmin) {
     return (
       <div className="flex flex-col items-center justify-center min-h-screen bg-background gap-4">
@@ -369,19 +214,13 @@ const AdminPendingPage = () => {
     );
   }
 
-  const filtered = lounges.filter(
-    (l) =>
-      l.name.toLowerCase().includes(search.toLowerCase()) ||
-      l.city_name.toLowerCase().includes(search.toLowerCase())
-  );
-
+  const filtered = lounges.filter((l) => l.name.toLowerCase().includes(search.toLowerCase()) || l.city_name.toLowerCase().includes(search.toLowerCase()));
   const grouped = filtered.reduce<Record<string, PendingLounge[]>>((acc, l) => {
     const key = `${l.city_name}, ${l.country}`;
     if (!acc[key]) acc[key] = [];
     acc[key].push(l);
     return acc;
   }, {});
-
   const isPending = statusFilter === "pending";
 
   return (
@@ -389,37 +228,19 @@ const AdminPendingPage = () => {
       <div className="max-w-5xl mx-auto px-4 py-8">
         <h1 className="text-3xl font-display font-bold mb-6">Admin: Pending Lounges</h1>
 
-        <div className="flex flex-wrap justify-end gap-2 mb-4">
-          <Button variant="outline" onClick={() => handleReclassifyVenues("pending_lounges")} disabled={reclassifying}>
-            <RefreshCw className={`h-4 w-4 mr-2 ${reclassifying ? "animate-spin" : ""}`} />
-            {reclassifying ? reclassifyProgress : "Reclassify Pending"}
-          </Button>
-          <Button variant="outline" onClick={() => handleReclassifyVenues("lounges")} disabled={reclassifying}>
-            <RefreshCw className={`h-4 w-4 mr-2 ${reclassifying ? "animate-spin" : ""}`} />
-            {reclassifying ? reclassifyProgress : "Reclassify Approved"}
-          </Button>
-          <Button variant="outline" onClick={() => handleBackfillGoogleTypes("lounges")} disabled={backfilling}>
-            <Database className={`h-4 w-4 mr-2`} />
-            {backfilling ? backfillProgress : "Backfill Google Types"}
-          </Button>
-          <FetchCityImagesButton />
-          <Button variant="outline" onClick={() => handleExportDatabase("lounges")} disabled={exporting}>
-            <Download className="h-4 w-4 mr-2" />
-            {exporting ? "Exporting..." : "Export Lounges"}
-          </Button>
-          <Button variant="outline" onClick={() => handleExportDatabase()} disabled={exporting}>
-            <Download className="h-4 w-4 mr-2" />
-            {exporting ? "Exporting..." : "Export Full Database"}
-          </Button>
-        </div>
+        <AdminToolsBar
+          reclassifying={reclassifying} reclassifyProgress={reclassifyProgress}
+          backfilling={backfilling} backfillProgress={backfillProgress} exporting={exporting}
+          onReclassifyPending={() => handleReclassifyVenues("pending_lounges")}
+          onReclassifyApproved={() => handleReclassifyVenues("lounges")}
+          onBackfillGoogleTypes={() => handleBackfillGoogleTypes("lounges")}
+          onExportLounges={() => handleExportDatabase("lounges")}
+          onExportFull={() => handleExportDatabase()}
+        />
 
         <DiscoverCitiesForm onSendToScraper={(cities) => setDiscoveredCities(cities)} />
-
         <div className="mt-6">
-          <ImportForm
-            onComplete={() => queryClient.invalidateQueries({ queryKey: ["pending-lounges"] })}
-            initialCities={discoveredCities}
-          />
+          <ImportForm onComplete={() => queryClient.invalidateQueries({ queryKey: ["pending-lounges"] })} initialCities={discoveredCities} />
         </div>
 
         <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3 mt-6 mb-4">
@@ -430,98 +251,28 @@ const AdminPendingPage = () => {
               <TabsTrigger value="rejected">Rejected</TabsTrigger>
             </TabsList>
           </Tabs>
-          <Input
-            placeholder="Search by name or city..."
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            className="max-w-xs"
-          />
+          <Input placeholder="Search by name or city..." value={search} onChange={(e) => setSearch(e.target.value)} className="max-w-xs" />
         </div>
 
         {isLoading ? (
-          <div className="flex justify-center py-12">
-            <Loader2 className="h-6 w-6 animate-spin text-primary" />
-          </div>
+          <div className="flex justify-center py-12"><Loader2 className="h-6 w-6 animate-spin text-primary" /></div>
         ) : Object.keys(grouped).length === 0 ? (
-          <p className="text-muted-foreground text-center py-12">
-            No {statusFilter} lounges found.
-          </p>
+          <p className="text-muted-foreground text-center py-12">No {statusFilter} lounges found.</p>
         ) : (
-          Object.entries(grouped).map(([city, items]) => {
-            const groupIds = items.map((l) => l.id);
-            const allSelected = isPending && groupIds.every((id) => selectedIds.has(id));
-
-            return (
-              <div key={city} className="mb-6">
-                <div className="flex items-center justify-between mb-2">
-                  <div className="flex items-center gap-3">
-                    {isPending && (
-                      <Checkbox
-                        checked={allSelected}
-                        onCheckedChange={(checked) => toggleGroupSelect(groupIds, !!checked)}
-                      />
-                    )}
-                    <h2 className="text-lg font-display font-semibold text-primary">{city}</h2>
-                    <span className="text-xs text-muted-foreground">({items.length})</span>
-                  </div>
-                  {isPending && (
-                    <div className="flex gap-1">
-                      <Button
-                        size="sm"
-                        variant="ghost"
-                        className="text-green-400 hover:text-green-300 text-xs"
-                        onClick={() => {
-                          toggleGroupSelect(groupIds, true);
-                          bulkApproveMutation.mutate(groupIds);
-                        }}
-                      >
-                        <Check className="h-3 w-3 mr-1" />Approve All
-                      </Button>
-                      <Button
-                        size="sm"
-                        variant="ghost"
-                        className="text-red-400 hover:text-red-300 text-xs"
-                        onClick={() => bulkRejectMutation.mutate(groupIds)}
-                      >
-                        <X className="h-3 w-3 mr-1" />Reject All
-                      </Button>
-                    </div>
-                  )}
-                </div>
-                <div className="space-y-2">
-                  {items.map((lounge) => (
-                    <PendingLoungeCard
-                      key={lounge.id}
-                      lounge={lounge}
-                      selected={selectedIds.has(lounge.id)}
-                      onSelectChange={(checked) => toggleSelect(lounge.id, checked)}
-                      onApprove={(l) => approveMutation.mutate(l)}
-                      onReject={(l) => rejectMutation.mutate(l)}
-                      onEdit={(l) => setEditLounge(l)}
-                      isPossibleDuplicate={isPossibleDuplicate(lounge.name)}
-                    />
-                  ))}
-                </div>
-              </div>
-            );
-          })
+          <PendingLoungeList
+            grouped={grouped} isPending={isPending} selectedIds={selectedIds}
+            onToggleSelect={toggleSelect} onToggleGroupSelect={toggleGroupSelect}
+            onApprove={(l) => approveMutation.mutate(l)} onReject={(l) => rejectMutation.mutate(l)}
+            onEdit={(l) => setEditLounge(l)}
+            onBulkApprove={(ids) => bulkApproveMutation.mutate(ids)}
+            onBulkReject={(ids) => bulkRejectMutation.mutate(ids)}
+            isPossibleDuplicate={isPossibleDuplicate}
+          />
         )}
       </div>
 
-      <BulkActionBar
-        count={selectedIds.size}
-        onApprove={() => bulkApproveMutation.mutate([...selectedIds])}
-        onReject={() => bulkRejectMutation.mutate([...selectedIds])}
-        isApproving={bulkApproveMutation.isPending}
-        isRejecting={bulkRejectMutation.isPending}
-      />
-
-      <EditPendingDialog
-        lounge={editLounge}
-        open={!!editLounge}
-        onOpenChange={(open) => !open && setEditLounge(null)}
-        onSave={(lounge, updates) => editSaveMutation.mutate({ lounge, updates })}
-      />
+      <BulkActionBar count={selectedIds.size} onApprove={() => bulkApproveMutation.mutate([...selectedIds])} onReject={() => bulkRejectMutation.mutate([...selectedIds])} isApproving={bulkApproveMutation.isPending} isRejecting={bulkRejectMutation.isPending} />
+      <EditPendingDialog lounge={editLounge} open={!!editLounge} onOpenChange={(open) => !open && setEditLounge(null)} onSave={(lounge, updates) => editSaveMutation.mutate({ lounge, updates })} />
     </div>
   );
 };
