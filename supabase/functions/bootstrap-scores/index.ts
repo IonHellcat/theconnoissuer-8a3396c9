@@ -60,9 +60,9 @@ function computeSentimentScore(
 }
 
 function computeVolumeScore(reviewCount: number): number {
-  // Log-scaled: log2(count+1) / log2(51) * 100 — maxes around 50 reviews
+  // Log-scaled: log2(count+1) / log2(500) * 100 — maxes around 500 reviews
   if (reviewCount <= 0) return 0;
-  const raw = Math.log2(reviewCount + 1) / Math.log2(51);
+  const raw = Math.log2(reviewCount + 1) / Math.log2(500);
   return Math.round(Math.min(100, raw * 100));
 }
 
