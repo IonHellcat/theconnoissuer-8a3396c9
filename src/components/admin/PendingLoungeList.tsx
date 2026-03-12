@@ -13,6 +13,7 @@ interface PendingLoungeListProps {
   onApprove: (lounge: PendingLounge) => void;
   onReject: (lounge: PendingLounge) => void;
   onEdit: (lounge: PendingLounge) => void;
+  onDelete: (lounge: PendingLounge) => void;
   onBulkApprove: (ids: string[]) => void;
   onBulkReject: (ids: string[]) => void;
   isPossibleDuplicate: (name: string) => boolean;
@@ -21,7 +22,7 @@ interface PendingLoungeListProps {
 export const PendingLoungeList = ({
   grouped, isPending, selectedIds,
   onToggleSelect, onToggleGroupSelect,
-  onApprove, onReject, onEdit,
+  onApprove, onReject, onEdit, onDelete,
   onBulkApprove, onBulkReject,
   isPossibleDuplicate,
 }: PendingLoungeListProps) => (
@@ -77,6 +78,7 @@ export const PendingLoungeList = ({
                 onApprove={(l) => onApprove(l)}
                 onReject={(l) => onReject(l)}
                 onEdit={(l) => onEdit(l)}
+                onDelete={(l) => onDelete(l)}
                 isPossibleDuplicate={isPossibleDuplicate(lounge.name)}
               />
             ))}

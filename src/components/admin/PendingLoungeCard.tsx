@@ -2,7 +2,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Check, X, Pencil, MapPin, Phone, Globe, Star, AlertTriangle } from "lucide-react";
+import { Check, X, Pencil, MapPin, Phone, Globe, Star, AlertTriangle, Trash2 } from "lucide-react";
 import type { Tables } from "@/integrations/supabase/types";
 
 type PendingLounge = Tables<"pending_lounges">;
@@ -12,12 +12,13 @@ interface Props {
   onApprove: (lounge: PendingLounge) => void;
   onReject: (lounge: PendingLounge) => void;
   onEdit: (lounge: PendingLounge) => void;
+  onDelete: (lounge: PendingLounge) => void;
   selected?: boolean;
   onSelectChange?: (checked: boolean) => void;
   isPossibleDuplicate?: boolean;
 }
 
-export const PendingLoungeCard = ({ lounge, onApprove, onReject, onEdit, selected, onSelectChange, isPossibleDuplicate }: Props) => {
+export const PendingLoungeCard = ({ lounge, onApprove, onReject, onEdit, onDelete, selected, onSelectChange, isPossibleDuplicate }: Props) => {
   const statusColor = {
     pending: "bg-yellow-500/20 text-yellow-400",
     approved: "bg-green-500/20 text-green-400",
@@ -79,19 +80,24 @@ export const PendingLoungeCard = ({ lounge, onApprove, onReject, onEdit, selecte
               </div>
             </div>
           </div>
-          {lounge.status === "pending" && (
-            <div className="flex gap-1 shrink-0">
-              <Button size="sm" variant="ghost" onClick={() => onEdit(lounge)} title="Edit">
-                <Pencil className="h-4 w-4" />
-              </Button>
-              <Button size="sm" variant="ghost" className="text-green-400 hover:text-green-300" onClick={() => onApprove(lounge)} title="Approve">
-                <Check className="h-4 w-4" />
-              </Button>
-              <Button size="sm" variant="ghost" className="text-red-400 hover:text-red-300" onClick={() => onReject(lounge)} title="Reject">
-                <X className="h-4 w-4" />
-              </Button>
-            </div>
-          )}
+          <div className="flex gap-1 shrink-0">
+            {lounge.status === "pending" && (
+              <>
+                <Button size="sm" variant="ghost" onClick={() => onEdit(lounge)} title="Edit">
+                  <Pencil className="h-4 w-4" />
+                </Button>
+                <Button size="sm" variant="ghost" className="text-green-400 hover:text-green-300" onClick={() => onApprove(lounge)} title="Approve">
+                  <Check className="h-4 w-4" />
+                </Button>
+                <Button size="sm" variant="ghost" className="text-red-400 hover:text-red-300" onClick={() => onReject(lounge)} title="Reject">
+                  <X className="h-4 w-4" />
+                </Button>
+              </>
+            )}
+            <Button size="sm" variant="ghost" className="text-destructive hover:text-destructive/80" onClick={() => onDelete(lounge)} title="Delete permanently">
+              <Trash2 className="h-4 w-4" />
+            </Button>
+          </div>
         </div>
       </CardContent>
     </Card>
