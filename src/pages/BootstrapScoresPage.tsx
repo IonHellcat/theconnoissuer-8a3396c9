@@ -292,8 +292,10 @@ const BootstrapScoresPage = () => {
         {stats && <ScoreStats stats={stats} />}
 
         <ScoreBulkActions
-          bulkProgress={bulkProgress} bulkRescoring={bulkRescoring} bulkServerProgress={bulkServerProgress}
-          estimatedCount={stats?.estimated || 0} editedCount={Object.keys(results).length} loungeCount={lounges?.length || 0}
+          bulkBootstrapping={bulkBootstrapping} bulkBootstrapProgress={bulkBootstrapProgress}
+          bulkRescoring={bulkRescoring} bulkServerProgress={bulkServerProgress}
+          unscoredCount={stats?.none || 0} estimatedCount={stats?.estimated || 0}
+          editedCount={Object.keys(results).length} loungeCount={lounges?.length || 0}
           onBulkBootstrap={bulkBootstrap} onBulkRescore={bulkRescoreServer} onBulkSaveAll={bulkSaveAll}
           onResetAllScores={resetAllScores} resetting={resettingScores}
         />
