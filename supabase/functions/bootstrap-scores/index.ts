@@ -30,7 +30,7 @@ function getAspects(type: string): string[] {
 function computeQualityScore(rating: number, reviewCount: number): number {
   // Bayesian average: pulls toward global mean (3.8) for low-count venues
   const globalMean = 3.8;
-  const C = 10; // confidence parameter
+  const C = 25; // confidence parameter
   const bayesian = (rating * reviewCount + globalMean * C) / (reviewCount + C);
   // Map 1-5 to 0-100
   return Math.max(0, Math.min(100, ((bayesian - 1) / 4) * 100));
@@ -60,9 +60,9 @@ function computeSentimentScore(
 }
 
 function computeVolumeScore(reviewCount: number): number {
-  // Log-scaled: log2(count+1) / log2(51) * 100 — maxes around 50 reviews
+  // Log-scaled: log2(count+1) / log2(500) * 100 — maxes around 500 reviews
   if (reviewCount <= 0) return 0;
-  const raw = Math.log2(reviewCount + 1) / Math.log2(51);
+  const raw = Math.log2(reviewCount + 1) / Math.log2(500);
   return Math.round(Math.min(100, raw * 100));
 }
 
