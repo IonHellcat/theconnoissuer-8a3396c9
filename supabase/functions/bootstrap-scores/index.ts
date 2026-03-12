@@ -9,11 +9,11 @@ const corsHeaders = {
 
 // ─── Score Label Tiers ───
 function getScoreLabel(score: number): string | null {
-  if (score >= 93) return "Legendary";
-  if (score >= 88) return "Exceptional";
-  if (score >= 82) return "Outstanding";
-  if (score >= 75) return "Excellent";
-  if (score >= 65) return "Good";
+  if (score >= 97) return "Legendary";
+  if (score >= 93) return "Exceptional";
+  if (score >= 88) return "Outstanding";
+  if (score >= 80) return "Excellent";
+  if (score >= 70) return "Good";
   return null;
 }
 
@@ -25,15 +25,67 @@ function getAspects(type: string): string[] {
   return type === "shop" ? SHOP_ASPECTS : LOUNGE_ASPECTS;
 }
 
+type ReviewStats = {
+  median: number;
+  p90: number;
+};
+
+function clampScore(value: number): number {
+  return Math.max(0, Math.min(100, value));
+}
+
+function percentile(values: number[], p: number): number {
+  if (values.length === 0) return 0;
+  const sorted = [...values].sort((a, b) => a - b);
+  const idx = (sorted.length - 1) * p;
+  const lower = Math.floor(idx);
+  const upper = Math.ceil(idx);
+  if (lower === upper) return sorted[lower];
+  const weight = idx - lower;
+  return sorted[lower] * (1 - weight) + sorted[upper] * weight;
+}
+
+function buildReviewStats(rows: Array<{ review_count: number | null }>): ReviewStats {
+  const counts = rows
+    .map((r) => Number(r.review_count ?? 0))
+    .filter((n) => Number.isFinite(n) && n >= 0);
+
+  if (counts.length === 0) {
+    return { median: 100, p90: 500 };
+  }
+
+  return {
+    median: Math.max(1, Math.round(percentile(counts, 0.5))),
+    p90: Math.max(100, Math.round(percentile(counts, 0.9))),
+  };
+}
+
+function buildCityAverageMap(rows: Array<{ city_id: string | null; review_count: number | null }>): Map<string, number> {
+  const cityGroups = new Map<string, number[]>();
+  for (const row of rows) {
+    if (!row.city_id) continue;
+    if (!cityGroups.has(row.city_id)) cityGroups.set(row.city_id, []);
+    cityGroups.get(row.city_id)!.push(Number(row.review_count ?? 0));
+  }
+
+  const cityAvgMap = new Map<string, number>();
+  cityGroups.forEach((counts, cityId) => {
+    const avg = counts.reduce((sum, n) => sum + n, 0) / Math.max(1, counts.length);
+    cityAvgMap.set(cityId, avg);
+  });
+
+  return cityAvgMap;
+}
+
 // ─── Deterministic Scoring Formula ───
 
 function computeQualityScore(rating: number, reviewCount: number): number {
-  // Bayesian average: pulls toward global mean (3.8) for low-count venues
-  const globalMean = 3.8;
-  const C = 25; // confidence parameter
+  // Stronger Bayesian pull + non-linear top-end curve to keep "100" rare.
+  const globalMean = 3.9;
+  const C = 80;
   const bayesian = (rating * reviewCount + globalMean * C) / (reviewCount + C);
-  // Map 1-5 to 0-100
-  return Math.max(0, Math.min(100, ((bayesian - 1) / 4) * 100));
+  const normalized = clampScore(((bayesian - 1) / 4) * 100) / 100;
+  return Math.round(clampScore(Math.pow(normalized, 2.2) * 100));
 }
 
 function computeSentimentScore(
@@ -54,33 +106,48 @@ function computeSentimentScore(
     }
   }
 
-  if (totalMentioned === 0) return 50; // neutral fallback
+  if (totalMentioned === 0) return 50;
   const ratio = totalPositive / totalMentioned;
   return Math.round(ratio * 100);
 }
 
-function computeVolumeScore(reviewCount: number): number {
-  // Log-scaled: log2(count+1) / log2(500) * 100 — maxes around 500 reviews
+function computeVolumeScore(reviewCount: number, globalP90ReviewCount: number): number {
+  // Saturates around global p90 so outlier review counts don't dominate ranking.
   if (reviewCount <= 0) return 0;
-  const raw = Math.log2(reviewCount + 1) / Math.log2(500);
-  return Math.round(Math.min(100, raw * 100));
+  const ceiling = Math.max(250, globalP90ReviewCount);
+  const raw = Math.log1p(reviewCount) / Math.log1p(ceiling);
+  const saturated = Math.min(1, raw);
+  return Math.round(clampScore(Math.pow(saturated, 0.85) * 100));
 }
 
 function computeConsistencyScore(ratings: number[]): number {
-  if (ratings.length < 2) return 50; // not enough data
+  if (ratings.length < 2) return 50;
   const mean = ratings.reduce((a, b) => a + b, 0) / ratings.length;
   const variance = ratings.reduce((sum, r) => sum + (r - mean) ** 2, 0) / ratings.length;
   const stdDev = Math.sqrt(variance);
-  // Low std dev = high consistency. Max std dev on 1-5 scale ~2
-  const score = Math.max(0, Math.min(100, (1 - stdDev / 2) * 100));
+  const score = clampScore((1 - stdDev / 2) * 100);
   return Math.round(score);
 }
 
-function computePrestigeScore(reviewCount: number, cityAvgReviewCount: number): number {
-  if (cityAvgReviewCount <= 0) return 50;
-  const ratio = reviewCount / cityAvgReviewCount;
-  const raw = Math.log2(ratio + 1) / Math.log2(6);
-  return Math.round(Math.min(100, Math.max(0, raw * 100)));
+function computePrestigeScore(
+  reviewCount: number,
+  cityAvgReviewCount: number,
+  globalMedianReviewCount: number,
+  globalP90ReviewCount: number
+): number {
+  if (reviewCount <= 0) return 0;
+
+  const cityRatio = reviewCount / Math.max(1, cityAvgReviewCount);
+  const globalRatio = reviewCount / Math.max(1, globalMedianReviewCount);
+
+  // City-relative dominance, capped quickly so mega-outliers don't overwhelm quality/sentiment.
+  const cityComponent = Math.min(100, (Math.log1p(cityRatio) / Math.log1p(3.5)) * 100);
+
+  // Global standing relative to population, with broad denominator to avoid runaway scores.
+  const globalTargetRatio = Math.max(4, globalP90ReviewCount / Math.max(1, globalMedianReviewCount));
+  const globalComponent = Math.min(100, (Math.log1p(globalRatio) / Math.log1p(globalTargetRatio * 2.5)) * 100);
+
+  return Math.round(clampScore(cityComponent * 0.65 + globalComponent * 0.35));
 }
 
 function computeConnoisseurScore(
@@ -89,17 +156,29 @@ function computeConnoisseurScore(
   classifications: Array<{ aspects: Record<string, any> }>,
   aspects: string[],
   ratings: number[],
-  cityAvgReviewCount: number
+  cityAvgReviewCount: number,
+  reviewStats: ReviewStats
 ): { score: number; quality: number; sentiment: number; volume: number; consistency: number; prestige: number } {
   const quality = computeQualityScore(rating, reviewCount);
   const sentiment = computeSentimentScore(classifications, aspects);
-  const volume = computeVolumeScore(reviewCount);
+  const volume = computeVolumeScore(reviewCount, reviewStats.p90);
   const consistency = computeConsistencyScore(ratings);
-  const prestige = computePrestigeScore(reviewCount, cityAvgReviewCount);
-
-  const score = Math.round(
-    quality * 0.30 + sentiment * 0.25 + volume * 0.20 + prestige * 0.15 + consistency * 0.10
+  const prestige = computePrestigeScore(
+    reviewCount,
+    cityAvgReviewCount,
+    reviewStats.median,
+    reviewStats.p90
   );
+
+  const weighted =
+    quality * 0.42 +
+    sentiment * 0.30 +
+    volume * 0.08 +
+    prestige * 0.12 +
+    consistency * 0.08;
+
+  // Gentle compression keeps top-end exclusive without flattening mid-tier venues.
+  const score = Math.round(clampScore(Math.pow(weighted / 100, 1.08) * 100));
 
   return { score, quality, sentiment, volume, consistency, prestige };
 }
