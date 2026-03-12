@@ -23,10 +23,12 @@ interface ScoreBulkActionsProps {
   estimatedCount: number;
   editedCount: number;
   loungeCount: number;
+  paused: boolean;
   onBulkBootstrap: () => void;
   onBulkRescore: () => void;
   onBulkSaveAll: () => void;
   onResetAllScores?: () => void;
+  onTogglePause: () => void;
   resetting?: boolean;
 }
 
