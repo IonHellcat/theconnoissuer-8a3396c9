@@ -265,20 +265,20 @@ const SearchPage = () => {
                                       <h3 className="font-display text-lg font-bold text-foreground group-hover:text-primary transition-colors">
                                         {lounge.name}
                                       </h3>
-                                      {(lounge as any).score_summary && (
+                                      {lounge.score_summary && (
                                         <p className="text-xs font-body italic text-muted-foreground line-clamp-1 mt-0.5">
-                                          {(lounge as any).score_summary}
+                                          {lounge.score_summary}
                                         </p>
                                       )}
                                       <p className="text-xs text-muted-foreground font-body mt-0.5">
-                                        {(lounge as any).cities?.name}
+                                        {lounge.cities?.name}
                                       </p>
                                     </div>
                                     <div className="flex items-center gap-3 flex-shrink-0">
                                       <ConnoisseurScoreBadge
-                                        score={(lounge as any).connoisseur_score}
-                                        scoreLabel={(lounge as any).score_label}
-                                        scoreSource={(lounge as any).score_source || "none"}
+                                        score={lounge.connoisseur_score}
+                                        scoreLabel={lounge.score_label}
+                                        scoreSource={lounge.score_source || "none"}
                                         googleRating={Number(lounge.rating)}
                                         size="sm"
                                       />
