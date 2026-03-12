@@ -6,6 +6,7 @@ interface ConnoisseurScoreBadgeProps {
   scoreSource: string;
   scoreSummary?: string | null;
   googleRating?: number;
+  confidence?: string | null;
   size?: "sm" | "md" | "lg";
   showSummary?: boolean;
 }
@@ -16,6 +17,7 @@ const ConnoisseurScoreBadge = ({
   scoreSource,
   scoreSummary,
   googleRating,
+  confidence,
   size = "sm",
   showSummary = false,
 }: ConnoisseurScoreBadgeProps) => {
@@ -36,7 +38,6 @@ const ConnoisseurScoreBadge = ({
   };
 
   if (!hasScore) {
-    // No score — show Google rating fallback
     if (googleRating) {
       return (
         <div className="flex flex-col items-center gap-0.5">
@@ -50,6 +51,8 @@ const ConnoisseurScoreBadge = ({
     }
     return null;
   }
+
+  const confidenceLabel = confidence === "high" ? "High confidence" : confidence === "medium" ? "Medium confidence" : confidence === "low" ? "Low confidence" : "";
 
   return (
     <div className="flex flex-col items-center gap-0.5">
@@ -66,15 +69,11 @@ const ConnoisseurScoreBadge = ({
           </div>
         </TooltipTrigger>
         <TooltipContent className="max-w-xs">
-          {isEstimated ? (
-            <p className="text-xs font-body">
-              Estimated Score — Based on analysis of public reviews. Becomes verified when 3+ members submit detailed ratings.
-            </p>
-          ) : (
-            <p className="text-xs font-body">
-              Verified Connoisseur Score — Based on member reviews.
-            </p>
-          )}
+          <p className="text-xs font-body">
+            {isEstimated
+              ? `Estimated Score — Deterministic calculation from review sentiments, rating quality, volume, and consistency. ${confidenceLabel}.`
+              : "Verified Connoisseur Score — Based on member reviews."}
+          </p>
         </TooltipContent>
       </Tooltip>
       <span
@@ -84,6 +83,13 @@ const ConnoisseurScoreBadge = ({
       >
         {isVerified ? scoreLabel : "Est."}
       </span>
+      {confidence && size !== "sm" && (
+        <span className={`text-[8px] font-body ${
+          confidence === "high" ? "text-green-400" : confidence === "medium" ? "text-yellow-400" : "text-red-400"
+        }`}>
+          {confidence} conf.
+        </span>
+      )}
       {showSummary && scoreSummary && (
         <p className="text-xs font-body italic text-muted-foreground mt-1 line-clamp-1 max-w-[200px] text-center">
           {scoreSummary}
