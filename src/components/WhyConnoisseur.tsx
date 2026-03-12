@@ -28,23 +28,25 @@ const WhyConnoisseur = () => {
         </motion.div>
 
         {/* Pillar Cards */}
-        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4 md:gap-5">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3">
           {pillars.map((pillar, i) => (
             <motion.div
               key={pillar.name}
-              initial={{ opacity: 0, y: 20 }}
+              initial={{ opacity: 0, y: 12 }}
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true }}
-              transition={{ duration: 0.5, delay: i * 0.08 }}
-              className="bg-card rounded-xl border border-border/50 p-5 sm:p-6 text-center"
+              transition={{ duration: 0.4, delay: i * 0.06 }}
+              className="bg-card rounded-lg border border-border/50 px-4 py-3 flex items-center gap-3 lg:flex-col lg:text-center lg:py-4"
             >
-              <span className="text-2xl sm:text-3xl block mb-3">{pillar.icon}</span>
-              <h3 className="font-display text-sm sm:text-base font-bold text-primary mb-1.5">
-                {pillar.name}
-              </h3>
-              <p className="text-xs sm:text-sm text-muted-foreground font-body leading-snug">
-                {pillar.desc}
-              </p>
+              <span className="text-xl lg:text-2xl">{pillar.icon}</span>
+              <div className="lg:space-y-1">
+                <h3 className="font-display text-sm font-bold text-primary">
+                  {pillar.name}
+                </h3>
+                <p className="text-xs text-muted-foreground font-body leading-snug">
+                  {pillar.desc}
+                </p>
+              </div>
             </motion.div>
           ))}
         </div>
