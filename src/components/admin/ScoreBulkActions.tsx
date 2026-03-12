@@ -66,6 +66,15 @@ export const ScoreBulkActions = ({
           {bulkRescoring ? <Loader2 className="h-4 w-4 animate-spin" /> : <Zap className="h-4 w-4" />}
           Re-score Estimated ({estimatedCount})
         </Button>
+        <Button
+          onClick={onBulkRecalculate}
+          disabled={anyRunning || !estimatedCount}
+          variant="outline"
+          className="gap-2"
+        >
+          {bulkRecalculating ? <Loader2 className="h-4 w-4 animate-spin" /> : <Calculator className="h-4 w-4" />}
+          Recalculate Scores ({estimatedCount})
+        </Button>
         {editedCount > 0 && (
           <Button onClick={onBulkSaveAll} variant="outline" className="gap-2">
             <Save className="h-4 w-4" />
