@@ -23,7 +23,7 @@ interface ScoreBulkActionsProps {
 export const ScoreBulkActions = ({
   bulkProgress, bulkRescoring, bulkServerProgress,
   estimatedCount, editedCount, loungeCount,
-  onBulkBootstrap, onBulkRescore, onBulkSaveAll,
+  onBulkBootstrap, onBulkRescore, onBulkSaveAll, onResetAllScores, resetting,
 }: ScoreBulkActionsProps) => (
   <>
     <div className="flex gap-2 mb-6 flex-wrap">
@@ -46,6 +46,26 @@ export const ScoreBulkActions = ({
           Approve All ({editedCount})
         </Button>
       )}
+      <AlertDialog>
+        <AlertDialogTrigger asChild>
+          <Button variant="destructive" disabled={!!bulkProgress || bulkRescoring || resetting || !loungeCount} className="gap-2">
+            {resetting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Trash2 className="h-4 w-4" />}
+            Reset All Scores
+          </Button>
+        </AlertDialogTrigger>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Reset all scores?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This will clear connoisseur_score, pillar_scores, score_label, score_summary, confidence, and review_data_count for <strong>all lounges</strong>, and delete all cached review classifications. Score source will be set back to "none". This cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={onResetAllScores}>Yes, reset everything</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
 
     {bulkRescoring && (
