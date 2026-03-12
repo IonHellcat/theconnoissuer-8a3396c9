@@ -189,6 +189,8 @@ const SearchPage = () => {
                     Enter a search term to find cigar lounges
                   </p>
                 </div>
+              ) : (citiesError || loungesError) ? (
+                <QueryErrorBanner message="Search failed. Please try again." onRetry={() => { refetchCities(); refetchLounges(); }} />
               ) : !hasResults ? (
                 <div className="text-center py-20">
                   <p className="text-muted-foreground font-body text-lg">
