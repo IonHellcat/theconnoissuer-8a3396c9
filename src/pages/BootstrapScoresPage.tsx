@@ -54,7 +54,13 @@ const BootstrapScoresPage = () => {
     withPlaceId: lounges.filter((l) => l.google_place_id && l.score_source === "none").length,
   } : null;
 
-  const sortedLounges = lounges ? [...lounges].sort((a, b) => {
+  const filteredLounges = lounges ? lounges.filter((l) => {
+    if (!search) return true;
+    const q = search.toLowerCase();
+    return l.name.toLowerCase().includes(q) || (l.city?.name || "").toLowerCase().includes(q) || (l.city?.country || "").toLowerCase().includes(q);
+  }) : [];
+
+  const sortedLounges = [...filteredLounges].sort((a, b) => {
     let cmp = 0;
     switch (sortKey) {
       case "name": cmp = a.name.localeCompare(b.name); break;
@@ -67,7 +73,7 @@ const BootstrapScoresPage = () => {
       }
     }
     return sortAsc ? cmp : -cmp;
-  }) : [];
+  });
 
   const toggleSort = (key: SortKey) => {
     if (sortKey === key) setSortAsc(!sortAsc);
