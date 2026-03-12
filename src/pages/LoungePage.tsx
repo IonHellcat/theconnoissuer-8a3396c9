@@ -18,6 +18,7 @@ import OptimizedImage from "@/components/OptimizedImage";
 import ConnoisseurScoreBadge from "@/components/ConnoisseurScoreBadge";
 import GalleryLightbox from "@/components/GalleryLightbox";
 import FeatureChips from "@/components/FeatureChips";
+import LoungeDetailsCard from "@/components/LoungeDetailsCard";
 
 import LoungeJsonLd from "@/components/LoungeJsonLd";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
@@ -138,6 +139,33 @@ const LoungePage = () => {
                   <FavoriteButton loungeId={lounge.id} />
                 </div>
               </div>
+            </section>
+
+            {/* Mobile Details — shown before score on small screens */}
+            <section className="container mx-auto px-4 pt-6 lg:hidden">
+              <LoungeDetailsCard
+                address={lounge.address}
+                phone={lounge.phone}
+                website={lounge.website}
+                latitude={lounge.latitude}
+                longitude={lounge.longitude}
+              />
+              {/* Mobile Hours */}
+              {weekdayDescriptions && weekdayDescriptions.length > 0 && (
+                <div className="bg-card rounded-xl border border-border/50 p-6 mt-4">
+                  <h3 className="font-display text-lg font-semibold text-foreground mb-4 flex items-center gap-2">
+                    <Clock className="h-4 w-4 text-primary" />
+                    Hours
+                  </h3>
+                  <div className="space-y-2">
+                    {weekdayDescriptions.map((desc, i) => (
+                      <div key={i} className="text-sm font-body text-foreground">
+                        {desc}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
             </section>
 
             {/* Content */}
@@ -277,57 +305,18 @@ const LoungePage = () => {
                   </div>
                 </div>
 
-                {/* Sidebar — on mobile moves to bottom, on desktop sticks */}
-                <div className="space-y-6 lg:sticky lg:top-24">
-                  <div className="bg-card rounded-xl border border-border/50 p-6 space-y-5">
-                    <h3 className="font-display text-lg font-semibold text-foreground">Details</h3>
-
-                    {lounge.address && (
-                      <div className="flex items-start gap-3">
-                        <MapPin className="h-4 w-4 text-primary mt-0.5 flex-shrink-0" />
-                        <span className="text-sm text-muted-foreground font-body">{lounge.address}</span>
-                      </div>
-                    )}
-
-                    {lounge.phone && (
-                      <div className="flex items-center gap-3">
-                        <Phone className="h-4 w-4 text-primary flex-shrink-0" />
-                        <a href={`tel:${lounge.phone}`} className="text-sm text-muted-foreground font-body hover:text-foreground transition-colors">
-                          {lounge.phone}
-                        </a>
-                      </div>
-                    )}
-
-                    {lounge.website && (
-                      <div className="flex items-center gap-3">
-                        <Globe className="h-4 w-4 text-primary flex-shrink-0" />
-                        <a
-                          href={lounge.website}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="text-sm text-primary font-body hover:underline inline-flex items-center gap-1"
-                        >
-                          Visit Website
-                          <ExternalLink className="h-3 w-3" />
-                        </a>
-                      </div>
-                    )}
-
-                    {lounge.latitude && lounge.longitude && (
-                      <a
-                        href={`https://www.google.com/maps/dir/?api=1&destination=${lounge.latitude},${lounge.longitude}`}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="flex items-center gap-2 w-full justify-center px-4 py-2.5 rounded-lg bg-primary text-primary-foreground text-sm font-medium font-body hover:bg-primary/90 transition-colors"
-                      >
-                        <Navigation className="h-4 w-4" />
-                        Get Directions
-                      </a>
-                    )}
-                  </div>
+                {/* Sidebar — desktop only */}
+                <div className="hidden lg:block space-y-6 lg:sticky lg:top-24">
+                  <LoungeDetailsCard
+                    address={lounge.address}
+                    phone={lounge.phone}
+                    website={lounge.website}
+                    latitude={lounge.latitude}
+                    longitude={lounge.longitude}
+                  />
 
                   {/* Hours */}
-                   {weekdayDescriptions && weekdayDescriptions.length > 0 && (
+                  {weekdayDescriptions && weekdayDescriptions.length > 0 && (
                     <div className="bg-card rounded-xl border border-border/50 p-6">
                       <h3 className="font-display text-lg font-semibold text-foreground mb-4 flex items-center gap-2">
                         <Clock className="h-4 w-4 text-primary" />
@@ -342,10 +331,35 @@ const LoungePage = () => {
                       </div>
                     </div>
                   )}
-
                 </div>
               </div>
             </section>
+
+            {/* Mobile sticky action bar */}
+            <div className="fixed bottom-14 left-0 right-0 z-40 md:hidden bg-background/95 backdrop-blur-md border-t border-border/50 px-4 py-3">
+              <div className="flex items-center gap-3">
+                {lounge.latitude && lounge.longitude && (
+                  <a
+                    href={`https://www.google.com/maps/dir/?api=1&destination=${lounge.latitude},${lounge.longitude}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg bg-primary text-primary-foreground text-sm font-medium font-body hover:bg-primary/90 transition-colors"
+                  >
+                    <Navigation className="h-4 w-4" />
+                    Get Directions
+                  </a>
+                )}
+                {lounge.phone && (
+                  <a
+                    href={`tel:${lounge.phone}`}
+                    className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg border border-border text-foreground text-sm font-medium font-body hover:bg-secondary transition-colors"
+                  >
+                    <Phone className="h-4 w-4" />
+                    Call
+                  </a>
+                )}
+              </div>
+            </div>
           </>
         )}
       </main>
