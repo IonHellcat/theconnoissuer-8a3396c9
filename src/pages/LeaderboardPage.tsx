@@ -45,7 +45,8 @@ const LeaderboardRow = ({
   lounge: LeaderboardLounge;
   rank: number;
 }) => {
-  const city = lounge.cities;
+  const cityName = lounge.city_name;
+  const cityCountry = lounge.city_country;
   const isTop3 = rank <= 3;
 
   return (
