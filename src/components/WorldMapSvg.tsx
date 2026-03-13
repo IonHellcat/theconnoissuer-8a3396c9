@@ -1,5 +1,5 @@
 import { useMemo } from "react";
-import worldData from "@/assets/world-land.geojson";
+import worldData from "@/assets/world-land.json";
 
 interface WorldMapSvgProps {
   className?: string;
