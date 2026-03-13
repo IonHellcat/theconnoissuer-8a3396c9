@@ -115,11 +115,8 @@ const LeaderboardPage = () => {
     queryKey: ["leaderboard"],
     queryFn: async () => {
       const { data, error } = await supabase
-        .from("lounges")
-        .select("id, name, slug, type, image_url, connoisseur_score, score_label, score_source, rating, cities!inner(name, slug, country)")
-        .not("connoisseur_score", "is", null)
-        .order("connoisseur_score", { ascending: false })
-        .limit(100);
+        .from("leaderboard_top100" as any)
+        .select("*");
       if (error) throw error;
       return data as unknown as LeaderboardLounge[];
     },
