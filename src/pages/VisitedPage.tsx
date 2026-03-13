@@ -12,6 +12,7 @@ import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import OptimizedImage from "@/components/OptimizedImage";
 import ConnoisseurScoreBadge from "@/components/ConnoisseurScoreBadge";
+import WorldMapSvg from "@/components/WorldMapSvg";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -193,36 +194,7 @@ const VisitedPage = () => {
               <div className="bg-card rounded-xl border border-border/50 p-6 mb-8 relative overflow-hidden" style={{ minHeight: 240 }}>
                 <p className="text-xs text-muted-foreground font-body mb-4">Your visited locations</p>
                 <div className="relative w-full" style={{ height: 200 }}>
-                  {/* Simplified world map SVG */}
-                  <svg
-                    viewBox="0 0 1000 500"
-                    className="absolute inset-0 w-full h-full"
-                    preserveAspectRatio="xMidYMid meet"
-                    style={{ opacity: 0.12 }}
-                  >
-                    {/* North America */}
-                    <path d="M150,80 L200,60 L260,70 L280,100 L270,140 L250,160 L220,180 L200,200 L180,210 L160,200 L140,170 L120,140 L110,120 L120,90 Z" fill="currentColor" />
-                    {/* Central America */}
-                    <path d="M180,210 L200,220 L210,240 L200,260 L190,250 L175,230 Z" fill="currentColor" />
-                    {/* South America */}
-                    <path d="M220,260 L250,250 L280,270 L300,300 L310,340 L300,380 L280,410 L260,420 L240,400 L230,360 L220,320 L210,290 L215,270 Z" fill="currentColor" />
-                    {/* Europe */}
-                    <path d="M440,70 L470,60 L510,65 L530,80 L520,100 L500,110 L480,120 L460,115 L445,100 L435,85 Z" fill="currentColor" />
-                    {/* Africa */}
-                    <path d="M460,150 L500,140 L530,160 L550,200 L560,250 L550,300 L530,340 L510,350 L490,340 L470,300 L460,260 L450,220 L445,180 Z" fill="currentColor" />
-                    {/* Asia */}
-                    <path d="M540,60 L600,50 L680,55 L740,70 L780,90 L790,120 L770,150 L740,160 L700,155 L660,140 L620,130 L580,120 L550,100 L535,80 Z" fill="currentColor" />
-                    {/* Middle East / India */}
-                    <path d="M560,120 L600,130 L630,150 L640,180 L620,200 L590,190 L570,170 L555,140 Z" fill="currentColor" />
-                    {/* Southeast Asia */}
-                    <path d="M700,160 L730,170 L750,190 L740,220 L720,230 L700,210 L690,185 Z" fill="currentColor" />
-                    {/* Australia */}
-                    <path d="M750,310 L800,290 L840,300 L860,330 L850,360 L820,380 L780,370 L760,350 L745,330 Z" fill="currentColor" />
-                    {/* Greenland */}
-                    <path d="M320,30 L360,25 L380,40 L370,60 L345,65 L325,50 Z" fill="currentColor" />
-                    {/* Japan / East Asia */}
-                    <path d="M800,90 L810,80 L820,90 L815,110 L805,115 L795,105 Z" fill="currentColor" />
-                  </svg>
+                  <WorldMapSvg className="absolute inset-0 w-full h-full text-muted-foreground opacity-15" />
                   {/* Visit dots */}
                   {visits!.map((v: any) => {
                     const lat = v.lounges?.latitude;
