@@ -120,7 +120,8 @@ const LeaderboardPage = () => {
       if (error) throw error;
       return data as unknown as LeaderboardLounge[];
     },
-    staleTime: 5 * 60 * 1000, // 5 min cache
+    staleTime: 30 * 60 * 1000, // 30 min — leaderboard rarely changes
+    gcTime: 60 * 60 * 1000,
   });
 
   const filtered = useMemo(() => {
