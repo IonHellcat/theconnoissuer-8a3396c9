@@ -92,6 +92,13 @@ export type Database = {
             foreignKeyName: "favorites_lounge_id_fkey"
             columns: ["lounge_id"]
             isOneToOne: false
+            referencedRelation: "leaderboard_top100"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "favorites_lounge_id_fkey"
+            columns: ["lounge_id"]
+            isOneToOne: false
             referencedRelation: "lounges"
             referencedColumns: ["id"]
           },
@@ -129,6 +136,13 @@ export type Database = {
           review_text?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "google_reviews_lounge_id_fkey"
+            columns: ["lounge_id"]
+            isOneToOne: false
+            referencedRelation: "leaderboard_top100"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "google_reviews_lounge_id_fkey"
             columns: ["lounge_id"]
@@ -476,6 +490,13 @@ export type Database = {
             foreignKeyName: "review_classifications_lounge_id_fkey"
             columns: ["lounge_id"]
             isOneToOne: false
+            referencedRelation: "leaderboard_top100"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "review_classifications_lounge_id_fkey"
+            columns: ["lounge_id"]
+            isOneToOne: false
             referencedRelation: "lounges"
             referencedColumns: ["id"]
           },
@@ -530,6 +551,13 @@ export type Database = {
             foreignKeyName: "reviews_lounge_id_fkey"
             columns: ["lounge_id"]
             isOneToOne: false
+            referencedRelation: "leaderboard_top100"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "reviews_lounge_id_fkey"
+            columns: ["lounge_id"]
+            isOneToOne: false
             referencedRelation: "lounges"
             referencedColumns: ["id"]
           },
@@ -555,7 +583,23 @@ export type Database = {
       }
     }
     Views: {
-      [_ in never]: never
+      leaderboard_top100: {
+        Row: {
+          city_country: string | null
+          city_name: string | null
+          city_slug: string | null
+          connoisseur_score: number | null
+          id: string | null
+          image_url: string | null
+          name: string | null
+          rating: number | null
+          score_label: string | null
+          score_source: string | null
+          slug: string | null
+          type: string | null
+        }
+        Relationships: []
+      }
     }
     Functions: {
       has_role: {
