@@ -14,6 +14,7 @@ import Footer from "@/components/Footer";
 import ReviewForm from "@/components/ReviewForm";
 import ReviewList from "@/components/ReviewList";
 import FavoriteButton from "@/components/FavoriteButton";
+import VisitButton from "@/components/VisitButton";
 import OptimizedImage from "@/components/OptimizedImage";
 import ConnoisseurScoreBadge from "@/components/ConnoisseurScoreBadge";
 import GalleryLightbox from "@/components/GalleryLightbox";
@@ -212,6 +213,7 @@ const LoungePage = () => {
                       ({lounge.review_count} reviews)
                     </span>
                   </div>
+                  <VisitButton loungeId={lounge.id} />
                   <FavoriteButton loungeId={lounge.id} />
                 </div>
               </div>

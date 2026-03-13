@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import logo from "@/assets/logo.png";
-import { Search, Menu, X, User, LogOut, Heart, Sparkles } from "lucide-react";
+import { Search, Menu, X, User, LogOut, Heart, Sparkles, MapPinCheck } from "lucide-react";
 import NotificationBell from "@/components/NotificationBell";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -63,6 +63,11 @@ const Navbar = () => {
             {user ? (
               <div className="flex items-center gap-3">
                 <NotificationBell />
+                <Link to="/visited">
+                  <Button variant="ghost" size="icon" className="text-muted-foreground hover:text-foreground">
+                    <MapPinCheck className="h-4 w-4" />
+                  </Button>
+                </Link>
                 <Link to="/favorites">
                   <Button variant="ghost" size="icon" className="text-muted-foreground hover:text-foreground">
                     <Heart className="h-4 w-4" />
@@ -119,6 +124,14 @@ const Navbar = () => {
                   >
                     <User className="h-5 w-5 text-primary" />
                     My Profile
+                  </Link>
+                  <Link
+                    to="/visited"
+                    onClick={() => setIsOpen(false)}
+                    className="flex items-center gap-3 px-4 py-3.5 rounded-xl text-base font-body text-foreground hover:bg-secondary transition-colors"
+                  >
+                    <MapPinCheck className="h-5 w-5 text-primary" />
+                    My Passport
                   </Link>
                   <Link
                     to="/favorites"

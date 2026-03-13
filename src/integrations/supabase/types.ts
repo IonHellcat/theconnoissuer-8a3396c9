@@ -581,6 +581,45 @@ export type Database = {
         }
         Relationships: []
       }
+      visits: {
+        Row: {
+          id: string
+          lounge_id: string
+          note: string | null
+          user_id: string
+          visited_at: string
+        }
+        Insert: {
+          id?: string
+          lounge_id: string
+          note?: string | null
+          user_id: string
+          visited_at?: string
+        }
+        Update: {
+          id?: string
+          lounge_id?: string
+          note?: string | null
+          user_id?: string
+          visited_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "visits_lounge_id_fkey"
+            columns: ["lounge_id"]
+            isOneToOne: false
+            referencedRelation: "leaderboard_top100"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "visits_lounge_id_fkey"
+            columns: ["lounge_id"]
+            isOneToOne: false
+            referencedRelation: "lounges"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       leaderboard_top100: {

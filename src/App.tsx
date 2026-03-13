@@ -33,6 +33,7 @@ const SuggestLoungePage = lazy(() => import("./pages/SuggestLoungePage"));
 const AdminSuggestionsPage = lazy(() => import("./pages/AdminSuggestionsPage"));
 const ForYouPage = lazy(() => import("./pages/ForYouPage"));
 const LeaderboardPage = lazy(() => import("./pages/LeaderboardPage"));
+const VisitedPage = lazy(() => import("./pages/VisitedPage"));
 const NotFound = lazy(() => import("./pages/NotFound"));
 
 const queryClient = new QueryClient({
@@ -74,6 +75,7 @@ const App = () => (
               <Route path="/for-you" element={<LazyRoute skeleton={<ForYouSkeleton />}><ForYouPage /></LazyRoute>} />
               <Route path="/leaderboard" element={<LazyRoute skeleton={<GenericSkeleton />}><LeaderboardPage /></LazyRoute>} />
               <Route path="/favorites" element={<LazyRoute skeleton={<ProfileSkeleton />}><FavoritesPage /></LazyRoute>} />
+              <Route path="/visited" element={<LazyRoute skeleton={<GenericSkeleton />}><VisitedPage /></LazyRoute>} />
               <Route path="/profile" element={<LazyRoute skeleton={<ProfileSkeleton />}><ProfilePage /></LazyRoute>} />
               <Route path="/user/:userId" element={<LazyRoute skeleton={<ProfileSkeleton />}><PublicProfilePage /></LazyRoute>} />
               <Route path="/suggest" element={<LazyRoute skeleton={<GenericSkeleton />}><SuggestLoungePage /></LazyRoute>} />

@@ -3,7 +3,7 @@ import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Helmet } from "react-helmet-async";
 import { motion } from "framer-motion";
-import { User, Star, Heart, Share2 } from "lucide-react";
+import { User, Star, Heart, Share2, MapPinCheck } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
@@ -50,6 +50,21 @@ const PublicProfilePage = () => {
         .select("*, lounges!inner(name, slug, image_url, rating, cities!inner(name))")
         .eq("user_id", userId!)
         .order("created_at", { ascending: false });
+      if (error) throw error;
+      return data;
+    },
+    enabled: !!userId,
+  });
+
+  const { data: visits } = useQuery({
+    queryKey: ["public-visits", userId],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("visits")
+        .select("*, lounges!inner(name, slug, image_url, cities!inner(name))")
+        .eq("user_id", userId!)
+        .order("visited_at", { ascending: false })
+        .limit(4);
       if (error) throw error;
       return data;
     },
@@ -140,6 +155,7 @@ const PublicProfilePage = () => {
                     <div className="flex items-center gap-4 mt-3 text-xs text-muted-foreground font-body">
                       <span>{reviews?.length || 0} reviews</span>
                       <span>{favorites?.length || 0} favorites</span>
+                      <span>{visits?.length || 0} visited</span>
                       <span>
                         Member since{" "}
                         {new Date(profile.created_at).toLocaleDateString("en-US", {
@@ -151,6 +167,46 @@ const PublicProfilePage = () => {
                   </div>
                 </div>
               </motion.div>
+
+              {/* Visited Lounges */}
+              {visits && visits.length > 0 && (
+                <section className="mb-10">
+                  <h2 className="font-display text-xl font-semibold text-foreground flex items-center gap-2 mb-4">
+                    <MapPinCheck className="h-5 w-5 text-primary" />
+                    Visited Lounges
+                    <span className="text-sm font-body font-normal text-muted-foreground ml-1">({visits.length})</span>
+                  </h2>
+                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+                    {visits.map((v: any) => (
+                      <Link
+                        key={v.id}
+                        to={`/lounge/${v.lounges.slug}`}
+                        className="group block rounded-xl overflow-hidden bg-card border border-border/50 hover:border-primary/30 transition-colors"
+                      >
+                        <div className="aspect-[4/3] overflow-hidden">
+                          <OptimizedImage
+                            src={v.lounges.image_url || "/placeholder.svg"}
+                            alt={v.lounges.name}
+                            width={320}
+                            height={240}
+                            sizes="(max-width: 640px) 50vw, 200px"
+                            widths={[160, 320]}
+                            className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
+                          />
+                        </div>
+                        <div className="p-3">
+                          <h3 className="font-display text-sm font-bold text-foreground line-clamp-1 group-hover:text-primary transition-colors">
+                            {v.lounges.name}
+                          </h3>
+                          <p className="text-xs text-muted-foreground font-body mt-0.5">
+                            {v.lounges.cities?.name}
+                          </p>
+                        </div>
+                      </Link>
+                    ))}
+                  </div>
+                </section>
+              )}
 
               {/* Favorites */}
               {favorites && favorites.length > 0 && (
