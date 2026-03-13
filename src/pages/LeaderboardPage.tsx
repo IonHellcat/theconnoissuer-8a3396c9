@@ -22,7 +22,9 @@ interface LeaderboardLounge {
   score_label: string | null;
   score_source: string;
   rating: number;
-  cities: { name: string; slug: string; country: string };
+  city_name: string;
+  city_slug: string;
+  city_country: string;
 }
 
 const RankIcon = ({ rank }: { rank: number }) => {
