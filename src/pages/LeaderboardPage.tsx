@@ -85,7 +85,7 @@ const LeaderboardRow = ({
         </h3>
         <div className="flex items-center gap-2 mt-0.5">
           <span className="text-xs font-body text-muted-foreground truncate">
-            {city?.name}{city?.country ? `, ${city.country}` : ""}
+            {cityName}{cityCountry ? `, ${cityCountry}` : ""}
           </span>
           <span className="text-[10px] font-body px-1.5 py-0.5 rounded-full bg-secondary text-muted-foreground capitalize">
             {lounge.type}
