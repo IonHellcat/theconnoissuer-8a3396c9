@@ -22,7 +22,9 @@ interface LeaderboardLounge {
   score_label: string | null;
   score_source: string;
   rating: number;
-  cities: { name: string; slug: string; country: string };
+  city_name: string;
+  city_slug: string;
+  city_country: string;
 }
 
 const RankIcon = ({ rank }: { rank: number }) => {
@@ -43,7 +45,8 @@ const LeaderboardRow = ({
   lounge: LeaderboardLounge;
   rank: number;
 }) => {
-  const city = lounge.cities;
+  const cityName = lounge.city_name;
+  const cityCountry = lounge.city_country;
   const isTop3 = rank <= 3;
 
   return (
@@ -82,7 +85,7 @@ const LeaderboardRow = ({
         </h3>
         <div className="flex items-center gap-2 mt-0.5">
           <span className="text-xs font-body text-muted-foreground truncate">
-            {city?.name}{city?.country ? `, ${city.country}` : ""}
+            {cityName}{cityCountry ? `, ${cityCountry}` : ""}
           </span>
           <span className="text-[10px] font-body px-1.5 py-0.5 rounded-full bg-secondary text-muted-foreground capitalize">
             {lounge.type}
@@ -112,11 +115,8 @@ const LeaderboardPage = () => {
     queryKey: ["leaderboard"],
     queryFn: async () => {
       const { data, error } = await supabase
-        .from("lounges")
-        .select("id, name, slug, type, image_url, connoisseur_score, score_label, score_source, rating, cities!inner(name, slug, country)")
-        .not("connoisseur_score", "is", null)
-        .order("connoisseur_score", { ascending: false })
-        .limit(100);
+        .from("leaderboard_top100" as any)
+        .select("*");
       if (error) throw error;
       return data as unknown as LeaderboardLounge[];
     },
