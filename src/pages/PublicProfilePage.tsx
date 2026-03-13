@@ -155,6 +155,7 @@ const PublicProfilePage = () => {
                     <div className="flex items-center gap-4 mt-3 text-xs text-muted-foreground font-body">
                       <span>{reviews?.length || 0} reviews</span>
                       <span>{favorites?.length || 0} favorites</span>
+                      <span>{visits?.length || 0} visited</span>
                       <span>
                         Member since{" "}
                         {new Date(profile.created_at).toLocaleDateString("en-US", {
