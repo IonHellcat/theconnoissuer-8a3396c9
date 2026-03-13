@@ -56,6 +56,21 @@ const PublicProfilePage = () => {
     enabled: !!userId,
   });
 
+  const { data: visits } = useQuery({
+    queryKey: ["public-visits", userId],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("visits")
+        .select("*, lounges!inner(name, slug, image_url, cities!inner(name))")
+        .eq("user_id", userId!)
+        .order("visited_at", { ascending: false })
+        .limit(4);
+      if (error) throw error;
+      return data;
+    },
+    enabled: !!userId,
+  });
+
   const displayName = profile?.display_name || "Member";
 
   const handleShare = async () => {
