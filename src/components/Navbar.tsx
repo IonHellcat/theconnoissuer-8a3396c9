@@ -63,6 +63,11 @@ const Navbar = () => {
             {user ? (
               <div className="flex items-center gap-3">
                 <NotificationBell />
+                <Link to="/visited">
+                  <Button variant="ghost" size="icon" className="text-muted-foreground hover:text-foreground">
+                    <MapPinCheck className="h-4 w-4" />
+                  </Button>
+                </Link>
                 <Link to="/favorites">
                   <Button variant="ghost" size="icon" className="text-muted-foreground hover:text-foreground">
                     <Heart className="h-4 w-4" />
