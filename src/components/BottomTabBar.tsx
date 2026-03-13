@@ -1,12 +1,12 @@
 import { Link, useLocation } from "react-router-dom";
-import { Home, Sparkles, Search, Heart, Trophy } from "lucide-react";
+import { Home, Sparkles, Heart, Trophy, MapPinCheck } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 const tabs = [
   { to: "/", label: "Home", icon: Home },
   { to: "/for-you", label: "For You", icon: Sparkles },
   { to: "/leaderboard", label: "Top 100", icon: Trophy },
-  { to: "/explore", label: "Explore", icon: Search },
+  { to: "/visited", label: "Passport", icon: MapPinCheck },
   { to: "/favorites", label: "Favorites", icon: Heart },
 ] as const;
 

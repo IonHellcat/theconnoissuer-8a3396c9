@@ -213,6 +213,7 @@ const LoungePage = () => {
                       ({lounge.review_count} reviews)
                     </span>
                   </div>
+                  <VisitButton loungeId={lounge.id} />
                   <FavoriteButton loungeId={lounge.id} />
                 </div>
               </div>

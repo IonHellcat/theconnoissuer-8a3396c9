@@ -126,6 +126,14 @@ const Navbar = () => {
                     My Profile
                   </Link>
                   <Link
+                    to="/visited"
+                    onClick={() => setIsOpen(false)}
+                    className="flex items-center gap-3 px-4 py-3.5 rounded-xl text-base font-body text-foreground hover:bg-secondary transition-colors"
+                  >
+                    <MapPinCheck className="h-5 w-5 text-primary" />
+                    My Passport
+                  </Link>
+                  <Link
                     to="/favorites"
                     onClick={() => setIsOpen(false)}
                     className="flex items-center gap-3 px-4 py-3.5 rounded-xl text-base font-body text-foreground hover:bg-secondary transition-colors"
