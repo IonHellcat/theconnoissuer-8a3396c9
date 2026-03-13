@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import logo from "@/assets/logo.png";
-import { Search, Menu, X, User, LogOut, Heart, Sparkles } from "lucide-react";
+import { Search, Menu, X, User, LogOut, Heart, Sparkles, MapPinCheck } from "lucide-react";
 import NotificationBell from "@/components/NotificationBell";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
