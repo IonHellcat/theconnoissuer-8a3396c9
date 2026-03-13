@@ -168,6 +168,46 @@ const PublicProfilePage = () => {
                 </div>
               </motion.div>
 
+              {/* Visited Lounges */}
+              {visits && visits.length > 0 && (
+                <section className="mb-10">
+                  <h2 className="font-display text-xl font-semibold text-foreground flex items-center gap-2 mb-4">
+                    <MapPinCheck className="h-5 w-5 text-primary" />
+                    Visited Lounges
+                    <span className="text-sm font-body font-normal text-muted-foreground ml-1">({visits.length})</span>
+                  </h2>
+                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+                    {visits.map((v: any) => (
+                      <Link
+                        key={v.id}
+                        to={`/lounge/${v.lounges.slug}`}
+                        className="group block rounded-xl overflow-hidden bg-card border border-border/50 hover:border-primary/30 transition-colors"
+                      >
+                        <div className="aspect-[4/3] overflow-hidden">
+                          <OptimizedImage
+                            src={v.lounges.image_url || "/placeholder.svg"}
+                            alt={v.lounges.name}
+                            width={320}
+                            height={240}
+                            sizes="(max-width: 640px) 50vw, 200px"
+                            widths={[160, 320]}
+                            className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
+                          />
+                        </div>
+                        <div className="p-3">
+                          <h3 className="font-display text-sm font-bold text-foreground line-clamp-1 group-hover:text-primary transition-colors">
+                            {v.lounges.name}
+                          </h3>
+                          <p className="text-xs text-muted-foreground font-body mt-0.5">
+                            {v.lounges.cities?.name}
+                          </p>
+                        </div>
+                      </Link>
+                    ))}
+                  </div>
+                </section>
+              )}
+
               {/* Favorites */}
               {favorites && favorites.length > 0 && (
                 <section className="mb-10">
