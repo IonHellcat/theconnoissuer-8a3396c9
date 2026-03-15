@@ -67,6 +67,18 @@ serve(async () => {
     }
   }
 
+  if (guides) {
+    for (const guide of guides) {
+      xml += `
+  <url>
+    <loc>${BASE_URL}/guide/${guide.slug}</loc>
+    <lastmod>${new Date(guide.updated_at).toISOString().split("T")[0]}</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.8</priority>
+  </url>`;
+    }
+  }
+
   xml += `
 </urlset>`;
 
