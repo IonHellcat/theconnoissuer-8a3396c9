@@ -19,6 +19,12 @@ serve(async () => {
     .select("slug, updated_at")
     .order("updated_at", { ascending: false });
 
+  const { data: guides } = await supabase
+    .from("guides")
+    .select("slug, updated_at")
+    .eq("published", true)
+    .order("published_at", { ascending: false });
+
   let xml = `<?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
   <url>
@@ -28,6 +34,11 @@ serve(async () => {
   </url>
   <url>
     <loc>${BASE_URL}/explore</loc>
+    <changefreq>weekly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>${BASE_URL}/guides</loc>
     <changefreq>weekly</changefreq>
     <priority>0.8</priority>
   </url>`;
@@ -52,6 +63,18 @@ serve(async () => {
     <lastmod>${new Date(lounge.updated_at).toISOString().split("T")[0]}</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.6</priority>
+  </url>`;
+    }
+  }
+
+  if (guides) {
+    for (const guide of guides) {
+      xml += `
+  <url>
+    <loc>${BASE_URL}/guide/${guide.slug}</loc>
+    <lastmod>${new Date(guide.updated_at).toISOString().split("T")[0]}</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.8</priority>
   </url>`;
     }
   }

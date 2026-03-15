@@ -34,6 +34,8 @@ const AdminSuggestionsPage = lazy(() => import("./pages/AdminSuggestionsPage"));
 const ForYouPage = lazy(() => import("./pages/ForYouPage"));
 const LeaderboardPage = lazy(() => import("./pages/LeaderboardPage"));
 const VisitedPage = lazy(() => import("./pages/VisitedPage"));
+const GuidePage = lazy(() => import("./pages/GuidePage"));
+const GuidesIndexPage = lazy(() => import("./pages/GuidesIndexPage"));
 const NotFound = lazy(() => import("./pages/NotFound"));
 
 const queryClient = new QueryClient({
@@ -79,6 +81,8 @@ const App = () => (
               <Route path="/profile" element={<LazyRoute skeleton={<ProfileSkeleton />}><ProfilePage /></LazyRoute>} />
               <Route path="/user/:userId" element={<LazyRoute skeleton={<ProfileSkeleton />}><PublicProfilePage /></LazyRoute>} />
               <Route path="/suggest" element={<LazyRoute skeleton={<GenericSkeleton />}><SuggestLoungePage /></LazyRoute>} />
+              <Route path="/guides" element={<LazyRoute skeleton={<GenericSkeleton />}><GuidesIndexPage /></LazyRoute>} />
+              <Route path="/guide/:slug" element={<LazyRoute skeleton={<GenericSkeleton />}><GuidePage /></LazyRoute>} />
               <Route path="/admin/pending" element={<LazyRoute skeleton={<AdminSkeleton />}><AdminRoute><AdminPendingPage /></AdminRoute></LazyRoute>} />
               <Route path="/admin/generate-descriptions" element={<LazyRoute skeleton={<AdminSkeleton />}><AdminRoute><GenerateDescriptionsPage /></AdminRoute></LazyRoute>} />
               <Route path="/admin/generate-features" element={<LazyRoute skeleton={<AdminSkeleton />}><AdminRoute><GenerateFeaturesPage /></AdminRoute></LazyRoute>} />

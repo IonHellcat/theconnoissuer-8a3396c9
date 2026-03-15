@@ -152,6 +152,54 @@ export type Database = {
           },
         ]
       }
+      guides: {
+        Row: {
+          content: Json
+          country: string | null
+          created_at: string | null
+          guide_type: string
+          hero_subtitle: string | null
+          id: string
+          meta_description: string
+          published: boolean | null
+          published_at: string | null
+          related_city_slugs: string[] | null
+          slug: string
+          title: string
+          updated_at: string | null
+        }
+        Insert: {
+          content?: Json
+          country?: string | null
+          created_at?: string | null
+          guide_type?: string
+          hero_subtitle?: string | null
+          id?: string
+          meta_description: string
+          published?: boolean | null
+          published_at?: string | null
+          related_city_slugs?: string[] | null
+          slug: string
+          title: string
+          updated_at?: string | null
+        }
+        Update: {
+          content?: Json
+          country?: string | null
+          created_at?: string | null
+          guide_type?: string
+          hero_subtitle?: string | null
+          id?: string
+          meta_description?: string
+          published?: boolean | null
+          published_at?: string | null
+          related_city_slugs?: string[] | null
+          slug?: string
+          title?: string
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
       lounge_suggestions: {
         Row: {
           address: string | null
