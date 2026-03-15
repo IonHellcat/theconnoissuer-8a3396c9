@@ -17,7 +17,12 @@ interface CityCardBlock { type: "city_card"; city_slug: string; subtitle?: strin
 interface PullquoteBlock { type: "pullquote"; text: string }
 interface CalloutBlock { type: "callout"; label?: string; body: string }
 interface FaqBlock { type: "faq"; items: { question: string; answer: string }[] }
-type ContentBlock = TextBlock | CityCardBlock | PullquoteBlock | CalloutBlock | FaqBlock;
+interface RankingAspect { name: string; type: "strength" | "weakness" | "mixed" }
+interface RankingItem { rank: number; name: string; label?: string | null; detail?: string; score: number; aspects?: RankingAspect[] }
+interface RankingTableBlock { type: "ranking_table"; label?: string; heading?: string; items: RankingItem[]; footer_text?: string; footer_link_text?: string; footer_link_slug?: string }
+interface FactItem { label: string; value: string; detail?: string }
+interface FactsGridBlock { type: "facts_grid"; label?: string; heading?: string; items: FactItem[] }
+type ContentBlock = TextBlock | CityCardBlock | PullquoteBlock | CalloutBlock | FaqBlock | RankingTableBlock | FactsGridBlock;
 
 interface Guide {
   id: string; slug: string; title: string; meta_description: string;
