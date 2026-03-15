@@ -54,6 +54,9 @@ const Navbar = () => {
             <Link to="/for-you" className="text-sm text-muted-foreground hover:text-foreground transition-colors">
               For You
             </Link>
+            <Link to="/guides" className="text-sm text-muted-foreground hover:text-foreground transition-colors">
+              Guides
+            </Link>
             <Link to="/leaderboard" className="text-sm text-muted-foreground hover:text-foreground transition-colors">
               Leaderboard
             </Link>
