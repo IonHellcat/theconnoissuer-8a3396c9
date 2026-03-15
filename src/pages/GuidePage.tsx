@@ -380,6 +380,8 @@ export default function GuidePage() {
                 case "pullquote": return <PullquoteRenderer key={i} block={block} />;
                 case "callout": return <CalloutRenderer key={i} block={block} />;
                 case "faq": return <FaqRenderer key={i} block={block} />;
+                case "ranking_table": return <RankingTableRenderer key={i} block={block as RankingTableBlock} />;
+                case "facts_grid": return <FactsGridRenderer key={i} block={block as FactsGridBlock} />;
                 default: return null;
               }
             })}
