@@ -17,7 +17,12 @@ interface CityCardBlock { type: "city_card"; city_slug: string; subtitle?: strin
 interface PullquoteBlock { type: "pullquote"; text: string }
 interface CalloutBlock { type: "callout"; label?: string; body: string }
 interface FaqBlock { type: "faq"; items: { question: string; answer: string }[] }
-type ContentBlock = TextBlock | CityCardBlock | PullquoteBlock | CalloutBlock | FaqBlock;
+interface RankingAspect { name: string; type: "strength" | "weakness" | "mixed" }
+interface RankingItem { rank: number; name: string; label?: string | null; detail?: string; score: number; aspects?: RankingAspect[] }
+interface RankingTableBlock { type: "ranking_table"; label?: string; heading?: string; items: RankingItem[]; footer_text?: string; footer_link_text?: string; footer_link_slug?: string }
+interface FactItem { label: string; value: string; detail?: string }
+interface FactsGridBlock { type: "facts_grid"; label?: string; heading?: string; items: FactItem[] }
+type ContentBlock = TextBlock | CityCardBlock | PullquoteBlock | CalloutBlock | FaqBlock | RankingTableBlock | FactsGridBlock;
 
 interface Guide {
   id: string; slug: string; title: string; meta_description: string;
@@ -45,11 +50,14 @@ function renderMarkdown(text: string) {
 
 /* ── content block renderers ── */
 function TextBlockRenderer({ block }: { block: TextBlock }) {
+  const paragraphs = block.body.split(/\n\n+/);
   return (
-    <section className="space-y-3">
+    <section className="space-y-4">
       {block.label && <p className="text-xs font-semibold tracking-[2px] uppercase text-primary">{block.label}</p>}
       {block.heading && <h2 className="font-display text-2xl sm:text-3xl font-bold">{block.heading}</h2>}
-      <p className="text-muted-foreground leading-relaxed">{renderMarkdown(block.body)}</p>
+      {paragraphs.map((para, i) => (
+        <p key={i} className="text-muted-foreground leading-relaxed">{renderMarkdown(para)}</p>
+      ))}
     </section>
   );
 }
@@ -115,6 +123,77 @@ function FaqRenderer({ block }: { block: FaqBlock }) {
           <p className="text-muted-foreground text-sm leading-relaxed">{item.answer}</p>
         </div>
       ))}
+    </section>
+  );
+}
+
+const aspectColors: Record<string, string> = {
+  strength: "border-green-500/60 text-green-400",
+  weakness: "border-red-400/60 text-red-400",
+  mixed: "border-yellow-500/60 text-yellow-400",
+};
+
+const labelColors: Record<string, string> = {
+  Legendary: "bg-primary text-primary-foreground",
+  Outstanding: "bg-primary/20 text-primary",
+  Excellent: "bg-primary/10 text-primary",
+};
+
+function RankingTableRenderer({ block }: { block: RankingTableBlock }) {
+  return (
+    <section className="space-y-4">
+      {block.label && <p className="text-xs font-semibold tracking-[2px] uppercase text-primary">{block.label}</p>}
+      {block.heading && <h2 className="font-display text-2xl sm:text-3xl font-bold">{block.heading}</h2>}
+      <div className="space-y-2">
+        {block.items.map((item) => (
+          <div key={item.rank} className={`bg-card border border-border/50 rounded-xl p-4 flex items-start gap-4 ${item.rank <= 3 ? "border-l-2 border-l-primary" : ""}`}>
+            <span className="font-display text-xl font-bold text-primary w-8 flex-shrink-0">{item.rank}</span>
+            <div className="flex-1 min-w-0 space-y-1.5">
+              <div className="flex items-center gap-2 flex-wrap">
+                <span className="font-display font-semibold">{item.name}</span>
+                {item.label && <span className={`text-[10px] font-semibold px-2 py-0.5 rounded ${labelColors[item.label] ?? "bg-secondary text-muted-foreground"}`}>{item.label}</span>}
+              </div>
+              {item.detail && <p className="text-xs text-muted-foreground">{item.detail}</p>}
+              {item.aspects && item.aspects.length > 0 && (
+                <div className="flex flex-wrap gap-1.5">
+                  {item.aspects.map(a => (
+                    <span key={a.name} className={`text-[10px] px-2 py-0.5 rounded-full border ${aspectColors[a.type] ?? "border-border text-muted-foreground"}`}>{a.name}</span>
+                  ))}
+                </div>
+              )}
+            </div>
+            <span className="font-display text-xl font-bold text-primary flex-shrink-0">{item.score}</span>
+          </div>
+        ))}
+      </div>
+      {(block.footer_text || block.footer_link_slug) && (
+        <div className="text-center pt-4 space-y-3">
+          {block.footer_text && <p className="text-sm text-muted-foreground">{block.footer_text}</p>}
+          {block.footer_link_slug && (
+            <Link to={`/city/${block.footer_link_slug}`} className="inline-flex items-center gap-2 text-sm font-semibold text-primary border border-primary/50 rounded-lg px-6 py-3 hover:bg-primary/10 transition-colors">
+              {block.footer_link_text ?? "See All Venues →"}
+            </Link>
+          )}
+        </div>
+      )}
+    </section>
+  );
+}
+
+function FactsGridRenderer({ block }: { block: FactsGridBlock }) {
+  return (
+    <section className="space-y-4">
+      {block.label && <p className="text-xs font-semibold tracking-[2px] uppercase text-primary">{block.label}</p>}
+      {block.heading && <h2 className="font-display text-2xl sm:text-3xl font-bold">{block.heading}</h2>}
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+        {block.items.map((item, i) => (
+          <div key={i} className="bg-card border border-border/50 rounded-xl p-5 space-y-1">
+            <p className="text-[10px] font-semibold tracking-[2px] uppercase text-primary">{item.label}</p>
+            <p className="font-display text-xl font-bold">{item.value}</p>
+            {item.detail && <p className="text-xs text-muted-foreground leading-relaxed">{item.detail}</p>}
+          </div>
+        ))}
+      </div>
     </section>
   );
 }
@@ -304,6 +383,8 @@ export default function GuidePage() {
                 case "pullquote": return <PullquoteRenderer key={i} block={block} />;
                 case "callout": return <CalloutRenderer key={i} block={block} />;
                 case "faq": return <FaqRenderer key={i} block={block} />;
+                case "ranking_table": return <RankingTableRenderer key={i} block={block as RankingTableBlock} />;
+                case "facts_grid": return <FactsGridRenderer key={i} block={block as FactsGridBlock} />;
                 default: return null;
               }
             })}
