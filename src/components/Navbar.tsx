@@ -118,6 +118,13 @@ const Navbar = () => {
             </form>
 
             <nav className="flex flex-col gap-1">
+              <Link
+                to="/guides"
+                onClick={() => setIsOpen(false)}
+                className="flex items-center gap-3 px-4 py-3.5 rounded-xl text-base font-body text-foreground hover:bg-secondary transition-colors"
+              >
+                Guides
+              </Link>
               {user ? (
                 <>
                   <Link
