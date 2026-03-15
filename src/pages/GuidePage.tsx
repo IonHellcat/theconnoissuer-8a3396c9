@@ -124,6 +124,77 @@ function FaqRenderer({ block }: { block: FaqBlock }) {
   );
 }
 
+const aspectColors: Record<string, string> = {
+  strength: "border-green-500/60 text-green-400",
+  weakness: "border-red-400/60 text-red-400",
+  mixed: "border-yellow-500/60 text-yellow-400",
+};
+
+const labelColors: Record<string, string> = {
+  Legendary: "bg-primary text-primary-foreground",
+  Outstanding: "bg-primary/20 text-primary",
+  Excellent: "bg-primary/10 text-primary",
+};
+
+function RankingTableRenderer({ block }: { block: RankingTableBlock }) {
+  return (
+    <section className="space-y-4">
+      {block.label && <p className="text-xs font-semibold tracking-[2px] uppercase text-primary">{block.label}</p>}
+      {block.heading && <h2 className="font-display text-2xl sm:text-3xl font-bold">{block.heading}</h2>}
+      <div className="space-y-2">
+        {block.items.map((item) => (
+          <div key={item.rank} className={`bg-card border border-border/50 rounded-xl p-4 flex items-start gap-4 ${item.rank <= 3 ? "border-l-2 border-l-primary" : ""}`}>
+            <span className="font-display text-xl font-bold text-primary w-8 flex-shrink-0">{item.rank}</span>
+            <div className="flex-1 min-w-0 space-y-1.5">
+              <div className="flex items-center gap-2 flex-wrap">
+                <span className="font-display font-semibold">{item.name}</span>
+                {item.label && <span className={`text-[10px] font-semibold px-2 py-0.5 rounded ${labelColors[item.label] ?? "bg-secondary text-muted-foreground"}`}>{item.label}</span>}
+              </div>
+              {item.detail && <p className="text-xs text-muted-foreground">{item.detail}</p>}
+              {item.aspects && item.aspects.length > 0 && (
+                <div className="flex flex-wrap gap-1.5">
+                  {item.aspects.map(a => (
+                    <span key={a.name} className={`text-[10px] px-2 py-0.5 rounded-full border ${aspectColors[a.type] ?? "border-border text-muted-foreground"}`}>{a.name}</span>
+                  ))}
+                </div>
+              )}
+            </div>
+            <span className="font-display text-xl font-bold text-primary flex-shrink-0">{item.score}</span>
+          </div>
+        ))}
+      </div>
+      {(block.footer_text || block.footer_link_slug) && (
+        <div className="text-center pt-4 space-y-3">
+          {block.footer_text && <p className="text-sm text-muted-foreground">{block.footer_text}</p>}
+          {block.footer_link_slug && (
+            <Link to={`/city/${block.footer_link_slug}`} className="inline-flex items-center gap-2 text-sm font-semibold text-primary border border-primary/50 rounded-lg px-6 py-3 hover:bg-primary/10 transition-colors">
+              {block.footer_link_text ?? "See All Venues →"}
+            </Link>
+          )}
+        </div>
+      )}
+    </section>
+  );
+}
+
+function FactsGridRenderer({ block }: { block: FactsGridBlock }) {
+  return (
+    <section className="space-y-4">
+      {block.label && <p className="text-xs font-semibold tracking-[2px] uppercase text-primary">{block.label}</p>}
+      {block.heading && <h2 className="font-display text-2xl sm:text-3xl font-bold">{block.heading}</h2>}
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+        {block.items.map((item, i) => (
+          <div key={i} className="bg-card border border-border/50 rounded-xl p-5 space-y-1">
+            <p className="text-[10px] font-semibold tracking-[2px] uppercase text-primary">{item.label}</p>
+            <p className="font-display text-xl font-bold">{item.value}</p>
+            {item.detail && <p className="text-xs text-muted-foreground leading-relaxed">{item.detail}</p>}
+          </div>
+        ))}
+      </div>
+    </section>
+  );
+}
+
 /* ── page ── */
 export default function GuidePage() {
   const { slug } = useParams<{ slug: string }>();
