@@ -34,6 +34,8 @@ const AdminSuggestionsPage = lazy(() => import("./pages/AdminSuggestionsPage"));
 const ForYouPage = lazy(() => import("./pages/ForYouPage"));
 const LeaderboardPage = lazy(() => import("./pages/LeaderboardPage"));
 const VisitedPage = lazy(() => import("./pages/VisitedPage"));
+const GuidePage = lazy(() => import("./pages/GuidePage"));
+const GuidesIndexPage = lazy(() => import("./pages/GuidesIndexPage"));
 const NotFound = lazy(() => import("./pages/NotFound"));
 
 const queryClient = new QueryClient({
