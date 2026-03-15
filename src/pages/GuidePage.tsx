@@ -50,11 +50,14 @@ function renderMarkdown(text: string) {
 
 /* ── content block renderers ── */
 function TextBlockRenderer({ block }: { block: TextBlock }) {
+  const paragraphs = block.body.split(/\n\n+/);
   return (
-    <section className="space-y-3">
+    <section className="space-y-4">
       {block.label && <p className="text-xs font-semibold tracking-[2px] uppercase text-primary">{block.label}</p>}
       {block.heading && <h2 className="font-display text-2xl sm:text-3xl font-bold">{block.heading}</h2>}
-      <p className="text-muted-foreground leading-relaxed">{renderMarkdown(block.body)}</p>
+      {paragraphs.map((para, i) => (
+        <p key={i} className="text-muted-foreground leading-relaxed">{renderMarkdown(para)}</p>
+      ))}
     </section>
   );
 }
