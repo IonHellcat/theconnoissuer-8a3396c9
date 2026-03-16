@@ -160,13 +160,12 @@ export const ScoreLoungeRow = ({
             </div>
             <div className="flex-1 space-y-2">
               {result.components && (
-                <div className="grid grid-cols-5 gap-2 text-center">
+                <div className="grid grid-cols-4 gap-2 text-center">
                   {[
-                    { label: "Quality", value: result.components.quality, weight: "42%" },
+                    { label: "Quality", value: result.components.quality, weight: "35%" },
                     { label: "Sentiment", value: result.components.sentiment, weight: "30%" },
-                    { label: "Prestige", value: result.components.prestige, weight: "12%" },
-                    { label: "Volume", value: result.components.volume, weight: "8%" },
-                    { label: "Consistency", value: result.components.consistency, weight: "8%" },
+                    { label: "Volume", value: result.components.volume, weight: "25%" },
+                    { label: "Consistency", value: result.components.consistency, weight: "10%" },
                   ].map((c) => (
                     <div key={c.label} className="bg-card rounded-md p-2">
                       <p className="text-[9px] text-muted-foreground font-body uppercase">{c.label} ({c.weight})</p>
