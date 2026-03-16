@@ -31,7 +31,7 @@ function clampScore(value: number): number {
 
 function buildCountryMedianMap(
   rows: Array<{ review_count: number | null; city_id: string | null }>,
-  cityCountryMap: Map<string, string>
+  cityCountryMap: Map<string, string>,
 ): Map<string, number> {
   const countryGroups = new Map<string, number[]>();
 
@@ -48,9 +48,7 @@ function buildCountryMedianMap(
   countryGroups.forEach((counts, country) => {
     const sorted = [...counts].sort((a, b) => a - b);
     const mid = Math.floor(sorted.length / 2);
-    const median = sorted.length % 2 === 0
-      ? (sorted[mid - 1] + sorted[mid]) / 2
-      : sorted[mid];
+    const median = sorted.length % 2 === 0 ? (sorted[mid - 1] + sorted[mid]) / 2 : sorted[mid];
     medianMap.set(country, Math.max(1, Math.round(median)));
   });
 
@@ -66,10 +64,7 @@ function computeQualityScore(rating: number, reviewCount: number, globalMean: nu
   return Math.round(clampScore(Math.pow(normalized, 1.5) * 100));
 }
 
-function computeSentimentScore(
-  classifications: Array<{ aspects: Record<string, any> }>,
-  aspects: string[]
-): number {
+function computeSentimentScore(classifications: Array<{ aspects: Record<string, any> }>, aspects: string[]): number {
   if (classifications.length === 0) return 50;
 
   // 1. Aspect-level sentiment (positive vs negative mentions across all aspects)
@@ -79,8 +74,12 @@ function computeSentimentScore(
   for (const c of classifications) {
     for (const aspect of aspects) {
       const val = c.aspects?.[aspect];
-      if (val === "positive") { totalPositive++; totalMentioned++; }
-      else if (val === "negative") { totalMentioned++; }
+      if (val === "positive") {
+        totalPositive++;
+        totalMentioned++;
+      } else if (val === "negative") {
+        totalMentioned++;
+      }
     }
   }
 
@@ -88,11 +87,11 @@ function computeSentimentScore(
 
   // 2. Overall sentiment (from the overall_sentiment field on each classification)
   const SENTIMENT_MAP: Record<string, number> = {
-    "strong_positive": 1.0,
-    "positive": 0.75,
-    "neutral": 0.5,
-    "negative": 0.25,
-    "strong_negative": 0.0,
+    strong_positive: 1.0,
+    positive: 0.75,
+    neutral: 0.5,
+    negative: 0.25,
+    strong_negative: 0.0,
   };
 
   let overallSum = 0;
@@ -117,7 +116,8 @@ function computeSentimentScore(
 
 function computeVolumeScore(reviewCount: number, countryMedian: number): number {
   if (reviewCount <= 0 || countryMedian <= 0) return 0;
-  const ratio = reviewCount / countryMedian;
+  const flooredMedian = Math.max(50, countryMedian);
+  const ratio = reviewCount / flooredMedian;
   return Math.round(clampScore(Math.min(1, Math.log1p(ratio) / Math.log1p(10)) * 100));
 }
 
@@ -137,19 +137,14 @@ function computeConnoisseurScore(
   aspects: string[],
   ratings: number[],
   globalMean: number,
-  countryMedian: number
+  countryMedian: number,
 ): { score: number; quality: number; sentiment: number; volume: number; consistency: number } {
   const quality = computeQualityScore(rating, reviewCount, globalMean);
   const sentiment = computeSentimentScore(classifications, aspects);
   const volume = computeVolumeScore(reviewCount, countryMedian);
   const consistency = computeConsistencyScore(ratings);
 
-  const score = Math.round(
-    quality * 0.35 +
-    sentiment * 0.30 +
-    volume * 0.25 +
-    consistency * 0.10
-  );
+  const score = Math.round(quality * 0.35 + sentiment * 0.3 + volume * 0.25 + consistency * 0.1);
 
   return { score, quality, sentiment, volume, consistency };
 }
@@ -163,16 +158,23 @@ function computeConfidence(reviewCount: number): string {
 // ─── Build pillar_scores from classifications ───
 function buildPillarScores(
   classifications: Array<{ aspects: Record<string, any> }>,
-  aspects: string[]
+  aspects: string[],
 ): Record<string, { sentiment: string; positive: number; negative: number; total: number }> {
   const result: Record<string, { sentiment: string; positive: number; negative: number; total: number }> = {};
 
   for (const aspect of aspects) {
-    let pos = 0, neg = 0, total = 0;
+    let pos = 0,
+      neg = 0,
+      total = 0;
     for (const c of classifications) {
       const val = c.aspects?.[aspect];
-      if (val === "positive") { pos++; total++; }
-      else if (val === "negative") { neg++; total++; }
+      if (val === "positive") {
+        pos++;
+        total++;
+      } else if (val === "negative") {
+        neg++;
+        total++;
+      }
     }
 
     let sentiment = "not_mentioned";
@@ -193,37 +195,38 @@ function buildPillarScores(
 // ─── Shared helpers for scoring context ───
 async function buildScoringContext(serviceClient: any) {
   // Global mean rating
-  const { data: allRatings } = await serviceClient
-    .from("lounges")
-    .select("rating")
-    .not("rating", "is", null);
-  const globalMean = allRatings && allRatings.length > 0
-    ? allRatings.reduce((sum: number, r: any) => sum + Number(r.rating), 0) / allRatings.length
-    : 4.1;
+  const { data: allRatings } = await serviceClient.from("lounges").select("rating").not("rating", "is", null);
+  const globalMean =
+    allRatings && allRatings.length > 0
+      ? allRatings.reduce((sum: number, r: any) => sum + Number(r.rating), 0) / allRatings.length
+      : 4.1;
 
   // Build city → country lookup
-  const { data: allCities } = await serviceClient
-    .from("cities")
-    .select("id, country");
+  const { data: allCities } = await serviceClient.from("cities").select("id, country");
   const cityCountryMap = new Map<string, string>();
-  for (const city of (allCities || [])) {
+  for (const city of allCities || []) {
     cityCountryMap.set(city.id, city.country);
   }
 
   // Build country → median review count
-  const { data: allLoungeStats } = await serviceClient
-    .from("lounges")
-    .select("review_count, city_id");
+  const { data: allLoungeStats } = await serviceClient.from("lounges").select("review_count, city_id");
   const countryMedianMap = buildCountryMedianMap(allLoungeStats || [], cityCountryMap);
 
   // Global fallback median
-  const allCounts = (allLoungeStats || []).map((r: any) => Number(r.review_count ?? 0)).sort((a: number, b: number) => a - b);
+  const allCounts = (allLoungeStats || [])
+    .map((r: any) => Number(r.review_count ?? 0))
+    .sort((a: number, b: number) => a - b);
   const globalMedian = allCounts.length > 0 ? allCounts[Math.floor(allCounts.length / 2)] : 100;
 
   return { globalMean, cityCountryMap, countryMedianMap, globalMedian };
 }
 
-function getCountryMedian(cityId: string, cityCountryMap: Map<string, string>, countryMedianMap: Map<string, number>, globalMedian: number): number {
+function getCountryMedian(
+  cityId: string,
+  cityCountryMap: Map<string, string>,
+  countryMedianMap: Map<string, number>,
+  globalMedian: number,
+): number {
   const country = cityCountryMap.get(cityId) || "";
   return countryMedianMap.get(country) || globalMedian;
 }
@@ -233,11 +236,9 @@ async function verifyAdmin(req: Request) {
   const authHeader = req.headers.get("Authorization");
   if (!authHeader?.startsWith("Bearer ")) throw new Error("Unauthorized");
 
-  const supabase = createClient(
-    Deno.env.get("SUPABASE_URL")!,
-    Deno.env.get("SUPABASE_ANON_KEY")!,
-    { global: { headers: { Authorization: authHeader } } }
-  );
+  const supabase = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_ANON_KEY")!, {
+    global: { headers: { Authorization: authHeader } },
+  });
 
   const token = authHeader.replace("Bearer ", "");
   const { data: claimsData, error: claimsError } = await supabase.auth.getClaims(token);
@@ -253,7 +254,7 @@ async function verifyAdmin(req: Request) {
 // ─── AI Classification ───
 async function classifyReviewsBatch(
   reviews: Array<{ id: string; review_text: string; rating: number | null }>,
-  venueType: string
+  venueType: string,
 ): Promise<Array<{ review_id: string; aspects: Record<string, string> }>> {
   const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
   if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY not configured");
@@ -261,9 +262,9 @@ async function classifyReviewsBatch(
   const aspects = getAspects(venueType);
   const aspectList = aspects.join(", ");
 
-  const reviewBlock = reviews.map((r, i) =>
-    `Review ${i + 1} (ID: ${r.id}, ${r.rating ?? "?"}★): ${r.review_text}`
-  ).join("\n\n");
+  const reviewBlock = reviews
+    .map((r, i) => `Review ${i + 1} (ID: ${r.id}, ${r.rating ?? "?"}★): ${r.review_text}`)
+    .join("\n\n");
 
   const prompt = `Classify each review's sentiment for these aspects: ${aspectList}.
 
@@ -295,7 +296,10 @@ Return a JSON array where each element has:
     body: JSON.stringify({
       model: "google/gemini-2.5-flash",
       messages: [
-        { role: "system", content: "You are a review sentiment classifier. Return ONLY valid JSON, no markdown fences." },
+        {
+          role: "system",
+          content: "You are a review sentiment classifier. Return ONLY valid JSON, no markdown fences.",
+        },
         { role: "user", content: prompt },
       ],
     }),
@@ -327,7 +331,7 @@ Return a JSON array where each element has:
 async function generateSummary(
   loungeName: string,
   pillarScores: Record<string, any>,
-  topReviews: string[]
+  topReviews: string[],
 ): Promise<string> {
   const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
   if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY not configured");
@@ -362,7 +366,10 @@ Rules:
     body: JSON.stringify({
       model: "google/gemini-2.5-flash",
       messages: [
-        { role: "system", content: "You write concise, honest one-sentence venue summaries. Return ONLY the sentence, nothing else." },
+        {
+          role: "system",
+          content: "You write concise, honest one-sentence venue summaries. Return ONLY the sentence, nothing else.",
+        },
         { role: "user", content: prompt },
       ],
     }),
@@ -388,32 +395,40 @@ serve(async (req) => {
     const { action } = body;
 
     const validActions = [
-      "fetch-reviews", "classify", "compute-scores", "summarize",
-      "mark-no-reviews", "save", "bulk-pipeline", "bulk-pipeline-chunk",
-      "bulk-full-pipeline-chunk", "reset-all", "recalculate-scores-chunk",
+      "fetch-reviews",
+      "classify",
+      "compute-scores",
+      "summarize",
+      "mark-no-reviews",
+      "save",
+      "bulk-pipeline",
+      "bulk-pipeline-chunk",
+      "bulk-full-pipeline-chunk",
+      "reset-all",
+      "recalculate-scores-chunk",
     ];
     if (!action || !validActions.includes(action)) {
-      return new Response(
-        JSON.stringify({ error: `Invalid action. Must be one of: ${validActions.join(", ")}` }),
-        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
+      return new Response(JSON.stringify({ error: `Invalid action. Must be one of: ${validActions.join(", ")}` }), {
+        status: 400,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
     }
 
-    const serviceClient = createClient(
-      Deno.env.get("SUPABASE_URL")!,
-      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
-    );
+    const serviceClient = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
 
     // ═══ FETCH REVIEWS ═══
     if (action === "fetch-reviews") {
       const { lounge_id, google_place_id } = body;
       if (lounge_id && (typeof lounge_id !== "string" || lounge_id.length > 100)) {
-        return new Response(JSON.stringify({ error: "Invalid lounge_id" }),
-          { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+        return new Response(JSON.stringify({ error: "Invalid lounge_id" }), {
+          status: 400,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
       }
       if (!google_place_id) {
-        return new Response(JSON.stringify({ reviews: [], message: "No google_place_id" }),
-          { headers: { ...corsHeaders, "Content-Type": "application/json" } });
+        return new Response(JSON.stringify({ reviews: [], message: "No google_place_id" }), {
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
       }
 
       const GOOGLE_PLACES_API_KEY = Deno.env.get("GOOGLE_PLACES_API_KEY");
@@ -426,10 +441,10 @@ serve(async (req) => {
       if (!gResponse.ok) {
         const errText = await gResponse.text();
         console.error("Google API error:", gResponse.status, errText);
-        return new Response(
-          JSON.stringify({ error: `Google API error: ${gResponse.status}`, reviews: [] }),
-          { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-        );
+        return new Response(JSON.stringify({ error: `Google API error: ${gResponse.status}`, reviews: [] }), {
+          status: 200,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
       }
 
       const gData = await gResponse.json();
@@ -437,8 +452,9 @@ serve(async (req) => {
       const textReviews = rawReviews.filter((r: any) => r.text?.text || r.originalText?.text);
 
       if (textReviews.length === 0) {
-        return new Response(JSON.stringify({ reviews: [], message: "No text reviews found" }),
-          { headers: { ...corsHeaders, "Content-Type": "application/json" } });
+        return new Response(JSON.stringify({ reviews: [], message: "No text reviews found" }), {
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
       }
 
       const reviewRows = textReviews.map((r: any) => ({
@@ -457,18 +473,27 @@ serve(async (req) => {
       const { error: insertError } = await serviceClient.from("google_reviews").insert(reviewRows);
       if (insertError) console.error("Error inserting reviews:", insertError);
 
-      return new Response(JSON.stringify({
-        reviews: reviewRows.map((r: any) => ({
-          author_name: r.author_name, rating: r.rating, review_text: r.review_text, relative_time: r.relative_time,
-        })),
-      }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
+      return new Response(
+        JSON.stringify({
+          reviews: reviewRows.map((r: any) => ({
+            author_name: r.author_name,
+            rating: r.rating,
+            review_text: r.review_text,
+            relative_time: r.relative_time,
+          })),
+        }),
+        { headers: { ...corsHeaders, "Content-Type": "application/json" } },
+      );
     }
 
     // ═══ CLASSIFY ═══
     if (action === "classify") {
       const { lounge_id, venue_type } = body;
-      if (!lounge_id) return new Response(JSON.stringify({ error: "lounge_id required" }),
-        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+      if (!lounge_id)
+        return new Response(JSON.stringify({ error: "lounge_id required" }), {
+          status: 400,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
 
       // Get reviews that haven't been classified yet
       const { data: reviews, error: revErr } = await serviceClient
@@ -478,8 +503,9 @@ serve(async (req) => {
 
       if (revErr) throw revErr;
       if (!reviews || reviews.length === 0) {
-        return new Response(JSON.stringify({ classified: 0, message: "No reviews to classify" }),
-          { headers: { ...corsHeaders, "Content-Type": "application/json" } });
+        return new Response(JSON.stringify({ classified: 0, message: "No reviews to classify" }), {
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
       }
 
       // Check which are already classified
@@ -492,8 +518,9 @@ serve(async (req) => {
       const unclassified = reviews.filter((r: any) => !existingIds.has(r.id));
 
       if (unclassified.length === 0) {
-        return new Response(JSON.stringify({ classified: 0, message: "All reviews already classified" }),
-          { headers: { ...corsHeaders, "Content-Type": "application/json" } });
+        return new Response(JSON.stringify({ classified: 0, message: "All reviews already classified" }), {
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
       }
 
       // Process in batches of 15
@@ -522,27 +549,35 @@ serve(async (req) => {
         } catch (e: any) {
           console.error("Classification batch error:", e.message);
           if (e.message === "RATE_LIMITED") {
-            return new Response(JSON.stringify({ error: "Rate limited" }),
-              { status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+            return new Response(JSON.stringify({ error: "Rate limited" }), {
+              status: 429,
+              headers: { ...corsHeaders, "Content-Type": "application/json" },
+            });
           }
           if (e.message === "CREDITS_EXHAUSTED") {
-            return new Response(JSON.stringify({ error: "Credits exhausted" }),
-              { status: 402, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+            return new Response(JSON.stringify({ error: "Credits exhausted" }), {
+              status: 402,
+              headers: { ...corsHeaders, "Content-Type": "application/json" },
+            });
           }
         }
 
-        if (i + BATCH < unclassified.length) await new Promise(r => setTimeout(r, 500));
+        if (i + BATCH < unclassified.length) await new Promise((r) => setTimeout(r, 500));
       }
 
-      return new Response(JSON.stringify({ classified: classifiedCount, total_reviews: reviews.length }),
-        { headers: { ...corsHeaders, "Content-Type": "application/json" } });
+      return new Response(JSON.stringify({ classified: classifiedCount, total_reviews: reviews.length }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
     }
 
     // ═══ COMPUTE SCORES ═══
     if (action === "compute-scores") {
       const { lounge_id } = body;
-      if (!lounge_id) return new Response(JSON.stringify({ error: "lounge_id required" }),
-        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+      if (!lounge_id)
+        return new Response(JSON.stringify({ error: "lounge_id required" }), {
+          status: 400,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
 
       // Get lounge data
       const { data: lounge, error: lErr } = await serviceClient
@@ -560,15 +595,14 @@ serve(async (req) => {
       if (cErr) throw cErr;
 
       if (!classifications || classifications.length === 0) {
-        return new Response(JSON.stringify({ error: "No classifications found. Run classify first." }),
-          { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+        return new Response(JSON.stringify({ error: "No classifications found. Run classify first." }), {
+          status: 400,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
       }
 
       // Get ratings for consistency calc
-      const { data: reviews } = await serviceClient
-        .from("google_reviews")
-        .select("rating")
-        .eq("lounge_id", lounge_id);
+      const { data: reviews } = await serviceClient.from("google_reviews").select("rating").eq("lounge_id", lounge_id);
 
       // Build scoring context
       const { globalMean, cityCountryMap, countryMedianMap, globalMedian } = await buildScoringContext(serviceClient);
@@ -584,7 +618,7 @@ serve(async (req) => {
         aspects,
         ratings,
         globalMean,
-        countryMedian
+        countryMedian,
       );
 
       const pillarScores = buildPillarScores(classifications, aspects);
@@ -607,20 +641,26 @@ serve(async (req) => {
 
       if (updateErr) throw updateErr;
 
-      return new Response(JSON.stringify({
-        connoisseur_score: score,
-        score_label: scoreLabel,
-        pillar_scores: pillarScores,
-        confidence,
-        components: { quality, sentiment, volume, consistency },
-      }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
+      return new Response(
+        JSON.stringify({
+          connoisseur_score: score,
+          score_label: scoreLabel,
+          pillar_scores: pillarScores,
+          confidence,
+          components: { quality, sentiment, volume, consistency },
+        }),
+        { headers: { ...corsHeaders, "Content-Type": "application/json" } },
+      );
     }
 
     // ═══ SUMMARIZE ═══
     if (action === "summarize") {
       const { lounge_id } = body;
-      if (!lounge_id) return new Response(JSON.stringify({ error: "lounge_id required" }),
-        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+      if (!lounge_id)
+        return new Response(JSON.stringify({ error: "lounge_id required" }), {
+          status: 400,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
 
       const { data: lounge } = await serviceClient
         .from("lounges")
@@ -639,58 +679,62 @@ serve(async (req) => {
       const topSnippets = (reviews || []).map((r: any) => r.review_text?.slice(0, 200) || "");
       const summary = await generateSummary(lounge.name, lounge.pillar_scores || {}, topSnippets);
 
-      const { error } = await serviceClient
-        .from("lounges")
-        .update({ score_summary: summary })
-        .eq("id", lounge_id);
+      const { error } = await serviceClient.from("lounges").update({ score_summary: summary }).eq("id", lounge_id);
 
       if (error) throw error;
 
-      return new Response(JSON.stringify({ summary }),
-        { headers: { ...corsHeaders, "Content-Type": "application/json" } });
+      return new Response(JSON.stringify({ summary }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
     }
 
     // ═══ MARK NO REVIEWS ═══
     if (action === "mark-no-reviews") {
       const { lounge_id } = body;
       if (!lounge_id || typeof lounge_id !== "string" || lounge_id.length > 100) {
-        return new Response(JSON.stringify({ error: "Invalid lounge_id" }),
-          { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+        return new Response(JSON.stringify({ error: "Invalid lounge_id" }), {
+          status: 400,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
       }
 
-      const { error } = await serviceClient
-        .from("lounges")
-        .update({ score_source: "no_reviews" })
-        .eq("id", lounge_id);
+      const { error } = await serviceClient.from("lounges").update({ score_source: "no_reviews" }).eq("id", lounge_id);
       if (error) throw error;
 
-      return new Response(JSON.stringify({ success: true }),
-        { headers: { ...corsHeaders, "Content-Type": "application/json" } });
+      return new Response(JSON.stringify({ success: true }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
     }
 
     // ═══ SAVE (manual override) ═══
     if (action === "save") {
       const { lounge_id, connoisseur_score, score_label, pillar_scores, score_summary } = body;
       if (!lounge_id || typeof lounge_id !== "string") {
-        return new Response(JSON.stringify({ error: "Invalid lounge_id" }),
-          { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+        return new Response(JSON.stringify({ error: "Invalid lounge_id" }), {
+          status: 400,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
       }
 
-      const normalizedScore = typeof connoisseur_score === "number"
-        ? Math.max(0, Math.min(100, Math.round(connoisseur_score)))
-        : null;
+      const normalizedScore =
+        typeof connoisseur_score === "number" ? Math.max(0, Math.min(100, Math.round(connoisseur_score))) : null;
 
       const { error } = await serviceClient
         .from("lounges")
         .update({
-          connoisseur_score: normalizedScore, score_label, score_source: "estimated",
-          score_summary, pillar_scores, scored_at: new Date().toISOString(),
+          connoisseur_score: normalizedScore,
+          score_label,
+          score_source: "estimated",
+          score_summary,
+          pillar_scores,
+          scored_at: new Date().toISOString(),
         })
         .eq("id", lounge_id);
 
       if (error) throw error;
-      return new Response(JSON.stringify({ success: true }),
-        { headers: { ...corsHeaders, "Content-Type": "application/json" } });
+      return new Response(JSON.stringify({ success: true }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
     }
 
     // ═══ BULK PIPELINE (chunk) ═══
@@ -708,8 +752,9 @@ serve(async (req) => {
 
       const total = totalCount ?? 0;
       if (total === 0 || offset >= total) {
-        return new Response(JSON.stringify({ processed: 0, total, next_offset: offset, done: true }),
-          { headers: { ...corsHeaders, "Content-Type": "application/json" } });
+        return new Response(JSON.stringify({ processed: 0, total, next_offset: offset, done: true }), {
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
       }
 
       const { data: lounges, error: loungeError } = await serviceClient
@@ -720,8 +765,9 @@ serve(async (req) => {
         .range(offset, offset + limit - 1);
       if (loungeError) throw loungeError;
       if (!lounges || lounges.length === 0) {
-        return new Response(JSON.stringify({ processed: 0, total, next_offset: offset, done: true }),
-          { headers: { ...corsHeaders, "Content-Type": "application/json" } });
+        return new Response(JSON.stringify({ processed: 0, total, next_offset: offset, done: true }), {
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
       }
 
       // Build scoring context
@@ -729,7 +775,9 @@ serve(async (req) => {
 
       console.log(`Bulk pipeline chunk: ${lounges.length} lounges at offset ${offset}`);
 
-      let scored = 0, skipped = 0, errors = 0;
+      let scored = 0,
+        skipped = 0,
+        errors = 0;
 
       for (const lounge of lounges) {
         try {
@@ -739,7 +787,10 @@ serve(async (req) => {
             .select("id, review_text, rating")
             .eq("lounge_id", lounge.id);
 
-          if (!reviews || reviews.length === 0) { skipped++; continue; }
+          if (!reviews || reviews.length === 0) {
+            skipped++;
+            continue;
+          }
 
           // 2. Classify (skip already-classified)
           const { data: existingC } = await serviceClient
@@ -753,8 +804,10 @@ serve(async (req) => {
             try {
               const results = await classifyReviewsBatch(unclassified, lounge.type);
               const rows = results.map((r: any) => ({
-                review_id: r.review_id, lounge_id: lounge.id,
-                venue_type: lounge.type, aspects: r.aspects,
+                review_id: r.review_id,
+                lounge_id: lounge.id,
+                venue_type: lounge.type,
+                aspects: r.aspects,
               }));
               if (rows.length > 0) {
                 await serviceClient.from("review_classifications").upsert(rows, { onConflict: "review_id" });
@@ -773,7 +826,10 @@ serve(async (req) => {
             .select("aspects")
             .eq("lounge_id", lounge.id);
 
-          if (!allC || allC.length === 0) { skipped++; continue; }
+          if (!allC || allC.length === 0) {
+            skipped++;
+            continue;
+          }
 
           const ratings = reviews.map((r: any) => r.rating).filter((r: number | null): r is number => r !== null);
           const aspects = getAspects(lounge.type);
@@ -786,7 +842,7 @@ serve(async (req) => {
             aspects,
             ratings,
             globalMean,
-            countryMedian
+            countryMedian,
           );
           const pillarScores = buildPillarScores(allC, aspects);
           const confidence = computeConfidence(allC.length);
@@ -797,36 +853,52 @@ serve(async (req) => {
           let summary = "";
           try {
             summary = await generateSummary(lounge.name, pillarScores, topSnippets);
-          } catch { /* non-fatal */ }
+          } catch {
+            /* non-fatal */
+          }
 
           // 5. Save
-          await serviceClient.from("lounges").update({
-            connoisseur_score: score, score_label: scoreLabel, score_source: "estimated",
-            pillar_scores: pillarScores, score_summary: summary || null,
-            confidence, review_data_count: allC.length, scored_at: new Date().toISOString(),
-          }).eq("id", lounge.id);
+          await serviceClient
+            .from("lounges")
+            .update({
+              connoisseur_score: score,
+              score_label: scoreLabel,
+              score_source: "estimated",
+              pillar_scores: pillarScores,
+              score_summary: summary || null,
+              confidence,
+              review_data_count: allC.length,
+              scored_at: new Date().toISOString(),
+            })
+            .eq("id", lounge.id);
 
           scored++;
         } catch (e: any) {
           if (e.message === "RATE_LIMITED") {
-            return new Response(JSON.stringify({ error: "Rate limited", scored, skipped, errors, next_offset: offset, done: false }),
-              { status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+            return new Response(
+              JSON.stringify({ error: "Rate limited", scored, skipped, errors, next_offset: offset, done: false }),
+              { status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+            );
           }
           if (e.message === "CREDITS_EXHAUSTED") {
-            return new Response(JSON.stringify({ error: "Credits exhausted", scored, skipped, errors, next_offset: offset, done: false }),
-              { status: 402, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+            return new Response(
+              JSON.stringify({ error: "Credits exhausted", scored, skipped, errors, next_offset: offset, done: false }),
+              { status: 402, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+            );
           }
           console.error(`Error for ${lounge.name}:`, e.message);
           errors++;
         }
 
         // Brief delay between venues
-        await new Promise(r => setTimeout(r, 300));
+        await new Promise((r) => setTimeout(r, 300));
       }
 
       const nextOffset = offset + lounges.length;
-      return new Response(JSON.stringify({ scored, skipped, errors, total, next_offset: nextOffset, done: nextOffset >= total }),
-        { headers: { ...corsHeaders, "Content-Type": "application/json" } });
+      return new Response(
+        JSON.stringify({ scored, skipped, errors, total, next_offset: nextOffset, done: nextOffset >= total }),
+        { headers: { ...corsHeaders, "Content-Type": "application/json" } },
+      );
     }
 
     // ═══ BULK FULL PIPELINE (fetch + classify + compute + summarize + save) ═══
@@ -847,8 +919,9 @@ serve(async (req) => {
 
       const total = totalCount ?? 0;
       if (total === 0) {
-        return new Response(JSON.stringify({ scored: 0, no_reviews: 0, errors: 0, remaining: 0, done: true }),
-          { headers: { ...corsHeaders, "Content-Type": "application/json" } });
+        return new Response(JSON.stringify({ scored: 0, no_reviews: 0, errors: 0, remaining: 0, done: true }), {
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
       }
 
       // Always fetch the NEXT batch of unscored venues (no offset needed — scored ones drop out)
@@ -861,16 +934,21 @@ serve(async (req) => {
         .limit(limit);
 
       if (!lounges || lounges.length === 0) {
-        return new Response(JSON.stringify({ scored: 0, no_reviews: 0, errors: 0, remaining: 0, done: true }),
-          { headers: { ...corsHeaders, "Content-Type": "application/json" } });
+        return new Response(JSON.stringify({ scored: 0, no_reviews: 0, errors: 0, remaining: 0, done: true }), {
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
       }
 
       // Build scoring context
       const { globalMean, cityCountryMap, countryMedianMap, globalMedian } = await buildScoringContext(serviceClient);
 
-      console.log(`Bulk full pipeline: processing ${lounges.length} venues (${total} remaining), concurrency=${concurrency}`);
+      console.log(
+        `Bulk full pipeline: processing ${lounges.length} venues (${total} remaining), concurrency=${concurrency}`,
+      );
 
-      let scored = 0, no_reviews = 0, errors = 0;
+      let scored = 0,
+        no_reviews = 0,
+        errors = 0;
       let rateLimited = false;
 
       // Process a single venue through the full pipeline
@@ -923,8 +1001,10 @@ serve(async (req) => {
           try {
             const classResults = await classifyReviewsBatch(savedReviews, lounge.type);
             const classRows = classResults.map((r: any) => ({
-              review_id: r.review_id, lounge_id: lounge.id,
-              venue_type: lounge.type, aspects: r.aspects,
+              review_id: r.review_id,
+              lounge_id: lounge.id,
+              venue_type: lounge.type,
+              aspects: r.aspects,
             }));
             if (classRows.length > 0) {
               await serviceClient.from("review_classifications").upsert(classRows, { onConflict: "review_id" });
@@ -954,7 +1034,7 @@ serve(async (req) => {
             aspects,
             ratings,
             globalMean,
-            countryMedian
+            countryMedian,
           );
           const pillarScores = buildPillarScores(allC, aspects);
           const confidence = computeConfidence(allC.length);
@@ -965,14 +1045,24 @@ serve(async (req) => {
           let summary = "";
           try {
             summary = await generateSummary(lounge.name, pillarScores, topSnippets);
-          } catch { /* non-fatal */ }
+          } catch {
+            /* non-fatal */
+          }
 
           // 5. Save
-          await serviceClient.from("lounges").update({
-            connoisseur_score: score, score_label: scoreLabel, score_source: "estimated",
-            pillar_scores: pillarScores, score_summary: summary || null,
-            confidence, review_data_count: allC.length, scored_at: new Date().toISOString(),
-          }).eq("id", lounge.id);
+          await serviceClient
+            .from("lounges")
+            .update({
+              connoisseur_score: score,
+              score_label: scoreLabel,
+              score_source: "estimated",
+              pillar_scores: pillarScores,
+              score_summary: summary || null,
+              confidence,
+              review_data_count: allC.length,
+              scored_at: new Date().toISOString(),
+            })
+            .eq("id", lounge.id);
 
           console.log(`✓ ${lounge.name}: score ${score} (${scoreLabel || "unranked"})`);
           return "scored";
@@ -989,23 +1079,39 @@ serve(async (req) => {
         for (const r of results) {
           if (r === "scored") scored++;
           else if (r === "no_reviews") no_reviews++;
-          else if (r === "rate_limited") { rateLimited = true; errors++; }
-          else errors++;
+          else if (r === "rate_limited") {
+            rateLimited = true;
+            errors++;
+          } else errors++;
         }
       }
 
       if (rateLimited) {
-        return new Response(JSON.stringify({
-          error: "Rate limited", scored, no_reviews, errors,
-          remaining: total - scored - no_reviews - errors, done: false,
-        }), { status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+        return new Response(
+          JSON.stringify({
+            error: "Rate limited",
+            scored,
+            no_reviews,
+            errors,
+            remaining: total - scored - no_reviews - errors,
+            done: false,
+          }),
+          { status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+        );
       }
 
       const remaining = total - scored - no_reviews - errors;
-      return new Response(JSON.stringify({
-        scored, no_reviews, errors, remaining: Math.max(0, remaining),
-        done: remaining <= 0, total,
-      }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
+      return new Response(
+        JSON.stringify({
+          scored,
+          no_reviews,
+          errors,
+          remaining: Math.max(0, remaining),
+          done: remaining <= 0,
+          total,
+        }),
+        { headers: { ...corsHeaders, "Content-Type": "application/json" } },
+      );
     }
 
     // ═══ RECALCULATE SCORES CHUNK (no API, no AI — pure math) ═══
@@ -1028,14 +1134,16 @@ serve(async (req) => {
 
       if (lErr) throw lErr;
       if (!lounges || lounges.length === 0) {
-        return new Response(JSON.stringify({ done: true, processed: 0, total: total || 0 }),
-          { headers: { ...corsHeaders, "Content-Type": "application/json" } });
+        return new Response(JSON.stringify({ done: true, processed: 0, total: total || 0 }), {
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
       }
 
       // Build scoring context
       const { globalMean, cityCountryMap, countryMedianMap, globalMedian } = await buildScoringContext(serviceClient);
 
-      let recalculated = 0, skipped = 0;
+      let recalculated = 0,
+        skipped = 0;
 
       for (const lounge of lounges) {
         // Get existing classifications
@@ -1066,7 +1174,7 @@ serve(async (req) => {
           aspects,
           ratings,
           globalMean,
-          countryMedian
+          countryMedian,
         );
 
         const pillarScores = buildPillarScores(classifications, aspects);
@@ -1088,11 +1196,16 @@ serve(async (req) => {
       }
 
       const nextOffset = offset + lounges.length;
-      return new Response(JSON.stringify({
-        recalculated, skipped, total: total || 0,
-        next_offset: nextOffset,
-        done: nextOffset >= (total || 0),
-      }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
+      return new Response(
+        JSON.stringify({
+          recalculated,
+          skipped,
+          total: total || 0,
+          next_offset: nextOffset,
+          done: nextOffset >= (total || 0),
+        }),
+        { headers: { ...corsHeaders, "Content-Type": "application/json" } },
+      );
     }
 
     // ─── Reset All Scores ───
@@ -1101,32 +1214,42 @@ serve(async (req) => {
       await serviceClient.from("review_classifications").delete().neq("id", "00000000-0000-0000-0000-000000000000");
 
       // Reset all lounge score columns
-      const { error: resetError } = await serviceClient.from("lounges").update({
-        connoisseur_score: null,
-        pillar_scores: null,
-        score_label: null,
-        score_source: "none",
-        score_summary: null,
-        confidence: null,
-        review_data_count: 0,
-        scored_at: null,
-      }).neq("id", "00000000-0000-0000-0000-000000000000");
+      const { error: resetError } = await serviceClient
+        .from("lounges")
+        .update({
+          connoisseur_score: null,
+          pillar_scores: null,
+          score_label: null,
+          score_source: "none",
+          score_summary: null,
+          confidence: null,
+          review_data_count: 0,
+          scored_at: null,
+        })
+        .neq("id", "00000000-0000-0000-0000-000000000000");
 
       if (resetError) throw resetError;
 
-      return new Response(JSON.stringify({ success: true }),
-        { headers: { ...corsHeaders, "Content-Type": "application/json" } });
+      return new Response(JSON.stringify({ success: true }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
     }
 
-    return new Response(JSON.stringify({ error: "Unknown action" }),
-      { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+    return new Response(JSON.stringify({ error: "Unknown action" }), {
+      status: 400,
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
+    });
   } catch (e) {
     console.error("bootstrap-scores error:", e);
-    const status = e instanceof Error && e.message === "Unauthorized" ? 401
-      : e instanceof Error && e.message === "Forbidden" ? 403 : 500;
-    return new Response(
-      JSON.stringify({ error: e instanceof Error ? e.message : "Unknown error" }),
-      { status, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-    );
+    const status =
+      e instanceof Error && e.message === "Unauthorized"
+        ? 401
+        : e instanceof Error && e.message === "Forbidden"
+          ? 403
+          : 500;
+    return new Response(JSON.stringify({ error: e instanceof Error ? e.message : "Unknown error" }), {
+      status,
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
+    });
   }
 });
