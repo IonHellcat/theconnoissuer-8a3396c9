@@ -13,7 +13,7 @@ const ScoreExplainer = () => {
             <Trophy className="h-3.5 w-3.5 text-primary" />
             Connoisseur Score
           </div>
-          <p>A deterministic 0-100 score computed from five weighted components: Rating Quality (42%), Review Sentiment (30%), Prestige (12%), Review Volume (8%), and Rating Consistency (8%).</p>
+          <p>A deterministic 0-100 score computed from four weighted components: Rating Quality (35%), Review Sentiment (30%), Review Volume (25%), and Rating Consistency (10%). Volume is country-normalized so venues compete fairly regardless of local review culture.</p>
         </div>
         <div className="space-y-1">
           <div className="flex items-center gap-1.5 text-foreground font-semibold font-display">
