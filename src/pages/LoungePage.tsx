@@ -294,7 +294,7 @@ const LoungePage = () => {
                                   </TooltipTrigger>
                                   <TooltipContent className="max-w-xs">
                                     <p className="text-xs font-body">
-                                      Deterministic score computed from rating quality, review sentiment, volume, prestige, and consistency.
+                                      Deterministic score computed from rating quality, review sentiment, volume, and consistency.
                                     </p>
                                   </TooltipContent>
                                 </Tooltip>
