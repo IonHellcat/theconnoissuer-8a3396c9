@@ -79,6 +79,7 @@ const App = () => (
               <Route path="/leaderboard" element={<LazyRoute skeleton={<GenericSkeleton />}><LeaderboardPage /></LazyRoute>} />
               <Route path="/favorites" element={<LazyRoute skeleton={<ProfileSkeleton />}><FavoritesPage /></LazyRoute>} />
               <Route path="/visited" element={<LazyRoute skeleton={<GenericSkeleton />}><VisitedPage /></LazyRoute>} />
+              <Route path="/feed" element={<LazyRoute skeleton={<GenericSkeleton />}><ActivityFeedPage /></LazyRoute>} />
               <Route path="/profile" element={<LazyRoute skeleton={<ProfileSkeleton />}><ProfilePage /></LazyRoute>} />
               <Route path="/user/:userId" element={<LazyRoute skeleton={<ProfileSkeleton />}><PublicProfilePage /></LazyRoute>} />
               <Route path="/suggest" element={<LazyRoute skeleton={<GenericSkeleton />}><SuggestLoungePage /></LazyRoute>} />

@@ -41,12 +41,31 @@ const VisitButton = ({ loungeId, className }: VisitButtonProps) => {
         await supabase.from("visits").insert({ user_id: user!.id, lounge_id: loungeId });
       }
     },
-    onSuccess: () => {
+    onSuccess: async () => {
       queryClient.invalidateQueries({ queryKey: ["visit", loungeId] });
       queryClient.invalidateQueries({ queryKey: ["visits"] });
       toast({
         title: visited ? "Removed from passport" : "Added to your passport!",
       });
+      // Check achievements after check-in
+      if (!visited && user) {
+        try {
+          const { data } = await supabase.functions.invoke("check-achievements", {
+            body: { user_id: user.id },
+          });
+          if (data?.new_achievements?.length) {
+            // Fetch achievement names
+            const { data: achievements } = await supabase
+              .from("achievements")
+              .select("key, name")
+              .in("key", data.new_achievements);
+            (achievements || []).forEach((a: any) => {
+              toast({ title: `🏅 Achievement unlocked: ${a.name}` });
+            });
+            queryClient.invalidateQueries({ queryKey: ["user-achievements"] });
+          }
+        } catch {}
+      }
     },
   });
 

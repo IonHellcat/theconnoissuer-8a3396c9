@@ -269,6 +269,13 @@ const PublicProfilePage = () => {
                 </section>
               )}
 
+              {/* Achievements */}
+              {userId && (
+                <section className="mb-10">
+                  <AchievementsGrid userId={userId} showLocked={false} />
+                </section>
+              )}
+
               {/* Reviews */}
               <section>
                 <h2 className="font-display text-xl font-semibold text-foreground mb-4 flex items-center gap-2">

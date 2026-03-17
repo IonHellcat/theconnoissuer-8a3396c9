@@ -381,6 +381,9 @@ const LoungePage = () => {
                     </div>
                   )}
 
+                  {/* Popular at this lounge */}
+                  <PopularAtLounge loungeId={lounge.id} />
+
                   {/* Gallery */}
                   {lounge.gallery && lounge.gallery.length > 0 && (
                     <GalleryLightbox images={lounge.gallery} loungeName={lounge.name} />
