@@ -67,6 +67,39 @@ const VisitedPage = () => {
     },
   });
 
+  const handlePhotoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file || !editingVisit || !user) return;
+    if (!file.type.startsWith("image/")) {
+      toast({ title: "Please select an image", variant: "destructive" });
+      return;
+    }
+    if (file.size > 5 * 1024 * 1024) {
+      toast({ title: "Image must be under 5MB", variant: "destructive" });
+      return;
+    }
+    setUploadingPhoto(true);
+    try {
+      const ext = file.name.split(".").pop();
+      const path = `${user.id}/${editingVisit.id}.${ext}`;
+      const { error: uploadError } = await supabase.storage
+        .from("visit-photos")
+        .upload(path, file, { upsert: true });
+      if (uploadError) throw uploadError;
+      const { data: urlData } = supabase.storage.from("visit-photos").getPublicUrl(path);
+      const imageUrl = `${urlData.publicUrl}?t=${Date.now()}`;
+      await supabase.from("visits").update({ image_url: imageUrl }).eq("id", editingVisit.id);
+      queryClient.invalidateQueries({ queryKey: ["visits"] });
+      setEditingVisit((prev: any) => prev ? { ...prev, image_url: imageUrl } : prev);
+      toast({ title: "Photo uploaded" });
+    } catch {
+      toast({ title: "Failed to upload photo", variant: "destructive" });
+    } finally {
+      setUploadingPhoto(false);
+      if (photoInputRef.current) photoInputRef.current.value = "";
+    }
+  };
+
   const sorted = useMemo(() => {
     if (!visits) return [];
     const arr = [...visits];
