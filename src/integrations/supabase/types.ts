@@ -14,6 +14,42 @@ export type Database = {
   }
   public: {
     Tables: {
+      achievements: {
+        Row: {
+          condition_type: string
+          condition_value: number
+          created_at: string | null
+          description: string
+          icon: string
+          id: string
+          key: string
+          name: string
+          tier: string
+        }
+        Insert: {
+          condition_type: string
+          condition_value: number
+          created_at?: string | null
+          description: string
+          icon: string
+          id?: string
+          key: string
+          name: string
+          tier: string
+        }
+        Update: {
+          condition_type?: string
+          condition_value?: number
+          created_at?: string | null
+          description?: string
+          icon?: string
+          id?: string
+          key?: string
+          name?: string
+          tier?: string
+        }
+        Relationships: []
+      }
       cities: {
         Row: {
           country: string
@@ -190,6 +226,27 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      follows: {
+        Row: {
+          created_at: string | null
+          follower_id: string
+          following_id: string
+          id: string
+        }
+        Insert: {
+          created_at?: string | null
+          follower_id: string
+          following_id: string
+          id?: string
+        }
+        Update: {
+          created_at?: string | null
+          follower_id?: string
+          following_id?: string
+          id?: string
+        }
+        Relationships: []
       }
       google_reviews: {
         Row: {
@@ -722,6 +779,35 @@ export type Database = {
         }
         Relationships: []
       }
+      user_achievements: {
+        Row: {
+          achievement_key: string
+          earned_at: string | null
+          id: string
+          user_id: string
+        }
+        Insert: {
+          achievement_key: string
+          earned_at?: string | null
+          id?: string
+          user_id: string
+        }
+        Update: {
+          achievement_key?: string
+          earned_at?: string | null
+          id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_achievements_achievement_key_fkey"
+            columns: ["achievement_key"]
+            isOneToOne: false
+            referencedRelation: "achievements"
+            referencedColumns: ["key"]
+          },
+        ]
+      }
       user_roles: {
         Row: {
           id: string
@@ -743,6 +829,7 @@ export type Database = {
       visits: {
         Row: {
           id: string
+          image_url: string | null
           lounge_id: string
           note: string | null
           user_id: string
@@ -750,6 +837,7 @@ export type Database = {
         }
         Insert: {
           id?: string
+          image_url?: string | null
           lounge_id: string
           note?: string | null
           user_id: string
@@ -757,6 +845,7 @@ export type Database = {
         }
         Update: {
           id?: string
+          image_url?: string | null
           lounge_id?: string
           note?: string | null
           user_id?: string
@@ -781,6 +870,20 @@ export type Database = {
       }
     }
     Views: {
+      following_activity: {
+        Row: {
+          action_type: string | null
+          actor_avatar_url: string | null
+          actor_display_name: string | null
+          actor_id: string | null
+          city_name: string | null
+          created_at: string | null
+          lounge_image_url: string | null
+          lounge_name: string | null
+          lounge_slug: string | null
+        }
+        Relationships: []
+      }
       leaderboard_top100: {
         Row: {
           city_country: string | null
