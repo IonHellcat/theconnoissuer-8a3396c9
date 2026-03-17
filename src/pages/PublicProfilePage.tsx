@@ -4,6 +4,26 @@ import { supabase } from "@/integrations/supabase/client";
 import { Helmet } from "react-helmet-async";
 import { motion } from "framer-motion";
 import { User, Star, Heart, Share2, MapPinCheck } from "lucide-react";
+import AchievementsGrid from "@/components/AchievementsGrid";
+import FollowButton from "@/components/FollowButton";
+import { useFollows } from "@/hooks/useFollows";
+
+const PublicFollowStats = ({ userId }: { userId: string }) => {
+  const { useFollowerCount, useFollowingCount } = useFollows();
+  const { data: followers } = useFollowerCount(userId);
+  const { data: following } = useFollowingCount(userId);
+  return (
+    <div className="flex items-center gap-3 mt-3">
+      <span className="text-xs font-body text-muted-foreground">
+        <span className="font-semibold text-foreground">{followers ?? 0}</span> Followers
+      </span>
+      <span className="text-muted-foreground">·</span>
+      <span className="text-xs font-body text-muted-foreground">
+        <span className="font-semibold text-foreground">{following ?? 0}</span> Following
+      </span>
+    </div>
+  );
+};
 import { Button } from "@/components/ui/button";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
@@ -146,6 +166,7 @@ const PublicProfilePage = () => {
                       >
                         <Share2 className="h-3.5 w-3.5" />
                       </Button>
+                      {userId && <FollowButton userId={userId} />}
                     </div>
                     {profile.bio && (
                       <p className="text-sm text-muted-foreground font-body mt-1 line-clamp-3">
@@ -164,6 +185,7 @@ const PublicProfilePage = () => {
                         })}
                       </span>
                     </div>
+                    {userId && <PublicFollowStats userId={userId} />}
                   </div>
                 </div>
               </motion.div>
@@ -244,6 +266,13 @@ const PublicProfilePage = () => {
                       </Link>
                     ))}
                   </div>
+                </section>
+              )}
+
+              {/* Achievements */}
+              {userId && (
+                <section className="mb-10">
+                  <AchievementsGrid userId={userId} showLocked={false} />
                 </section>
               )}
 

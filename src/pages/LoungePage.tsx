@@ -22,6 +22,7 @@ import FeatureChips from "@/components/FeatureChips";
 import LoungeDetailsCard from "@/components/LoungeDetailsCard";
 
 import LoungeJsonLd from "@/components/LoungeJsonLd";
+import PopularAtLounge from "@/components/PopularAtLounge";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { useToast } from "@/hooks/use-toast";
 
@@ -379,6 +380,9 @@ const LoungePage = () => {
                       </div>
                     </div>
                   )}
+
+                  {/* Popular at this lounge */}
+                  <PopularAtLounge loungeId={lounge.id} />
 
                   {/* Gallery */}
                   {lounge.gallery && lounge.gallery.length > 0 && (

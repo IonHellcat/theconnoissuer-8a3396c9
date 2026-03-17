@@ -1,9 +1,9 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useRef } from "react";
 import { Link, Navigate } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Helmet } from "react-helmet-async";
 import { motion } from "framer-motion";
-import { MapPinCheck, Pencil, Trash2, Search } from "lucide-react";
+import { MapPinCheck, Pencil, Trash2, Search, Camera, Upload } from "lucide-react";
 import { format } from "date-fns";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
@@ -29,6 +29,8 @@ const VisitedPage = () => {
   const [sort, setSort] = useState<SortKey>("recent");
   const [editingVisit, setEditingVisit] = useState<any | null>(null);
   const [noteText, setNoteText] = useState("");
+  const [uploadingPhoto, setUploadingPhoto] = useState(false);
+  const photoInputRef = useRef<HTMLInputElement>(null);
 
   const { data: visits, isLoading } = useQuery({
     queryKey: ["visits", user?.id],
@@ -64,6 +66,39 @@ const VisitedPage = () => {
       toast({ title: "Note updated" });
     },
   });
+
+  const handlePhotoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file || !editingVisit || !user) return;
+    if (!file.type.startsWith("image/")) {
+      toast({ title: "Please select an image", variant: "destructive" });
+      return;
+    }
+    if (file.size > 5 * 1024 * 1024) {
+      toast({ title: "Image must be under 5MB", variant: "destructive" });
+      return;
+    }
+    setUploadingPhoto(true);
+    try {
+      const ext = file.name.split(".").pop();
+      const path = `${user.id}/${editingVisit.id}.${ext}`;
+      const { error: uploadError } = await supabase.storage
+        .from("visit-photos")
+        .upload(path, file, { upsert: true });
+      if (uploadError) throw uploadError;
+      const { data: urlData } = supabase.storage.from("visit-photos").getPublicUrl(path);
+      const imageUrl = `${urlData.publicUrl}?t=${Date.now()}`;
+      await supabase.from("visits").update({ image_url: imageUrl }).eq("id", editingVisit.id);
+      queryClient.invalidateQueries({ queryKey: ["visits"] });
+      setEditingVisit((prev: any) => prev ? { ...prev, image_url: imageUrl } : prev);
+      toast({ title: "Photo uploaded" });
+    } catch {
+      toast({ title: "Failed to upload photo", variant: "destructive" });
+    } finally {
+      setUploadingPhoto(false);
+      if (photoInputRef.current) photoInputRef.current.value = "";
+    }
+  };
 
   const sorted = useMemo(() => {
     if (!visits) return [];
@@ -234,9 +269,14 @@ const VisitedPage = () => {
                       className="bg-card rounded-xl border border-border/50 overflow-hidden group"
                     >
                       <Link to={`/lounge/${l.slug}`} className="block">
-                        <div className="aspect-[16/9] overflow-hidden">
+                        <div className="aspect-[16/9] overflow-hidden relative">
+                          {v.image_url && (
+                            <div className="absolute top-2 left-2 z-10 bg-background/70 backdrop-blur-sm rounded-full p-1">
+                              <Camera className="h-3 w-3 text-primary" />
+                            </div>
+                          )}
                           <OptimizedImage
-                            src={l.image_url || "/placeholder.svg"}
+                            src={v.image_url || l.image_url || "/placeholder.svg"}
                             alt={l.name}
                             width={400}
                             height={225}
@@ -310,7 +350,7 @@ const VisitedPage = () => {
       <Dialog open={!!editingVisit} onOpenChange={(open) => !open && setEditingVisit(null)}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle className="font-display">Edit Note</DialogTitle>
+            <DialogTitle className="font-display">Edit Note & Photo</DialogTitle>
           </DialogHeader>
           <Textarea
             value={noteText}
@@ -319,6 +359,32 @@ const VisitedPage = () => {
             className="min-h-24"
           />
           <p className="text-xs text-muted-foreground text-right font-body">{noteText.length}/280</p>
+
+          {/* Photo upload */}
+          <div className="space-y-2">
+            <p className="text-sm font-body font-medium text-foreground">Visit Photo</p>
+            {editingVisit?.image_url && (
+              <img src={editingVisit.image_url} alt="Visit" className="w-full h-32 object-cover rounded-lg" />
+            )}
+            <Button
+              variant="outline"
+              size="sm"
+              className="gap-1.5"
+              onClick={() => photoInputRef.current?.click()}
+              disabled={uploadingPhoto}
+            >
+              <Upload className="h-3.5 w-3.5" />
+              {uploadingPhoto ? "Uploading..." : editingVisit?.image_url ? "Replace Photo" : "Add Photo"}
+            </Button>
+            <input
+              ref={photoInputRef}
+              type="file"
+              accept="image/*"
+              className="hidden"
+              onChange={handlePhotoUpload}
+            />
+          </div>
+
           <DialogFooter>
             <Button variant="outline" onClick={() => setEditingVisit(null)}>Cancel</Button>
             <Button onClick={() => updateNote.mutate({ id: editingVisit.id, note: noteText })}>

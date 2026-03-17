@@ -62,6 +62,22 @@ const ReviewForm = ({ loungeId }: ReviewFormProps) => {
       setCigarSmoked("");
       setDrinkPairing("");
       queryClient.invalidateQueries({ queryKey: ["reviews", loungeId] });
+      // Check achievements after review
+      try {
+        const { data } = await supabase.functions.invoke("check-achievements", {
+          body: { user_id: user.id },
+        });
+        if (data?.new_achievements?.length) {
+          const { data: achievements } = await supabase
+            .from("achievements")
+            .select("key, name")
+            .in("key", data.new_achievements);
+          (achievements || []).forEach((a: any) => {
+            toast({ title: `🏅 Achievement unlocked: ${a.name}` });
+          });
+          queryClient.invalidateQueries({ queryKey: ["user-achievements"] });
+        }
+      } catch {}
     }
   };
 

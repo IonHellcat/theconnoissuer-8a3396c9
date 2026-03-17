@@ -6,6 +6,25 @@ import { Navigate, Link } from "react-router-dom";
 import { Helmet } from "react-helmet-async";
 import { motion } from "framer-motion";
 import { User, Star, Heart, MapPin, Camera, Pencil, Save, X, Share2 } from "lucide-react";
+import AchievementsGrid from "@/components/AchievementsGrid";
+import { useFollows } from "@/hooks/useFollows";
+
+const FollowStats = ({ userId }: { userId: string }) => {
+  const { useFollowerCount, useFollowingCount } = useFollows();
+  const { data: followers } = useFollowerCount(userId);
+  const { data: following } = useFollowingCount(userId);
+  return (
+    <div className="flex items-center gap-3 mb-6">
+      <span className="text-sm font-body text-muted-foreground">
+        <span className="font-semibold text-foreground">{followers ?? 0}</span> Followers
+      </span>
+      <span className="text-muted-foreground">·</span>
+      <span className="text-sm font-body text-muted-foreground">
+        <span className="font-semibold text-foreground">{following ?? 0}</span> Following
+      </span>
+    </div>
+  );
+};
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -315,6 +334,16 @@ const ProfilePage = () => {
               </div>
             </section>
           )}
+
+          {/* Achievements */}
+          {user && (
+            <section className="mb-10">
+              <AchievementsGrid userId={user.id} showLocked={true} />
+            </section>
+          )}
+
+          {/* Follower/Following counts */}
+          {user && <FollowStats userId={user.id} />}
 
           {/* Reviews */}
           <section>
