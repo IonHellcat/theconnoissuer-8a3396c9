@@ -166,6 +166,7 @@ const PublicProfilePage = () => {
                       >
                         <Share2 className="h-3.5 w-3.5" />
                       </Button>
+                      {userId && <FollowButton userId={userId} />}
                     </div>
                     {profile.bio && (
                       <p className="text-sm text-muted-foreground font-body mt-1 line-clamp-3">
