@@ -29,6 +29,8 @@ const VisitedPage = () => {
   const [sort, setSort] = useState<SortKey>("recent");
   const [editingVisit, setEditingVisit] = useState<any | null>(null);
   const [noteText, setNoteText] = useState("");
+  const [uploadingPhoto, setUploadingPhoto] = useState(false);
+  const photoInputRef = useRef<HTMLInputElement>(null);
 
   const { data: visits, isLoading } = useQuery({
     queryKey: ["visits", user?.id],
