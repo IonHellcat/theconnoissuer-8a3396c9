@@ -1,8 +1,16 @@
 import { useMemo } from "react";
 import worldData from "@/assets/world-land.json";
 
+export interface MapMarker {
+  id: string;
+  lat: number;
+  lng: number;
+  label?: string;
+}
+
 interface WorldMapSvgProps {
   className?: string;
+  markers?: MapMarker[];
 }
 
 /** Converts GeoJSON lng/lat to simple equirectangular SVG coordinates */
@@ -30,7 +38,7 @@ function featureToPath(geometry: any): string {
   return "";
 }
 
-const WorldMapSvg = ({ className }: WorldMapSvgProps) => {
+const WorldMapSvg = ({ className, markers }: WorldMapSvgProps) => {
   const pathData = useMemo(() => {
     const features = (worldData as any).features;
     return features.map((f: any) => featureToPath(f.geometry)).join(" ");
@@ -42,7 +50,33 @@ const WorldMapSvg = ({ className }: WorldMapSvgProps) => {
       className={className}
       preserveAspectRatio="xMidYMid meet"
     >
+      <defs>
+        <filter id="marker-glow" x="-50%" y="-50%" width="200%" height="200%">
+          <feGaussianBlur stdDeviation="4" result="blur" />
+          <feMerge>
+            <feMergeNode in="blur" />
+            <feMergeNode in="SourceGraphic" />
+          </feMerge>
+        </filter>
+      </defs>
       <path d={pathData} fill="currentColor" fillRule="evenodd" />
+      {markers?.map((m) => {
+        const cx = ((m.lng + 180) / 360) * 1000;
+        const cy = ((90 - m.lat) / 180) * 500;
+        return (
+          <circle
+            key={m.id}
+            cx={cx}
+            cy={cy}
+            r={6}
+            className="fill-primary"
+            filter="url(#marker-glow)"
+            opacity={0.9}
+          >
+            {m.label && <title>{m.label}</title>}
+          </circle>
+        );
+      })}
     </svg>
   );
 };

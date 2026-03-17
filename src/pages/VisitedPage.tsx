@@ -191,27 +191,19 @@ const VisitedPage = () => {
               )}
 
               {/* Map Visualization */}
-              <div className="bg-card rounded-xl border border-border/50 p-6 mb-8 relative overflow-hidden" style={{ minHeight: 240 }}>
+              <div className="bg-card rounded-xl border border-border/50 p-6 mb-8 overflow-hidden" style={{ minHeight: 240 }}>
                 <p className="text-xs text-muted-foreground font-body mb-4">Your visited locations</p>
-                <div className="relative w-full" style={{ height: 200 }}>
-                  <WorldMapSvg className="absolute inset-0 w-full h-full text-muted-foreground opacity-15" />
-                  {/* Visit dots */}
-                  {visits!.map((v: any) => {
-                    const lat = v.lounges?.latitude;
-                    const lng = v.lounges?.longitude;
-                    if (!lat || !lng) return null;
-                    const x = ((Number(lng) + 180) / 360) * 100;
-                    const y = ((90 - Number(lat)) / 180) * 100;
-                    return (
-                      <div
-                        key={v.id}
-                        className="absolute w-3 h-3 rounded-full bg-primary shadow-[0_0_10px_hsl(var(--primary)/0.6)]"
-                        style={{ left: `${x}%`, top: `${y}%`, transform: "translate(-50%, -50%)", zIndex: 10 }}
-                        title={v.lounges?.name}
-                      />
-                    );
-                  })}
-                </div>
+                <WorldMapSvg
+                  className="w-full text-muted-foreground opacity-15"
+                  markers={visits!
+                    .filter((v: any) => v.lounges?.latitude && v.lounges?.longitude)
+                    .map((v: any) => ({
+                      id: v.id,
+                      lat: Number(v.lounges.latitude),
+                      lng: Number(v.lounges.longitude),
+                      label: v.lounges.name,
+                    }))}
+                />
               </div>
 
               {/* Sort + Grid */}
