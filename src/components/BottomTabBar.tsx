@@ -1,5 +1,5 @@
 import { Link, useLocation } from "react-router-dom";
-import { Home, Sparkles, Heart, Trophy, MapPinCheck } from "lucide-react";
+import { Home, Sparkles, Heart, Trophy, MapPinCheck, Rss } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 const tabs = [
