@@ -200,7 +200,7 @@ serve(async (req) => {
           results.push({ city: city.name, status: "success" });
         }
       } catch (err) {
-        results.push({ city: city.name, status: err.message });
+        results.push({ city: city.name, status: "processing error" });
       }
     }
 
