@@ -185,6 +185,7 @@ const PublicProfilePage = () => {
                         })}
                       </span>
                     </div>
+                    {userId && <PublicFollowStats userId={userId} />}
                   </div>
                 </div>
               </motion.div>
