@@ -194,7 +194,7 @@ const VisitedPage = () => {
               <div className="bg-card rounded-xl border border-border/50 p-6 mb-8 overflow-hidden" style={{ minHeight: 240 }}>
                 <p className="text-xs text-muted-foreground font-body mb-4">Your visited locations</p>
                 <WorldMapSvg
-                  className="w-full text-muted-foreground opacity-15"
+                  className="w-full text-muted-foreground/15"
                   markers={visits!
                     .filter((v: any) => v.lounges?.latitude && v.lounges?.longitude)
                     .map((v: any) => ({
