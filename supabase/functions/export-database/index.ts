@@ -89,6 +89,6 @@ Deno.serve(async (req) => {
     });
   } catch (err) {
     console.error("Export error:", err);
-    return new Response(JSON.stringify({ error: err.message }), { status: 500, headers: corsHeaders });
+    return new Response(JSON.stringify({ error: "Internal server error" }), { status: 500, headers: corsHeaders });
   }
 });

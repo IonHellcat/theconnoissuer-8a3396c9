@@ -136,7 +136,7 @@ serve(async (req) => {
     console.error("generate-lounge-description error:", e);
     return new Response(
       JSON.stringify({
-        error: e instanceof Error ? e.message : "Unknown error",
+        error: "Internal server error",
       }),
       {
         status: 500,

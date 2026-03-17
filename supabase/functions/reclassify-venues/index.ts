@@ -196,7 +196,7 @@ Deno.serve(async (req) => {
   } catch (err) {
     console.error("Reclassify error:", err);
     return new Response(
-      JSON.stringify({ error: err instanceof Error ? err.message : "Unknown error" }),
+      JSON.stringify({ error: "Internal server error" }),
       { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   }
