@@ -269,9 +269,14 @@ const VisitedPage = () => {
                       className="bg-card rounded-xl border border-border/50 overflow-hidden group"
                     >
                       <Link to={`/lounge/${l.slug}`} className="block">
-                        <div className="aspect-[16/9] overflow-hidden">
+                        <div className="aspect-[16/9] overflow-hidden relative">
+                          {v.image_url && (
+                            <div className="absolute top-2 left-2 z-10 bg-background/70 backdrop-blur-sm rounded-full p-1">
+                              <Camera className="h-3 w-3 text-primary" />
+                            </div>
+                          )}
                           <OptimizedImage
-                            src={l.image_url || "/placeholder.svg"}
+                            src={v.image_url || l.image_url || "/placeholder.svg"}
                             alt={l.name}
                             width={400}
                             height={225}
