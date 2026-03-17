@@ -316,6 +316,16 @@ const ProfilePage = () => {
             </section>
           )}
 
+          {/* Achievements */}
+          {user && (
+            <section className="mb-10">
+              <AchievementsGrid userId={user.id} showLocked={true} />
+            </section>
+          )}
+
+          {/* Follower/Following counts */}
+          {user && <FollowStats userId={user.id} />}
+
           {/* Reviews */}
           <section>
             <h2 className="font-display text-xl font-semibold text-foreground mb-4 flex items-center gap-2">
