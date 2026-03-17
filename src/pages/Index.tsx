@@ -5,6 +5,7 @@ import WhyConnoisseur from "@/components/WhyConnoisseur";
 import PopularCities from "@/components/PopularCities";
 import ForYouPromo from "@/components/ForYouPromo";
 import Footer from "@/components/Footer";
+import TrendingThisWeek from "@/components/TrendingThisWeek";
 
 const Index = () => {
   return (
