@@ -350,7 +350,7 @@ const VisitedPage = () => {
       <Dialog open={!!editingVisit} onOpenChange={(open) => !open && setEditingVisit(null)}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle className="font-display">Edit Note</DialogTitle>
+            <DialogTitle className="font-display">Edit Note & Photo</DialogTitle>
           </DialogHeader>
           <Textarea
             value={noteText}
@@ -359,6 +359,32 @@ const VisitedPage = () => {
             className="min-h-24"
           />
           <p className="text-xs text-muted-foreground text-right font-body">{noteText.length}/280</p>
+
+          {/* Photo upload */}
+          <div className="space-y-2">
+            <p className="text-sm font-body font-medium text-foreground">Visit Photo</p>
+            {editingVisit?.image_url && (
+              <img src={editingVisit.image_url} alt="Visit" className="w-full h-32 object-cover rounded-lg" />
+            )}
+            <Button
+              variant="outline"
+              size="sm"
+              className="gap-1.5"
+              onClick={() => photoInputRef.current?.click()}
+              disabled={uploadingPhoto}
+            >
+              <Upload className="h-3.5 w-3.5" />
+              {uploadingPhoto ? "Uploading..." : editingVisit?.image_url ? "Replace Photo" : "Add Photo"}
+            </Button>
+            <input
+              ref={photoInputRef}
+              type="file"
+              accept="image/*"
+              className="hidden"
+              onChange={handlePhotoUpload}
+            />
+          </div>
+
           <DialogFooter>
             <Button variant="outline" onClick={() => setEditingVisit(null)}>Cancel</Button>
             <Button onClick={() => updateNote.mutate({ id: editingVisit.id, note: noteText })}>
