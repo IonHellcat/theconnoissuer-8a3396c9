@@ -93,6 +93,7 @@ const App = () => (
               <Route path="/admin/suggestions" element={<LazyRoute skeleton={<AdminSkeleton />}><AdminRoute><AdminSuggestionsPage /></AdminRoute></LazyRoute>} />
               <Route path="*" element={<LazyRoute skeleton={<GenericSkeleton />}><NotFound /></LazyRoute>} />
             </Routes>
+            <ScrollToTop />
             <BottomTabBar />
           </BrowserRouter>
         </TooltipProvider>
