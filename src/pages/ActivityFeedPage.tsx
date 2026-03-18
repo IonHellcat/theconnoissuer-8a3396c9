@@ -513,6 +513,7 @@ const FeedCard = ({
               count={reactionCount}
               reacted={userReacted}
               userId={userId}
+              reactionsQueryKey={reactionsQueryKey}
             />
           </div>
         </div>
