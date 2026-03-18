@@ -57,18 +57,21 @@ const TopFourLounges = ({ userId, editable }: TopFourLoungesProps) => {
     staleTime: 5 * 60 * 1000,
   });
 
-  const { data: searchResults } = useQuery({
-    queryKey: ["lounge-search-top4", debouncedQuery],
+  const { data: visitedLounges } = useQuery({
+    queryKey: ["visited-lounges-for-top4", userId],
     queryFn: async () => {
-      if (debouncedQuery.length < 2) return [];
       const { data } = await supabase
-        .from("lounges")
-        .select("id, name, slug, image_url, cities(name)")
-        .ilike("name", `%${debouncedQuery}%`)
-        .limit(10);
-      return data || [];
+        .from("visits")
+        .select("lounge_id, lounges(id, name, slug, image_url, cities(name))")
+        .eq("user_id", userId);
+      return (data || []).map((v: any) => v.lounges).filter(Boolean);
     },
-    enabled: debouncedQuery.length >= 2,
+    enabled: editable,
+  });
+
+  const filteredVisited = (visitedLounges || []).filter((l: any) => {
+    if (debouncedQuery.length < 2) return true;
+    return l.name?.toLowerCase().includes(debouncedQuery.toLowerCase());
   });
 
   const slots = [1, 2, 3, 4].map((pos) => ({
