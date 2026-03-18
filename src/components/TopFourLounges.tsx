@@ -185,9 +185,9 @@ const TopFourLounges = ({ userId, editable }: TopFourLoungesProps) => {
             className="bg-secondary border-border/50"
             autoFocus
           />
-          {filteredVisited.length > 0 ? (
+          {(searchResults ?? []).length > 0 ? (
             <div className="max-h-64 overflow-y-auto space-y-1">
-              {filteredVisited.map((lounge: any) => (
+              {(searchResults ?? []).map((lounge: any) => (
                 <button
                   key={lounge.id}
                   onClick={() => handleSelect(lounge.id)}
