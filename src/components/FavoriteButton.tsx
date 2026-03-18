@@ -20,7 +20,7 @@ const FavoriteButton = ({ loungeId, className }: FavoriteButtonProps) => {
     e.preventDefault();
     e.stopPropagation();
     if (!user) {
-      navigate("/auth");
+      setSheetOpen(true);
       return;
     }
     toggleFavorite.mutate(loungeId);
