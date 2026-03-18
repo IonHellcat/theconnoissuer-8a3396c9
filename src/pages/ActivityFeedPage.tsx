@@ -94,12 +94,14 @@ const ReactionButton = ({
   count,
   reacted,
   userId,
+  reactionsQueryKey,
 }: {
   itemId: string;
   itemType: string;
   count: number;
   reacted: boolean;
   userId: string | undefined;
+  reactionsQueryKey: readonly unknown[];
 }) => {
   const navigate = useNavigate();
   const qc = useQueryClient();
