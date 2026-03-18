@@ -52,8 +52,6 @@ Deno.serve(async (req) => {
 
     // Check repeat visits
     let maxRepeatVisits = 0;
-    const { data: visitCounts } = await supabase.rpc("recommend_lounges", { user_lat: 0, user_lng: 0, visit_style: "quick" }).limit(0); // dummy, we need raw SQL
-    // Instead, get visits grouped by lounge
     const { data: allVisits } = await supabase.from("visits").select("lounge_id").eq("user_id", user_id);
     if (allVisits) {
       const loungeVisitMap: Record<string, number> = {};
