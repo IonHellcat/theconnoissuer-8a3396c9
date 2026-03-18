@@ -300,7 +300,12 @@ const ProfilePage = () => {
                 <Crown className="h-5 w-5 text-primary" />
                 My Top 4
               </h2>
-              <TopFourLounges userId={user.id} editable={true} />
+              <TopFourLounges
+                userId={user.id}
+                editable={true}
+                displayName={profile?.display_name || user?.email?.split("@")[0] || "My"}
+                profileUrl={`https://theconnoisseur.app/user/${user.id}`}
+              />
             </motion.section>
           )}
 

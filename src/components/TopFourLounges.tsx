@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Link } from "react-router-dom";
-import { Plus, X } from "lucide-react";
+import { Plus, X, Share2 } from "lucide-react";
 import { motion } from "framer-motion";
 import OptimizedImage from "@/components/OptimizedImage";
 import { useToast } from "@/hooks/use-toast";
@@ -13,6 +13,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import TopFourShareModal from "@/components/TopFourShareModal";
 
 interface TopLoungeRow {
   id: string;
@@ -29,15 +30,18 @@ interface TopLoungeRow {
 interface TopFourLoungesProps {
   userId: string;
   editable: boolean;
+  displayName?: string;
+  profileUrl?: string;
 }
 
-const TopFourLounges = ({ userId, editable }: TopFourLoungesProps) => {
+const TopFourLounges = ({ userId, editable, displayName, profileUrl }: TopFourLoungesProps) => {
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const [searchOpen, setSearchOpen] = useState(false);
   const [searchSlot, setSearchSlot] = useState<number | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
   const [debouncedQuery, setDebouncedQuery] = useState("");
+  const [shareOpen, setShareOpen] = useState(false);
 
   useEffect(() => {
     const timer = setTimeout(() => setDebouncedQuery(searchQuery), 300);
@@ -173,6 +177,16 @@ const TopFourLounges = ({ userId, editable }: TopFourLoungesProps) => {
         })}
       </div>
 
+      {editable && topLounges && topLounges.length > 0 && (
+        <button
+          onClick={() => setShareOpen(true)}
+          className="mt-3 w-full flex items-center justify-center gap-2 py-2.5 rounded-xl border border-border/50 text-sm font-body text-muted-foreground hover:text-foreground hover:border-primary/30 transition-colors"
+        >
+          <Share2 className="h-4 w-4" />
+          Share my Top 4
+        </button>
+      )}
+
       <Dialog open={searchOpen} onOpenChange={setSearchOpen}>
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
@@ -222,6 +236,22 @@ const TopFourLounges = ({ userId, editable }: TopFourLoungesProps) => {
           )}
         </DialogContent>
       </Dialog>
+
+      {shareOpen && (
+        <TopFourShareModal
+          open={shareOpen}
+          onOpenChange={setShareOpen}
+          displayName={displayName || "My"}
+          lounges={slots
+            .filter((s) => s.entry)
+            .map((s) => ({
+              name: s.entry!.lounges.name,
+              cityName: s.entry!.lounges.cities?.name || "",
+              image_url: s.entry!.lounges.image_url,
+            }))}
+          profileUrl={profileUrl || `https://theconnoisseur.app/user/${userId}`}
+        />
+      )}
     </>
   );
 };
