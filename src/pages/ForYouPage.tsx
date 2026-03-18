@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect } from "react";
 import { Helmet } from "react-helmet-async";
 import { useQuery } from "@tanstack/react-query";
 import Navbar from "@/components/Navbar";
@@ -7,7 +7,7 @@ import { supabase } from "@/integrations/supabase/client";
 import type { VisitType, VenueType, RecommendedLounge } from "@/lib/recommendations";
 import { ResultsList } from "@/components/for-you/ResultsList";
 import { PillToggle } from "@/components/for-you/PillToggle";
-import { Sparkles, MapPin, Navigation, ChevronDown } from "lucide-react";
+import { Sparkles, MapPin, ChevronDown, Loader2 } from "lucide-react";
 import { Card } from "@/components/ui/card";
 
 interface CityOption {
@@ -21,8 +21,8 @@ const ForYouPage = () => {
   const [userLat, setUserLat] = useState<number | null>(null);
   const [userLng, setUserLng] = useState<number | null>(null);
   const [locationLabel, setLocationLabel] = useState("");
-  const [geoLoading, setGeoLoading] = useState(false);
-  const [geoError, setGeoError] = useState(false);
+  const [geoLoading, setGeoLoading] = useState(true);
+  const [geoAttempted, setGeoAttempted] = useState(false);
   const [cityQuery, setCityQuery] = useState("");
   const [cityOptions, setCityOptions] = useState<CityOption[]>([]);
   const [showCityDropdown, setShowCityDropdown] = useState(false);
@@ -30,38 +30,21 @@ const ForYouPage = () => {
   const [venueType, setVenueType] = useState<VenueType>("All");
   const [showVisitStyle, setShowVisitStyle] = useState(false);
 
-  // Load city list
+  // Auto-attempt geolocation on mount
   useEffect(() => {
-    (async () => {
-      const { data } = await supabase
-        .from("lounges")
-        .select("city_id, latitude, longitude, cities(name)")
-        .not("latitude", "is", null)
-        .not("longitude", "is", null);
-      if (!data) return;
-
-      const map = new Map<string, { lats: number[]; lngs: number[]; name: string }>();
-      data.forEach((l) => {
-        if (!l.city_id || l.latitude == null || l.longitude == null) return;
-        const existing = map.get(l.city_id);
-        if (existing) { existing.lats.push(l.latitude); existing.lngs.push(l.longitude); }
-        else { map.set(l.city_id, { lats: [l.latitude], lngs: [l.longitude], name: l.cities?.name ?? "" }); }
-      });
-      const options: CityOption[] = [];
-      map.forEach((v, k) => {
-        options.push({ city_id: k, city_name: v.name, lat: v.lats.reduce((a, b) => a + b, 0) / v.lats.length, lng: v.lngs.reduce((a, b) => a + b, 0) / v.lngs.length });
-      });
-      options.sort((a, b) => a.city_name.localeCompare(b.city_name));
-      setCityOptions(options);
-    })();
-  }, []);
-
-  const requestGeo = useCallback(() => {
-    setGeoLoading(true);
-    setGeoError(false);
     navigator.geolocation.getCurrentPosition(
-      (pos) => { setUserLat(pos.coords.latitude); setUserLng(pos.coords.longitude); setLocationLabel("Current Location"); setGeoLoading(false); },
-      () => { setGeoError(true); setGeoLoading(false); },
+      (pos) => {
+        setUserLat(pos.coords.latitude);
+        setUserLng(pos.coords.longitude);
+        setLocationLabel("Current Location");
+        setGeoLoading(false);
+        setGeoAttempted(true);
+      },
+      () => {
+        setGeoLoading(false);
+        setGeoAttempted(true);
+      },
+      { timeout: 5000 },
     );
   }, []);
 
@@ -71,7 +54,7 @@ const ForYouPage = () => {
   };
 
   const changeLocation = () => {
-    setUserLat(null); setUserLng(null); setLocationLabel(""); setCityQuery(""); setGeoError(false);
+    setUserLat(null); setUserLng(null); setLocationLabel(""); setCityQuery("");
   };
 
   const effectiveVisitType: VisitType = visitType === "Any" ? "Full Evening" : visitType;
@@ -153,19 +136,6 @@ const ForYouPage = () => {
                   </div>
                 )}
               </div>
-              <button
-                onClick={requestGeo}
-                disabled={geoLoading}
-                className="w-full flex items-center justify-center gap-2 px-3 py-2.5 rounded-lg border border-border text-sm font-body font-medium text-foreground hover:bg-background transition-colors"
-              >
-                <Navigation className="h-4 w-4" />
-                {geoLoading ? "Locating..." : "Use my location"}
-              </button>
-              {geoError && (
-                <p className="text-xs text-destructive font-body text-center">
-                  Could not access your location. This may be blocked by your browser or preview settings. Search for a city instead.
-                </p>
-              )}
             </div>
           )}
 
@@ -210,11 +180,18 @@ const ForYouPage = () => {
           )}
 
           {/* Content states */}
-          {!hasLocation ? (
+          {geoLoading ? (
+            <div className="text-center py-16">
+              <Loader2 className="h-8 w-8 text-primary mx-auto mb-3 animate-spin" />
+              <p className="text-muted-foreground font-body text-sm">
+                Finding your location…
+              </p>
+            </div>
+          ) : !hasLocation ? (
             <div className="text-center py-16">
               <Sparkles className="h-10 w-10 text-muted-foreground/30 mx-auto mb-4" />
               <p className="text-muted-foreground font-body text-sm">
-                Set your location to find lounges near you
+                Search for a city to find lounges near you
               </p>
             </div>
           ) : finding ? (
