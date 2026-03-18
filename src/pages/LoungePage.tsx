@@ -162,12 +162,97 @@ const ScoreSection = ({ lounge }: { lounge: LoungeWithCity }) => {
   );
 };
 
+/* ── CheckInCelebration ── */
+const CheckInCelebration = ({
+  open,
+  onClose,
+  loungeName,
+  cityName,
+  newAchievements,
+}: {
+  open: boolean;
+  onClose: () => void;
+  loungeName: string;
+  cityName?: string;
+  newAchievements: { name: string; icon: string; tier: string }[];
+}) => {
+  if (!open) return null;
+
+  return (
+    <motion.div
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm p-4"
+      onClick={onClose}
+    >
+      <motion.div
+        initial={{ opacity: 0, scale: 0.9, y: 20 }}
+        animate={{ opacity: 1, scale: 1, y: 0 }}
+        transition={{ type: "spring", damping: 20, stiffness: 300 }}
+        className="bg-card rounded-2xl border border-border/50 p-8 max-w-sm w-full text-center shadow-2xl"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div className="h-16 w-16 mx-auto rounded-full bg-primary/20 flex items-center justify-center mb-4">
+          <MapPinCheck className="h-8 w-8 text-primary" />
+        </div>
+        <h2 className="font-display text-2xl font-bold text-foreground mb-1">Checked in!</h2>
+        <p className="text-sm text-muted-foreground font-body">
+          {loungeName}{cityName ? ` · ${cityName}` : ""}
+        </p>
+        {newAchievements.length > 0 && (
+          <div className="mt-6 pt-4 border-t border-border/50">
+            <p className="text-sm font-semibold font-body text-foreground mb-2">
+              🏅 Achievement{newAchievements.length > 1 ? "s" : ""} unlocked
+            </p>
+            <div className="space-y-1.5">
+              {newAchievements.map((a) => (
+                <div key={a.name} className="flex items-center justify-center gap-2 text-sm font-body text-primary">
+                  <span>{a.icon}</span>
+                  <span>{a.name}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+        <div className="flex gap-3 mt-6">
+          <Link
+            to="/visited"
+            className="flex-1 px-4 py-2.5 rounded-xl border border-border text-sm font-medium font-body text-foreground hover:bg-secondary transition-colors text-center"
+            onClick={onClose}
+          >
+            Add a note
+          </Link>
+          <button
+            onClick={onClose}
+            className="flex-1 px-4 py-2.5 rounded-xl bg-primary text-primary-foreground text-sm font-medium font-body hover:bg-primary/90 transition-colors"
+          >
+            Done
+          </button>
+        </div>
+      </motion.div>
+    </motion.div>
+  );
+};
+
 /* ── VisitButtonFull ── */
-const VisitButtonFull = ({ loungeId }: { loungeId: string }) => {
+const VisitButtonFull = ({
+  loungeId,
+  loungeName,
+  cityName,
+}: {
+  loungeId: string;
+  loungeName: string;
+  cityName?: string;
+}) => {
   const { user } = useAuth();
   const queryClient = useQueryClient();
   const { toast } = useToast();
   const [sheetOpen, setSheetOpen] = useState(false);
+  const [celebrationOpen, setCelebrationOpen] = useState(false);
+  const [celebrationAchievements, setCelebrationAchievements] = useState<
+    { name: string; icon: string; tier: string }[]
+  >([]);
 
   const { data: visit } = useQuery({
     queryKey: ["visit", loungeId],
@@ -196,8 +281,14 @@ const VisitButtonFull = ({ loungeId }: { loungeId: string }) => {
     onSuccess: async () => {
       queryClient.invalidateQueries({ queryKey: ["visit", loungeId] });
       queryClient.invalidateQueries({ queryKey: ["visits"] });
-      toast({ title: visited ? "Removed from passport" : "Added to your passport!" });
-      if (!visited && user) {
+
+      if (visited) {
+        toast({ title: "Removed from passport" });
+        return;
+      }
+
+      let newAchievements: { name: string; icon: string; tier: string }[] = [];
+      if (user) {
         try {
           const { data } = await supabase.functions.invoke("check-achievements", {
             body: { user_id: user.id },
@@ -205,15 +296,17 @@ const VisitButtonFull = ({ loungeId }: { loungeId: string }) => {
           if (data?.new_achievements?.length) {
             const { data: achievements } = await supabase
               .from("achievements")
-              .select("key, name")
+              .select("key, name, icon, tier")
               .in("key", data.new_achievements);
-            (achievements || []).forEach((a: any) => {
-              toast({ title: `🏅 Achievement unlocked: ${a.name}` });
-            });
+            newAchievements = achievements || [];
             queryClient.invalidateQueries({ queryKey: ["user-achievements"] });
           }
-        } catch (err) { console.error("check-achievements failed:", err); }
+        } catch (err) {
+          console.error("check-achievements failed:", err);
+        }
       }
+      setCelebrationAchievements(newAchievements);
+      setCelebrationOpen(true);
     },
   });
 
@@ -239,6 +332,13 @@ const VisitButtonFull = ({ loungeId }: { loungeId: string }) => {
         {visited ? "Visited ✓" : "Been Here"}
       </button>
       <AuthPromptSheet open={sheetOpen} onOpenChange={setSheetOpen} variant="visit" />
+      <CheckInCelebration
+        open={celebrationOpen}
+        onClose={() => setCelebrationOpen(false)}
+        loungeName={loungeName}
+        cityName={cityName}
+        newAchievements={celebrationAchievements}
+      />
     </>
   );
 };
@@ -301,7 +401,7 @@ const MobileActionBar = ({ lounge, cityName }: { lounge: LoungeWithCity; cityNam
     <div className="fixed bottom-16 left-0 right-0 z-40 md:hidden bg-background/95 backdrop-blur-md border-t border-border/50 px-4 py-3 space-y-2">
       {/* Row 1: Primary CTAs */}
       <div className="flex items-center gap-2">
-        <VisitButtonFull loungeId={lounge.id} />
+        <VisitButtonFull loungeId={lounge.id} loungeName={lounge.name} cityName={cityName} />
         <FavoriteButtonFull loungeId={lounge.id} />
       </div>
       {/* Row 2: Utility actions */}

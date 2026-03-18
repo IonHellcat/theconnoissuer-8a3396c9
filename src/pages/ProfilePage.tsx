@@ -5,7 +5,8 @@ import { useAuth } from "@/hooks/useAuth";
 import { Navigate, Link } from "react-router-dom";
 import { Helmet } from "react-helmet-async";
 import { motion } from "framer-motion";
-import { User, Star, Heart, MapPin, Camera, Pencil, Save, X, Share2 } from "lucide-react";
+import { User, Star, Heart, MapPin, Camera, Pencil, Save, X, Share2, Crown } from "lucide-react";
+import TopFourLounges from "@/components/TopFourLounges";
 import AchievementsGrid from "@/components/AchievementsGrid";
 import { useFollows } from "@/hooks/useFollows";
 
@@ -287,6 +288,21 @@ const ProfilePage = () => {
               </div>
             </div>
           </motion.div>
+
+          {/* Top 4 */}
+          {user && (
+            <motion.section
+              initial={{ opacity: 0, y: 16 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="mb-10"
+            >
+              <h2 className="font-display text-xl font-semibold text-foreground flex items-center gap-2 mb-4">
+                <Crown className="h-5 w-5 text-primary" />
+                My Top 4
+              </h2>
+              <TopFourLounges userId={user.id} editable={true} />
+            </motion.section>
+          )}
 
           {/* Favorites */}
           {favorites && favorites.length > 0 && (

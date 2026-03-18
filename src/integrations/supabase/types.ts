@@ -803,6 +803,45 @@ export type Database = {
         }
         Relationships: []
       }
+      top_lounges: {
+        Row: {
+          created_at: string | null
+          id: string
+          lounge_id: string
+          position: number
+          user_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          lounge_id: string
+          position: number
+          user_id: string
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          lounge_id?: string
+          position?: number
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "top_lounges_lounge_id_fkey"
+            columns: ["lounge_id"]
+            isOneToOne: false
+            referencedRelation: "leaderboard_top100"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "top_lounges_lounge_id_fkey"
+            columns: ["lounge_id"]
+            isOneToOne: false
+            referencedRelation: "lounges"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       user_achievements: {
         Row: {
           achievement_key: string
