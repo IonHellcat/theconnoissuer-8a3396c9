@@ -35,15 +35,15 @@ const ExplorePage = () => {
           <p className="text-muted-foreground font-body mb-8">Discover cigar lounges around the world</p>
 
           {isLoading ? (
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+            <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6">
               {[1, 2, 3, 4, 5, 6].map((i) => (
-                <div key={i} className="h-64 rounded-xl bg-secondary animate-pulse" />
+                <div key={i} className="aspect-[4/3] rounded-xl bg-secondary animate-pulse" />
               ))}
             </div>
           ) : !cities || cities.length === 0 ? (
             <p className="text-muted-foreground font-body">No cities found.</p>
           ) : (
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+            <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6">
               {cities.map((city, index) => (
                 <CityCard
                   key={city.id}

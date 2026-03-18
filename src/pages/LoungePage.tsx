@@ -73,7 +73,7 @@ const MobileActionBar = ({ lounge, cityName }: { lounge: LoungeWithCity; cityNam
   };
 
   return (
-    <div className="fixed bottom-14 left-0 right-0 z-40 md:hidden bg-background/95 backdrop-blur-md border-t border-border/50 px-4 py-3">
+    <div className="fixed bottom-16 left-0 right-0 z-40 md:hidden bg-background/95 backdrop-blur-md border-t border-border/50 px-4 py-3">
       <div className="flex items-center gap-2">
         {lounge.latitude && lounge.longitude && (
           <a
