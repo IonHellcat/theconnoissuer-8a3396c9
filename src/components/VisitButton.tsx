@@ -64,7 +64,7 @@ const VisitButton = ({ loungeId, className }: VisitButtonProps) => {
             });
             queryClient.invalidateQueries({ queryKey: ["user-achievements"] });
           }
-        } catch {}
+        } catch (err) { console.error("check-achievements failed:", err); }
       }
     },
   });

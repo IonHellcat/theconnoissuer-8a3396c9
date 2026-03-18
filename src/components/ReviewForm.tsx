@@ -77,7 +77,7 @@ const ReviewForm = ({ loungeId }: ReviewFormProps) => {
           });
           queryClient.invalidateQueries({ queryKey: ["user-achievements"] });
         }
-      } catch {}
+      } catch (err) { console.error("check-achievements failed:", err); }
     }
   };
 
