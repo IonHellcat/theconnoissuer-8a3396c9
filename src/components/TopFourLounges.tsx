@@ -181,15 +181,15 @@ const TopFourLounges = ({ userId, editable }: TopFourLoungesProps) => {
             <DialogTitle className="font-display">Add to Top 4</DialogTitle>
           </DialogHeader>
           <Input
-            placeholder="Search lounges..."
+            placeholder="Filter visited lounges..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             className="bg-secondary border-border/50"
             autoFocus
           />
-          {searchResults && searchResults.length > 0 && (
+          {filteredVisited.length > 0 ? (
             <div className="max-h-64 overflow-y-auto space-y-1">
-              {searchResults.map((lounge: any) => (
+              {filteredVisited.map((lounge: any) => (
                 <button
                   key={lounge.id}
                   onClick={() => handleSelect(lounge.id)}
@@ -217,10 +217,9 @@ const TopFourLounges = ({ userId, editable }: TopFourLoungesProps) => {
                 </button>
               ))}
             </div>
-          )}
-          {debouncedQuery.length >= 2 && searchResults?.length === 0 && (
+          ) : (
             <p className="text-sm text-muted-foreground font-body text-center py-4">
-              No lounges found
+              {debouncedQuery.length >= 2 ? "No matching visited lounges" : "No visited lounges yet"}
             </p>
           )}
         </DialogContent>
