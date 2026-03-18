@@ -401,7 +401,7 @@ const MobileActionBar = ({ lounge, cityName }: { lounge: LoungeWithCity; cityNam
     <div className="fixed bottom-16 left-0 right-0 z-40 md:hidden bg-background/95 backdrop-blur-md border-t border-border/50 px-4 py-3 space-y-2">
       {/* Row 1: Primary CTAs */}
       <div className="flex items-center gap-2">
-        <VisitButtonFull loungeId={lounge.id} loungeName={lounge.name} cityName={city?.name} />
+        <VisitButtonFull loungeId={lounge.id} loungeName={lounge.name} cityName={cityName} />
         <FavoriteButtonFull loungeId={lounge.id} />
       </div>
       {/* Row 2: Utility actions */}
