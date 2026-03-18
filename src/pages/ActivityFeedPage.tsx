@@ -94,12 +94,14 @@ const ReactionButton = ({
   count,
   reacted,
   userId,
+  reactionsQueryKey,
 }: {
   itemId: string;
   itemType: string;
   count: number;
   reacted: boolean;
   userId: string | undefined;
+  reactionsQueryKey: readonly unknown[];
 }) => {
   const navigate = useNavigate();
   const qc = useQueryClient();
@@ -126,10 +128,10 @@ const ReactionButton = ({
       }
     },
     onMutate: async () => {
-      await qc.cancelQueries({ queryKey: ["feed-reactions"] });
-      const prev = qc.getQueryData<any>(["feed-reactions"]);
+      await qc.cancelQueries({ queryKey: reactionsQueryKey });
+      const prev = qc.getQueryData<any>(reactionsQueryKey);
       // optimistic
-      qc.setQueryData(["feed-reactions"], (old: any) => {
+      qc.setQueryData(reactionsQueryKey, (old: any) => {
         if (!old) return old;
         const newCounts = { ...old.counts };
         const newUserSet = new Set(old.userReacted as Set<string>);
@@ -145,10 +147,10 @@ const ReactionButton = ({
       return { prev };
     },
     onError: (_e, _v, ctx) => {
-      if (ctx?.prev) qc.setQueryData(["feed-reactions"], ctx.prev);
+      if (ctx?.prev) qc.setQueryData(reactionsQueryKey, ctx.prev);
     },
     onSettled: () => {
-      qc.invalidateQueries({ queryKey: ["feed-reactions"] });
+      qc.invalidateQueries({ queryKey: ["feed-reactions"], exact: false });
     },
   });
 
@@ -357,6 +359,7 @@ const ActivityFeedPage = () => {
                   userId={user?.id}
                   reactionCount={reactions?.counts[item.item_id] || 0}
                   userReacted={reactions?.userReacted.has(item.item_id) || false}
+                  reactionsQueryKey={["feed-reactions", feedItemIds]}
                 />
               ))}
             </div>
@@ -375,21 +378,23 @@ const FeedCard = ({
   userId,
   reactionCount,
   userReacted,
+  reactionsQueryKey,
 }: {
   item: FeedItem;
   index: number;
   userId: string | undefined;
   reactionCount: number;
   userReacted: boolean;
+  reactionsQueryKey: readonly unknown[];
 }) => {
   const isReview = item.action_type === "reviewed";
   const isAchievement = item.action_type === "achievement";
   const isVisit = item.action_type === "visited";
 
   const borderClass = isReview
-    ? "border-l-2 border-primary/30 border border-border/50"
+    ? "border border-border/50 border-l-2 border-l-primary/30"
     : isAchievement
-    ? "border-l-2 border-purple-500/30 border border-border/50"
+    ? "border border-border/50 border-l-2 border-l-purple-500/30"
     : "border border-border/50";
 
   return (
@@ -508,6 +513,7 @@ const FeedCard = ({
               count={reactionCount}
               reacted={userReacted}
               userId={userId}
+              reactionsQueryKey={reactionsQueryKey}
             />
           </div>
         </div>
