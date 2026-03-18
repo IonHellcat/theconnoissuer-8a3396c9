@@ -34,13 +34,14 @@ interface TopFourLoungesProps {
   profileUrl?: string;
 }
 
-const TopFourLounges = ({ userId, editable }: TopFourLoungesProps) => {
+const TopFourLounges = ({ userId, editable, displayName, profileUrl }: TopFourLoungesProps) => {
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const [searchOpen, setSearchOpen] = useState(false);
   const [searchSlot, setSearchSlot] = useState<number | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
   const [debouncedQuery, setDebouncedQuery] = useState("");
+  const [shareOpen, setShareOpen] = useState(false);
 
   useEffect(() => {
     const timer = setTimeout(() => setDebouncedQuery(searchQuery), 300);
