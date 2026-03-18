@@ -30,6 +30,8 @@ interface TopLoungeRow {
 interface TopFourLoungesProps {
   userId: string;
   editable: boolean;
+  displayName?: string;
+  profileUrl?: string;
 }
 
 const TopFourLounges = ({ userId, editable }: TopFourLoungesProps) => {
