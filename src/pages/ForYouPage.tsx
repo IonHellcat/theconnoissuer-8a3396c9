@@ -48,6 +48,42 @@ const ForYouPage = () => {
     );
   }, []);
 
+  // Load city list for search fallback
+  useEffect(() => {
+    (async () => {
+      const { data } = await supabase
+        .from("lounges")
+        .select("city_id, latitude, longitude, cities(name)")
+        .not("latitude", "is", null)
+        .not("longitude", "is", null);
+      if (!data) return;
+
+      const map = new Map<string, { lats: number[]; lngs: number[]; name: string }>();
+      data.forEach((l: any) => {
+        if (!l.city_id || l.latitude == null || l.longitude == null) return;
+        const existing = map.get(l.city_id);
+        if (existing) {
+          existing.lats.push(l.latitude);
+          existing.lngs.push(l.longitude);
+        } else {
+          map.set(l.city_id, { lats: [l.latitude], lngs: [l.longitude], name: l.cities?.name ?? "" });
+        }
+      });
+
+      const options: CityOption[] = [];
+      map.forEach((v, k) => {
+        options.push({
+          city_id: k,
+          city_name: v.name,
+          lat: v.lats.reduce((a, b) => a + b, 0) / v.lats.length,
+          lng: v.lngs.reduce((a, b) => a + b, 0) / v.lngs.length,
+        });
+      });
+      options.sort((a, b) => a.city_name.localeCompare(b.city_name));
+      setCityOptions(options);
+    })();
+  }, []);
+
   const selectCity = (city: CityOption) => {
     setUserLat(city.lat); setUserLng(city.lng); setLocationLabel(city.city_name);
     setShowCityDropdown(false); setCityQuery(city.city_name);
