@@ -14,8 +14,8 @@ const TrendingThisWeek = () => {
       oneWeekAgo.setDate(oneWeekAgo.getDate() - 7);
 
       const { data: visits, error } = await supabase
-        .from("visits")
-        .select("lounge_id, lounges!inner(id, name, slug, image_url, connoisseur_score, score_label, score_source, rating, cities!inner(name))")
+        .from("visits_public" as any)
+        .select("lounge_id, lounge_name, lounge_slug, lounge_image_url, connoisseur_score, score_label, score_source, lounge_rating, city_name")
         .gte("visited_at", oneWeekAgo.toISOString());
 
       if (error) throw error;
@@ -26,7 +26,17 @@ const TrendingThisWeek = () => {
       visits.forEach((v: any) => {
         const lid = v.lounge_id;
         if (!countMap[lid]) {
-          countMap[lid] = { count: 0, lounge: v.lounges };
+          countMap[lid] = { count: 0, lounge: {
+            id: lid,
+            name: v.lounge_name,
+            slug: v.lounge_slug,
+            image_url: v.lounge_image_url,
+            connoisseur_score: v.connoisseur_score,
+            score_label: v.score_label,
+            score_source: v.score_source,
+            rating: v.lounge_rating,
+            cities: { name: v.city_name },
+          }};
         }
         countMap[lid].count++;
       });
