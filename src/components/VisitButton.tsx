@@ -74,7 +74,7 @@ const VisitButton = ({ loungeId, className }: VisitButtonProps) => {
     e.preventDefault();
     e.stopPropagation();
     if (!user) {
-      navigate("/auth");
+      setSheetOpen(true);
       return;
     }
     toggle.mutate();
