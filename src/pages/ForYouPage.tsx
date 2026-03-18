@@ -54,7 +54,7 @@ const ForYouPage = () => {
   };
 
   const changeLocation = () => {
-    setUserLat(null); setUserLng(null); setLocationLabel(""); setCityQuery(""); setGeoError(false);
+    setUserLat(null); setUserLng(null); setLocationLabel(""); setCityQuery("");
   };
 
   const effectiveVisitType: VisitType = visitType === "Any" ? "Full Evening" : visitType;
