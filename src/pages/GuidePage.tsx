@@ -327,7 +327,7 @@ export default function GuidePage() {
 
       <Navbar />
 
-      <main className="pt-20 pb-16">
+      <main className="pt-20 pb-24 md:pb-10">
         <div className="container mx-auto px-4 max-w-3xl">
           {/* Breadcrumb */}
           <Breadcrumb className="mb-6">

@@ -39,7 +39,7 @@ const FavoritesPage = () => {
       </Helmet>
       <Navbar />
       <main className="pt-16">
-        <section className="container mx-auto px-4 py-12">
+        <section className="container mx-auto px-4 pt-12 pb-28 md:pb-10">
           <div className="flex items-center gap-2 mb-2">
             <Heart className="h-6 w-6 text-primary fill-primary" />
             <h1 className="font-display text-3xl md:text-4xl font-bold text-foreground">My Favorites</h1>

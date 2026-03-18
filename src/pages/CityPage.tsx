@@ -59,33 +59,26 @@ const RankedLoungeCard = ({ lounge, rank, dimmed }: { lounge: any; rank: number;
         </div>
       </div>
       <div className="p-2.5 sm:p-4">
-        <div className="flex items-start justify-between gap-2">
-          <div className="flex-1 min-w-0">
-            <div className="flex items-center gap-1.5 mb-1">
-              <span className="text-[10px] sm:text-xs font-medium font-body px-1.5 py-0.5 rounded-full bg-primary/10 text-primary capitalize">
-                {lounge.type}
-              </span>
-              <span className="text-[10px] sm:text-xs text-muted-foreground font-body">
-                {priceTierLabel(lounge.price_tier)}
-              </span>
-            </div>
-            <h3 className="font-display text-sm sm:text-base font-bold text-foreground group-hover:text-primary transition-colors line-clamp-1">
-              {lounge.name}
-            </h3>
-            {lounge.score_summary && (
-              <p className="text-[10px] sm:text-xs font-body italic text-muted-foreground line-clamp-1 mt-0.5">
-                {lounge.score_summary}
-              </p>
-            )}
-            <div className="flex items-center gap-1 mt-1">
-              <Star className="h-3 w-3 sm:h-3.5 sm:w-3.5 fill-primary text-primary" />
-              <span className="text-xs font-semibold text-foreground font-body">
-                {Number(lounge.rating).toFixed(1)}
-              </span>
-              <span className="text-[10px] text-muted-foreground font-body">
-                ({lounge.review_count})
-              </span>
-            </div>
+        <div className="flex items-center gap-1.5 mb-1">
+          <span className="text-[10px] sm:text-xs font-medium font-body px-1.5 py-0.5 rounded-full bg-primary/10 text-primary capitalize">
+            {lounge.type}
+          </span>
+          <span className="text-[10px] sm:text-xs text-muted-foreground font-body">
+            {priceTierLabel(lounge.price_tier)}
+          </span>
+        </div>
+        <h3 className="font-display text-sm sm:text-base font-bold text-foreground group-hover:text-primary transition-colors line-clamp-1">
+          {lounge.name}
+        </h3>
+        <div className="flex items-center justify-between gap-2 mt-1.5">
+          <div className="flex items-center gap-1">
+            <Star className="h-3 w-3 sm:h-3.5 sm:w-3.5 fill-primary text-primary" />
+            <span className="text-xs font-semibold text-foreground font-body">
+              {Number(lounge.rating).toFixed(1)}
+            </span>
+            <span className="text-[10px] text-muted-foreground font-body">
+              ({lounge.review_count})
+            </span>
           </div>
           <ConnoisseurScoreBadge
             score={lounge.connoisseur_score}
@@ -96,8 +89,8 @@ const RankedLoungeCard = ({ lounge, rank, dimmed }: { lounge: any; rank: number;
           />
         </div>
         {lounge.address && (
-          <div className="hidden sm:flex items-center gap-1 mt-2 text-[10px] sm:text-xs text-muted-foreground">
-            <MapPin className="h-3 w-3" />
+          <div className="flex items-center gap-1 mt-1.5 text-[10px] sm:text-xs text-muted-foreground">
+            <MapPin className="h-3 w-3 flex-shrink-0" />
             <span className="font-body line-clamp-1">{lounge.address}</span>
           </div>
         )}

@@ -33,7 +33,7 @@ export default function GuidesIndexPage() {
 
       <Navbar />
 
-      <main className="pt-20 pb-16">
+      <main className="pt-20 pb-24 md:pb-10">
         <div className="container mx-auto px-4 max-w-3xl">
           <header className="mb-10 space-y-3">
             <h1 className="font-display text-3xl sm:text-4xl font-bold">Cigar Lounge Guides</h1>

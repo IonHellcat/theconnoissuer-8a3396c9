@@ -1,5 +1,5 @@
 import { useParams, Link } from "react-router-dom";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import type { LoungeWithCity } from "@/lib/types";
 import QueryErrorBanner from "@/components/QueryErrorBanner";
 import { supabase } from "@/integrations/supabase/client";
@@ -8,6 +8,7 @@ import { motion } from "framer-motion";
 import {
   ArrowLeft, Star, MapPin, Phone, Globe, Clock,
   ExternalLink, Navigation, Cigarette, Info, Share2,
+  MapPinCheck, Heart,
 } from "lucide-react";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
@@ -25,6 +26,10 @@ import LoungeJsonLd from "@/components/LoungeJsonLd";
 import PopularAtLounge from "@/components/PopularAtLounge";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { useToast } from "@/hooks/use-toast";
+import { useAuth } from "@/hooks/useAuth";
+import { useNavigate } from "react-router-dom";
+import { useFavorites } from "@/hooks/useFavorites";
+import { cn } from "@/lib/utils";
 
 const priceTierLabel = (tier: number) => "$".repeat(tier);
 
@@ -52,6 +57,218 @@ const sentimentDisplay = (sentiment: string) => {
   }
 };
 
+/* ── ScoreSection ── */
+const ScoreSection = ({ lounge }: { lounge: LoungeWithCity }) => {
+  const scoreSource = lounge.score_source || "none";
+  const connoisseurScore = lounge.connoisseur_score;
+  const scoreLabel = lounge.score_label;
+  const scoreSummary = lounge.score_summary;
+  const pillarScores = lounge.pillar_scores as Record<string, { sentiment: string; positive: number; negative: number; total: number }> | null;
+  const aspects = lounge.type === "shop" ? SHOP_ASPECTS : LOUNGE_ASPECTS;
+
+  if (scoreSource === "none") {
+    return (
+      <div className="bg-card rounded-xl border border-border/50 p-6 text-center">
+        <p className="text-muted-foreground font-body">Awaiting Connoisseur Score</p>
+        <p className="text-xs text-muted-foreground font-body mt-2">
+          Google Rating: {Number(lounge.rating).toFixed(1)} ★
+        </p>
+        <p className="text-sm text-primary font-body mt-3">Be the first to rate this lounge</p>
+      </div>
+    );
+  }
+
+  return (
+    <div className="bg-card rounded-xl border border-border/50 p-6">
+      <div className="flex flex-col sm:flex-row items-center sm:items-start gap-4 sm:gap-6">
+        <ConnoisseurScoreBadge
+          score={connoisseurScore}
+          scoreLabel={scoreLabel}
+          scoreSource={scoreSource}
+          googleRating={Number(lounge.rating)}
+          size="lg"
+        />
+        <div className="flex-1">
+          <div className="flex items-center gap-2">
+            <h2 className="font-display text-xl font-semibold text-foreground">
+              {scoreSource === "verified" ? "Verified Connoisseur Score" : "Estimated Connoisseur Score"}
+            </h2>
+            {scoreSource === "estimated" && (
+              <Tooltip>
+                <TooltipTrigger>
+                  <Info className="h-4 w-4 text-muted-foreground" />
+                </TooltipTrigger>
+                <TooltipContent className="max-w-xs">
+                  <p className="text-xs font-body">
+                    Deterministic score computed from rating quality, review sentiment, volume, and consistency.
+                  </p>
+                </TooltipContent>
+              </Tooltip>
+            )}
+          </div>
+          {scoreSummary && (
+            <p className="text-sm font-body italic text-muted-foreground mt-1">{scoreSummary}</p>
+          )}
+          <p className="text-xs text-muted-foreground font-body mt-2">
+            {scoreSource === "verified"
+              ? `Based on member reviews`
+              : "Based on analysis of public reviews"}
+          </p>
+          {scoreSource === "estimated" && (
+            <p className="text-sm text-primary font-body mt-2">
+              Rate this lounge to help verify the Connoisseur Score
+            </p>
+          )}
+          <p className="text-xs text-muted-foreground font-body mt-2">
+            Google Rating: {Number(lounge.rating).toFixed(1)} ★
+          </p>
+        </div>
+      </div>
+
+      {/* Aspect Breakdown */}
+      {pillarScores && (
+        <div className="mt-6 grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
+          {aspects.map((aspect) => {
+            const data = pillarScores[aspect];
+            if (!data) return (
+              <div key={aspect} className="text-center">
+                <p className="text-[10px] text-muted-foreground font-body uppercase tracking-wider mb-1">
+                  {aspectLabel(aspect)}
+                </p>
+                <p className="text-sm font-bold font-display text-muted-foreground">—</p>
+              </div>
+            );
+            return (
+              <div key={aspect} className="text-center">
+                <p className="text-[10px] text-muted-foreground font-body uppercase tracking-wider mb-1">
+                  {aspectLabel(aspect)}
+                </p>
+                <p className={`text-sm font-bold font-display ${sentimentColor(data.sentiment)}`}>
+                  {sentimentDisplay(data.sentiment)}
+                </p>
+                {data.total > 0 && (
+                  <p className="text-[10px] text-muted-foreground font-body">
+                    {data.positive}↑ {data.negative}↓
+                  </p>
+                )}
+              </div>
+            );
+          })}
+        </div>
+      )}
+    </div>
+  );
+};
+
+/* ── VisitButtonFull ── */
+const VisitButtonFull = ({ loungeId }: { loungeId: string }) => {
+  const { user } = useAuth();
+  const navigate = useNavigate();
+  const queryClient = useQueryClient();
+  const { toast } = useToast();
+
+  const { data: visit } = useQuery({
+    queryKey: ["visit", loungeId],
+    queryFn: async () => {
+      const { data } = await supabase
+        .from("visits")
+        .select("id")
+        .eq("user_id", user!.id)
+        .eq("lounge_id", loungeId)
+        .maybeSingle();
+      return data;
+    },
+    enabled: !!user,
+  });
+
+  const visited = !!visit;
+
+  const toggle = useMutation({
+    mutationFn: async () => {
+      if (visited) {
+        await supabase.from("visits").delete().eq("id", visit!.id);
+      } else {
+        await supabase.from("visits").insert({ user_id: user!.id, lounge_id: loungeId });
+      }
+    },
+    onSuccess: async () => {
+      queryClient.invalidateQueries({ queryKey: ["visit", loungeId] });
+      queryClient.invalidateQueries({ queryKey: ["visits"] });
+      toast({ title: visited ? "Removed from passport" : "Added to your passport!" });
+      if (!visited && user) {
+        try {
+          const { data } = await supabase.functions.invoke("check-achievements", {
+            body: { user_id: user.id },
+          });
+          if (data?.new_achievements?.length) {
+            const { data: achievements } = await supabase
+              .from("achievements")
+              .select("key, name")
+              .in("key", data.new_achievements);
+            (achievements || []).forEach((a: any) => {
+              toast({ title: `🏅 Achievement unlocked: ${a.name}` });
+            });
+            queryClient.invalidateQueries({ queryKey: ["user-achievements"] });
+          }
+        } catch (err) { console.error("check-achievements failed:", err); }
+      }
+    },
+  });
+
+  const handleClick = (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (!user) { navigate("/auth"); return; }
+    toggle.mutate();
+  };
+
+  return (
+    <button
+      onClick={handleClick}
+      className={cn(
+        "flex-1 flex items-center justify-center gap-2 px-3 py-2.5 rounded-xl border text-sm font-medium font-body transition-colors",
+        visited
+          ? "border-primary/40 bg-primary/10 text-primary"
+          : "border-border text-foreground hover:bg-secondary"
+      )}
+    >
+      <MapPinCheck className={cn("h-4 w-4", visited ? "fill-primary text-primary" : "")} />
+      {visited ? "Visited ✓" : "Been Here"}
+    </button>
+  );
+};
+
+/* ── FavoriteButtonFull ── */
+const FavoriteButtonFull = ({ loungeId }: { loungeId: string }) => {
+  const { user } = useAuth();
+  const { isFavorite, toggleFavorite } = useFavorites();
+  const navigate = useNavigate();
+  const favorited = isFavorite(loungeId);
+
+  const handleClick = (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (!user) { navigate("/auth"); return; }
+    toggleFavorite.mutate(loungeId);
+  };
+
+  return (
+    <button
+      onClick={handleClick}
+      className={cn(
+        "flex-1 flex items-center justify-center gap-2 px-3 py-2.5 rounded-xl border text-sm font-medium font-body transition-colors",
+        favorited
+          ? "border-primary/40 bg-primary/10 text-primary"
+          : "border-border text-foreground hover:bg-secondary"
+      )}
+    >
+      <Heart className={cn("h-4 w-4", favorited ? "fill-primary text-primary" : "")} />
+      {favorited ? "Saved" : "Save"}
+    </button>
+  );
+};
+
+/* ── MobileActionBar ── */
 const MobileActionBar = ({ lounge, cityName }: { lounge: LoungeWithCity; cityName?: string }) => {
   const { toast } = useToast();
 
@@ -73,7 +290,13 @@ const MobileActionBar = ({ lounge, cityName }: { lounge: LoungeWithCity; cityNam
   };
 
   return (
-    <div className="fixed bottom-16 left-0 right-0 z-40 md:hidden bg-background/95 backdrop-blur-md border-t border-border/50 px-4 py-3">
+    <div className="fixed bottom-16 left-0 right-0 z-40 md:hidden bg-background/95 backdrop-blur-md border-t border-border/50 px-4 py-3 space-y-2">
+      {/* Row 1: Primary CTAs */}
+      <div className="flex items-center gap-2">
+        <VisitButtonFull loungeId={lounge.id} />
+        <FavoriteButtonFull loungeId={lounge.id} />
+      </div>
+      {/* Row 2: Utility actions */}
       <div className="flex items-center gap-2">
         {lounge.latitude && lounge.longitude && (
           <a
@@ -169,7 +392,7 @@ const LoungePage = () => {
         ) : (
           <>
             {/* Hero */}
-            <section className="relative h-56 sm:h-72 md:h-96 overflow-hidden">
+            <section className="relative h-72 sm:h-80 md:h-96 overflow-hidden">
               <OptimizedImage
                 src={lounge.image_url || "/placeholder.svg"}
                 alt={lounge.name}
@@ -180,7 +403,7 @@ const LoungePage = () => {
                 loading="eager"
                 className="absolute inset-0 w-full h-full object-cover"
               />
-              <div className="absolute inset-0 bg-gradient-to-t from-background via-background/60 to-background/20" />
+              <div className="absolute inset-0 bg-gradient-to-t from-background/95 via-background/40 to-transparent" />
               <div className="relative z-10 container mx-auto px-4 h-full flex flex-col justify-end pb-4 sm:pb-8">
                 <Link
                   to={`/city/${city?.slug}`}
@@ -214,21 +437,27 @@ const LoungePage = () => {
                       ({lounge.review_count} reviews)
                     </span>
                   </div>
-                  <VisitButton loungeId={lounge.id} />
-                  <FavoriteButton loungeId={lounge.id} />
+                  {/* Desktop only icon buttons */}
+                  <div className="hidden md:flex items-center gap-2">
+                    <VisitButton loungeId={lounge.id} />
+                    <FavoriteButton loungeId={lounge.id} />
+                  </div>
                 </div>
               </div>
             </section>
 
-            {/* Mobile Details — shown before score on small screens */}
+            {/* Mobile: Score first, then details, then hours */}
             <section className="container mx-auto px-4 pt-6 lg:hidden">
-              <LoungeDetailsCard
-                address={lounge.address}
-                phone={lounge.phone}
-                website={lounge.website}
-                latitude={lounge.latitude}
-                longitude={lounge.longitude}
-              />
+              <ScoreSection lounge={lounge} />
+              <div className="mt-4">
+                <LoungeDetailsCard
+                  address={lounge.address}
+                  phone={lounge.phone}
+                  website={lounge.website}
+                  latitude={lounge.latitude}
+                  longitude={lounge.longitude}
+                />
+              </div>
               {/* Mobile Hours */}
               {weekdayDescriptions && weekdayDescriptions.length > 0 && (
                 <div className="bg-card rounded-xl border border-border/50 p-6 mt-4">
@@ -252,108 +481,10 @@ const LoungePage = () => {
               <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 sm:gap-10">
                 {/* Main */}
                 <div className="lg:col-span-2 space-y-10">
-                  {/* Connoisseur Score */}
-                  {(() => {
-                    const scoreSource = lounge.score_source || "none";
-                    const connoisseurScore = lounge.connoisseur_score;
-                    const scoreLabel = lounge.score_label;
-                    const scoreSummary = lounge.score_summary;
-                    const pillarScores = lounge.pillar_scores as Record<string, { sentiment: string; positive: number; negative: number; total: number }> | null;
-                    const aspects = lounge.type === "shop" ? SHOP_ASPECTS : LOUNGE_ASPECTS;
-
-                    if (scoreSource === "none") {
-                      return (
-                        <div className="bg-card rounded-xl border border-border/50 p-6 text-center">
-                          <p className="text-muted-foreground font-body">Awaiting Connoisseur Score</p>
-                          <p className="text-xs text-muted-foreground font-body mt-2">
-                            Google Rating: {Number(lounge.rating).toFixed(1)} ★
-                          </p>
-                          <p className="text-sm text-primary font-body mt-3">Be the first to rate this lounge</p>
-                        </div>
-                      );
-                    }
-
-                    return (
-                      <div className="bg-card rounded-xl border border-border/50 p-6">
-                        <div className="flex flex-col sm:flex-row items-center sm:items-start gap-4 sm:gap-6">
-                          <ConnoisseurScoreBadge
-                            score={connoisseurScore}
-                            scoreLabel={scoreLabel}
-                            scoreSource={scoreSource}
-                            googleRating={Number(lounge.rating)}
-                            size="lg"
-                          />
-                          <div className="flex-1">
-                            <div className="flex items-center gap-2">
-                              <h2 className="font-display text-xl font-semibold text-foreground">
-                                {scoreSource === "verified" ? "Verified Connoisseur Score" : "Estimated Connoisseur Score"}
-                              </h2>
-                              {scoreSource === "estimated" && (
-                                <Tooltip>
-                                  <TooltipTrigger>
-                                    <Info className="h-4 w-4 text-muted-foreground" />
-                                  </TooltipTrigger>
-                                  <TooltipContent className="max-w-xs">
-                                    <p className="text-xs font-body">
-                                      Deterministic score computed from rating quality, review sentiment, volume, and consistency.
-                                    </p>
-                                  </TooltipContent>
-                                </Tooltip>
-                              )}
-                            </div>
-                            {scoreSummary && (
-                              <p className="text-sm font-body italic text-muted-foreground mt-1">{scoreSummary}</p>
-                            )}
-                            <p className="text-xs text-muted-foreground font-body mt-2">
-                              {scoreSource === "verified"
-                                ? `Based on member reviews`
-                                : "Based on analysis of public reviews"}
-                            </p>
-                            {scoreSource === "estimated" && (
-                              <p className="text-sm text-primary font-body mt-2">
-                                Rate this lounge to help verify the Connoisseur Score
-                              </p>
-                            )}
-                            <p className="text-xs text-muted-foreground font-body mt-2">
-                              Google Rating: {Number(lounge.rating).toFixed(1)} ★
-                            </p>
-                          </div>
-                        </div>
-
-                        {/* Aspect Breakdown */}
-                        {pillarScores && (
-                          <div className="mt-6 grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
-                            {aspects.map((aspect) => {
-                              const data = pillarScores[aspect];
-                              if (!data) return (
-                                <div key={aspect} className="text-center">
-                                  <p className="text-[10px] text-muted-foreground font-body uppercase tracking-wider mb-1">
-                                    {aspectLabel(aspect)}
-                                  </p>
-                                  <p className="text-sm font-bold font-display text-muted-foreground">—</p>
-                                </div>
-                              );
-                              return (
-                                <div key={aspect} className="text-center">
-                                  <p className="text-[10px] text-muted-foreground font-body uppercase tracking-wider mb-1">
-                                    {aspectLabel(aspect)}
-                                  </p>
-                                  <p className={`text-sm font-bold font-display ${sentimentColor(data.sentiment)}`}>
-                                    {sentimentDisplay(data.sentiment)}
-                                  </p>
-                                  {data.total > 0 && (
-                                    <p className="text-[10px] text-muted-foreground font-body">
-                                      {data.positive}↑ {data.negative}↓
-                                    </p>
-                                  )}
-                                </div>
-                              );
-                            })}
-                          </div>
-                        )}
-                      </div>
-                    );
-                  })()}
+                  {/* Connoisseur Score — desktop */}
+                  <div className="hidden lg:block">
+                    <ScoreSection lounge={lounge} />
+                  </div>
 
                   {/* Features */}
                   {lounge.features && lounge.features.length > 0 && (
