@@ -128,10 +128,10 @@ const ReactionButton = ({
       }
     },
     onMutate: async () => {
-      await qc.cancelQueries({ queryKey: ["feed-reactions"] });
-      const prev = qc.getQueryData<any>(["feed-reactions"]);
+      await qc.cancelQueries({ queryKey: reactionsQueryKey });
+      const prev = qc.getQueryData<any>(reactionsQueryKey);
       // optimistic
-      qc.setQueryData(["feed-reactions"], (old: any) => {
+      qc.setQueryData(reactionsQueryKey, (old: any) => {
         if (!old) return old;
         const newCounts = { ...old.counts };
         const newUserSet = new Set(old.userReacted as Set<string>);
@@ -147,10 +147,10 @@ const ReactionButton = ({
       return { prev };
     },
     onError: (_e, _v, ctx) => {
-      if (ctx?.prev) qc.setQueryData(["feed-reactions"], ctx.prev);
+      if (ctx?.prev) qc.setQueryData(reactionsQueryKey, ctx.prev);
     },
     onSettled: () => {
-      qc.invalidateQueries({ queryKey: ["feed-reactions"] });
+      qc.invalidateQueries({ queryKey: ["feed-reactions"], exact: false });
     },
   });
 
