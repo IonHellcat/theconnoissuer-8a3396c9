@@ -5,7 +5,8 @@ import { useAuth } from "@/hooks/useAuth";
 import { Navigate, Link } from "react-router-dom";
 import { Helmet } from "react-helmet-async";
 import { motion } from "framer-motion";
-import { User, Star, Heart, MapPin, Camera, Pencil, Save, X, Share2 } from "lucide-react";
+import { User, Star, Heart, MapPin, Camera, Pencil, Save, X, Share2, Crown } from "lucide-react";
+import TopFourLounges from "@/components/TopFourLounges";
 import AchievementsGrid from "@/components/AchievementsGrid";
 import { useFollows } from "@/hooks/useFollows";
 
