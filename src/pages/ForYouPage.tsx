@@ -180,11 +180,18 @@ const ForYouPage = () => {
           )}
 
           {/* Content states */}
-          {!hasLocation ? (
+          {geoLoading ? (
+            <div className="text-center py-16">
+              <Loader2 className="h-8 w-8 text-primary mx-auto mb-3 animate-spin" />
+              <p className="text-muted-foreground font-body text-sm">
+                Finding your location…
+              </p>
+            </div>
+          ) : !hasLocation ? (
             <div className="text-center py-16">
               <Sparkles className="h-10 w-10 text-muted-foreground/30 mx-auto mb-4" />
               <p className="text-muted-foreground font-body text-sm">
-                Set your location to find lounges near you
+                Search for a city to find lounges near you
               </p>
             </div>
           ) : finding ? (
