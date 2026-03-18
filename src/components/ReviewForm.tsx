@@ -9,6 +9,7 @@ import { Star } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useQueryClient } from "@tanstack/react-query";
 import { Link } from "react-router-dom";
+import AuthPromptSheet from "@/components/AuthPromptSheet";
 
 interface ReviewFormProps {
   loungeId: string;
@@ -26,14 +27,33 @@ const ReviewForm = ({ loungeId }: ReviewFormProps) => {
   const [drinkPairing, setDrinkPairing] = useState("");
   const [loading, setLoading] = useState(false);
 
+  const [sheetOpen, setSheetOpen] = useState(false);
+
   if (!user) {
     return (
-      <div className="text-center py-8 bg-card rounded-xl border border-border/50">
-        <p className="text-muted-foreground font-body mb-3">Log in to leave a review</p>
-        <Link to="/auth">
-          <Button variant="outline" className="font-body">Log In</Button>
-        </Link>
-      </div>
+      <>
+        <div className="flex items-start gap-4 bg-card rounded-xl border border-border/50 p-6">
+          <div className="h-12 w-12 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0">
+            <Star className="h-6 w-6 text-primary" />
+          </div>
+          <div className="flex-1">
+            <h3 className="font-display text-lg font-semibold text-foreground">
+              Share your experience
+            </h3>
+            <p className="text-sm text-muted-foreground font-body mt-1">
+              Join The Connoisseur to rate this lounge, log your visit, and earn the Critic's Eye achievement.
+            </p>
+            <Button
+              onClick={() => setSheetOpen(true)}
+              className="mt-3 font-body"
+              size="sm"
+            >
+              Join free
+            </Button>
+          </div>
+        </div>
+        <AuthPromptSheet open={sheetOpen} onOpenChange={setSheetOpen} variant="review" />
+      </>
     );
   }
 

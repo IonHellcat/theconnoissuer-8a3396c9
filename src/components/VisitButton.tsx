@@ -1,10 +1,11 @@
+import { useState } from "react";
 import { MapPinCheck, Check } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
-import { useNavigate } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
+import AuthPromptSheet from "@/components/AuthPromptSheet";
 
 interface VisitButtonProps {
   loungeId: string;
@@ -13,9 +14,9 @@ interface VisitButtonProps {
 
 const VisitButton = ({ loungeId, className }: VisitButtonProps) => {
   const { user } = useAuth();
-  const navigate = useNavigate();
   const queryClient = useQueryClient();
   const { toast } = useToast();
+  const [sheetOpen, setSheetOpen] = useState(false);
 
   const { data: visit } = useQuery({
     queryKey: ["visit", loungeId],
@@ -73,31 +74,34 @@ const VisitButton = ({ loungeId, className }: VisitButtonProps) => {
     e.preventDefault();
     e.stopPropagation();
     if (!user) {
-      navigate("/auth");
+      setSheetOpen(true);
       return;
     }
     toggle.mutate();
   };
 
   return (
-    <button
-      onClick={handleClick}
-      className={cn(
-        "p-2 rounded-full transition-all duration-200",
-        "bg-background/60 backdrop-blur-sm hover:bg-background/80",
-        "border border-border/30",
-        visited && "border-primary/50 bg-primary/10",
-        className
-      )}
-      aria-label={visited ? "Remove from passport" : "Mark as visited"}
-    >
-      <MapPinCheck
+    <>
+      <button
+        onClick={handleClick}
         className={cn(
-          "h-4 w-4 transition-colors",
-          visited ? "fill-primary text-primary" : "text-muted-foreground"
+          "p-2 rounded-full transition-all duration-200",
+          "bg-background/60 backdrop-blur-sm hover:bg-background/80",
+          "border border-border/30",
+          visited && "border-primary/50 bg-primary/10",
+          className
         )}
-      />
-    </button>
+        aria-label={visited ? "Remove from passport" : "Mark as visited"}
+      >
+        <MapPinCheck
+          className={cn(
+            "h-4 w-4 transition-colors",
+            visited ? "fill-primary text-primary" : "text-muted-foreground"
+          )}
+        />
+      </button>
+      <AuthPromptSheet open={sheetOpen} onOpenChange={setSheetOpen} variant="visit" />
+    </>
   );
 };
 

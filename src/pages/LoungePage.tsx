@@ -10,6 +10,8 @@ import {
   ExternalLink, Navigation, Cigarette, Info, Share2,
   MapPinCheck, Heart,
 } from "lucide-react";
+import { useState } from "react";
+import AuthPromptSheet from "@/components/AuthPromptSheet";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import ReviewForm from "@/components/ReviewForm";
@@ -163,9 +165,9 @@ const ScoreSection = ({ lounge }: { lounge: LoungeWithCity }) => {
 /* ── VisitButtonFull ── */
 const VisitButtonFull = ({ loungeId }: { loungeId: string }) => {
   const { user } = useAuth();
-  const navigate = useNavigate();
   const queryClient = useQueryClient();
   const { toast } = useToast();
+  const [sheetOpen, setSheetOpen] = useState(false);
 
   const { data: visit } = useQuery({
     queryKey: ["visit", loungeId],
@@ -218,23 +220,26 @@ const VisitButtonFull = ({ loungeId }: { loungeId: string }) => {
   const handleClick = (e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
-    if (!user) { navigate("/auth"); return; }
+    if (!user) { setSheetOpen(true); return; }
     toggle.mutate();
   };
 
   return (
-    <button
-      onClick={handleClick}
-      className={cn(
-        "flex-1 flex items-center justify-center gap-2 px-3 py-2.5 rounded-xl border text-sm font-medium font-body transition-colors",
-        visited
-          ? "border-primary/40 bg-primary/10 text-primary"
-          : "border-border text-foreground hover:bg-secondary"
-      )}
-    >
-      <MapPinCheck className={cn("h-4 w-4", visited ? "fill-primary text-primary" : "")} />
-      {visited ? "Visited ✓" : "Been Here"}
-    </button>
+    <>
+      <button
+        onClick={handleClick}
+        className={cn(
+          "flex-1 flex items-center justify-center gap-2 px-3 py-2.5 rounded-xl border text-sm font-medium font-body transition-colors",
+          visited
+            ? "border-primary/40 bg-primary/10 text-primary"
+            : "border-border text-foreground hover:bg-secondary"
+        )}
+      >
+        <MapPinCheck className={cn("h-4 w-4", visited ? "fill-primary text-primary" : "")} />
+        {visited ? "Visited ✓" : "Been Here"}
+      </button>
+      <AuthPromptSheet open={sheetOpen} onOpenChange={setSheetOpen} variant="visit" />
+    </>
   );
 };
 
@@ -242,29 +247,32 @@ const VisitButtonFull = ({ loungeId }: { loungeId: string }) => {
 const FavoriteButtonFull = ({ loungeId }: { loungeId: string }) => {
   const { user } = useAuth();
   const { isFavorite, toggleFavorite } = useFavorites();
-  const navigate = useNavigate();
   const favorited = isFavorite(loungeId);
+  const [sheetOpen, setSheetOpen] = useState(false);
 
   const handleClick = (e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
-    if (!user) { navigate("/auth"); return; }
+    if (!user) { setSheetOpen(true); return; }
     toggleFavorite.mutate(loungeId);
   };
 
   return (
-    <button
-      onClick={handleClick}
-      className={cn(
-        "flex-1 flex items-center justify-center gap-2 px-3 py-2.5 rounded-xl border text-sm font-medium font-body transition-colors",
-        favorited
-          ? "border-primary/40 bg-primary/10 text-primary"
-          : "border-border text-foreground hover:bg-secondary"
-      )}
-    >
-      <Heart className={cn("h-4 w-4", favorited ? "fill-primary text-primary" : "")} />
-      {favorited ? "Saved" : "Save"}
-    </button>
+    <>
+      <button
+        onClick={handleClick}
+        className={cn(
+          "flex-1 flex items-center justify-center gap-2 px-3 py-2.5 rounded-xl border text-sm font-medium font-body transition-colors",
+          favorited
+            ? "border-primary/40 bg-primary/10 text-primary"
+            : "border-border text-foreground hover:bg-secondary"
+        )}
+      >
+        <Heart className={cn("h-4 w-4", favorited ? "fill-primary text-primary" : "")} />
+        {favorited ? "Saved" : "Save"}
+      </button>
+      <AuthPromptSheet open={sheetOpen} onOpenChange={setSheetOpen} variant="favorite" />
+    </>
   );
 };
 
