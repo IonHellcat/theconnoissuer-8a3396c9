@@ -230,6 +230,21 @@ const CheckInCelebration = ({
             Done
           </button>
         </div>
+        <button
+          onClick={async () => {
+            const url = "https://theconnoisseur.app";
+            const text = `Just checked into ${loungeName}${cityName ? ` in ${cityName}` : ""} on The Connoisseur 🥃`;
+            if (navigator.share) {
+              try { await navigator.share({ text, url }); } catch {}
+            } else {
+              await navigator.clipboard.writeText(`${text} ${url}`);
+            }
+          }}
+          className="w-full flex items-center justify-center gap-2 py-2 text-xs font-body text-muted-foreground hover:text-foreground transition-colors"
+        >
+          <Share2 className="h-3.5 w-3.5" />
+          Share this check-in
+        </button>
       </motion.div>
     </motion.div>
   );

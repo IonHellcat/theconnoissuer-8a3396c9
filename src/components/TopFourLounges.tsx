@@ -236,6 +236,22 @@ const TopFourLounges = ({ userId, editable, displayName, profileUrl }: TopFourLo
           )}
         </DialogContent>
       </Dialog>
+
+      {shareOpen && (
+        <TopFourShareModal
+          open={shareOpen}
+          onOpenChange={setShareOpen}
+          displayName={displayName || "My"}
+          lounges={slots
+            .filter((s) => s.entry)
+            .map((s) => ({
+              name: s.entry!.lounges.name,
+              cityName: s.entry!.lounges.cities?.name || "",
+              image_url: s.entry!.lounges.image_url,
+            }))}
+          profileUrl={profileUrl || `https://theconnoisseur.app/user/${userId}`}
+        />
+      )}
     </>
   );
 };
