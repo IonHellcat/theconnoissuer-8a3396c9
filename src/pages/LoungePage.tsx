@@ -242,29 +242,32 @@ const VisitButtonFull = ({ loungeId }: { loungeId: string }) => {
 const FavoriteButtonFull = ({ loungeId }: { loungeId: string }) => {
   const { user } = useAuth();
   const { isFavorite, toggleFavorite } = useFavorites();
-  const navigate = useNavigate();
   const favorited = isFavorite(loungeId);
+  const [sheetOpen, setSheetOpen] = useState(false);
 
   const handleClick = (e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
-    if (!user) { navigate("/auth"); return; }
+    if (!user) { setSheetOpen(true); return; }
     toggleFavorite.mutate(loungeId);
   };
 
   return (
-    <button
-      onClick={handleClick}
-      className={cn(
-        "flex-1 flex items-center justify-center gap-2 px-3 py-2.5 rounded-xl border text-sm font-medium font-body transition-colors",
-        favorited
-          ? "border-primary/40 bg-primary/10 text-primary"
-          : "border-border text-foreground hover:bg-secondary"
-      )}
-    >
-      <Heart className={cn("h-4 w-4", favorited ? "fill-primary text-primary" : "")} />
-      {favorited ? "Saved" : "Save"}
-    </button>
+    <>
+      <button
+        onClick={handleClick}
+        className={cn(
+          "flex-1 flex items-center justify-center gap-2 px-3 py-2.5 rounded-xl border text-sm font-medium font-body transition-colors",
+          favorited
+            ? "border-primary/40 bg-primary/10 text-primary"
+            : "border-border text-foreground hover:bg-secondary"
+        )}
+      >
+        <Heart className={cn("h-4 w-4", favorited ? "fill-primary text-primary" : "")} />
+        {favorited ? "Saved" : "Save"}
+      </button>
+      <AuthPromptSheet open={sheetOpen} onOpenChange={setSheetOpen} variant="favorite" />
+    </>
   );
 };
 
