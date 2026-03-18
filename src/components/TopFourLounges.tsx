@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Link } from "react-router-dom";
-import { Plus, X } from "lucide-react";
+import { Plus, X, Share2 } from "lucide-react";
 import { motion } from "framer-motion";
 import OptimizedImage from "@/components/OptimizedImage";
 import { useToast } from "@/hooks/use-toast";
@@ -13,6 +13,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import TopFourShareModal from "@/components/TopFourShareModal";
 
 interface TopLoungeRow {
   id: string;
