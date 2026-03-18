@@ -115,9 +115,10 @@ const ForYouPage = () => {
     staleTime: 5 * 60 * 1000,
   });
 
+  const safeCityOptions = cityOptions ?? [];
   const filteredCities = cityQuery.length > 0
-    ? cityOptions.filter((c) => c.city_name.toLowerCase().includes(cityQuery.toLowerCase()))
-    : cityOptions;
+    ? safeCityOptions.filter((c) => c.city_name.toLowerCase().includes(cityQuery.toLowerCase()))
+    : safeCityOptions;
 
   const hasLocation = userLat !== null && userLng !== null;
 
