@@ -359,6 +359,7 @@ const ActivityFeedPage = () => {
                   userId={user?.id}
                   reactionCount={reactions?.counts[item.item_id] || 0}
                   userReacted={reactions?.userReacted.has(item.item_id) || false}
+                  reactionsQueryKey={["feed-reactions", feedItemIds]}
                 />
               ))}
             </div>
