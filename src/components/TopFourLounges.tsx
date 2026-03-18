@@ -177,6 +177,16 @@ const TopFourLounges = ({ userId, editable, displayName, profileUrl }: TopFourLo
         })}
       </div>
 
+      {editable && topLounges && topLounges.length > 0 && (
+        <button
+          onClick={() => setShareOpen(true)}
+          className="mt-3 w-full flex items-center justify-center gap-2 py-2.5 rounded-xl border border-border/50 text-sm font-body text-muted-foreground hover:text-foreground hover:border-primary/30 transition-colors"
+        >
+          <Share2 className="h-4 w-4" />
+          Share my Top 4
+        </button>
+      )}
+
       <Dialog open={searchOpen} onOpenChange={setSearchOpen}>
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
