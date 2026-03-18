@@ -10,6 +10,8 @@ import {
   ExternalLink, Navigation, Cigarette, Info, Share2,
   MapPinCheck, Heart,
 } from "lucide-react";
+import { useState } from "react";
+import AuthPromptSheet from "@/components/AuthPromptSheet";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import ReviewForm from "@/components/ReviewForm";

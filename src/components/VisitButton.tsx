@@ -81,24 +81,27 @@ const VisitButton = ({ loungeId, className }: VisitButtonProps) => {
   };
 
   return (
-    <button
-      onClick={handleClick}
-      className={cn(
-        "p-2 rounded-full transition-all duration-200",
-        "bg-background/60 backdrop-blur-sm hover:bg-background/80",
-        "border border-border/30",
-        visited && "border-primary/50 bg-primary/10",
-        className
-      )}
-      aria-label={visited ? "Remove from passport" : "Mark as visited"}
-    >
-      <MapPinCheck
+    <>
+      <button
+        onClick={handleClick}
         className={cn(
-          "h-4 w-4 transition-colors",
-          visited ? "fill-primary text-primary" : "text-muted-foreground"
+          "p-2 rounded-full transition-all duration-200",
+          "bg-background/60 backdrop-blur-sm hover:bg-background/80",
+          "border border-border/30",
+          visited && "border-primary/50 bg-primary/10",
+          className
         )}
-      />
-    </button>
+        aria-label={visited ? "Remove from passport" : "Mark as visited"}
+      >
+        <MapPinCheck
+          className={cn(
+            "h-4 w-4 transition-colors",
+            visited ? "fill-primary text-primary" : "text-muted-foreground"
+          )}
+        />
+      </button>
+      <AuthPromptSheet open={sheetOpen} onOpenChange={setSheetOpen} variant="visit" />
+    </>
   );
 };
 
