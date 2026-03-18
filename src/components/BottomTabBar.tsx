@@ -1,5 +1,5 @@
 import { Link, useLocation } from "react-router-dom";
-import { Home, Sparkles, Trophy, MapPinCheck, Rss, Compass, User } from "lucide-react";
+import { Home, Sparkles, Trophy, MapPinCheck, Compass, User } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/hooks/useAuth";
 
@@ -11,8 +11,8 @@ const BottomTabBar = () => {
     ? [
         { to: "/", label: "Home", icon: Home },
         { to: "/for-you", label: "For You", icon: Sparkles },
-        { to: "/feed", label: "Feed", icon: Rss },
         { to: "/visited", label: "Passport", icon: MapPinCheck },
+        { to: "/profile", label: "Profile", icon: User },
       ]
     : [
         { to: "/", label: "Home", icon: Home },
