@@ -1,8 +1,9 @@
+import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import type { LoungeWithCity } from "@/lib/types";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
-import { Link, Navigate } from "react-router-dom";
+import { Link } from "react-router-dom";
 import { Helmet } from "react-helmet-async";
 import { Star, Heart } from "lucide-react";
 import Navbar from "@/components/Navbar";
@@ -10,6 +11,8 @@ import Footer from "@/components/Footer";
 import OptimizedImage from "@/components/OptimizedImage";
 import FavoriteButton from "@/components/FavoriteButton";
 import { useFavorites } from "@/hooks/useFavorites";
+import { Button } from "@/components/ui/button";
+import AuthPromptSheet from "@/components/AuthPromptSheet";
 
 const FavoritesPage = () => {
   const { user, loading } = useAuth();
