@@ -14,9 +14,9 @@ interface VisitButtonProps {
 
 const VisitButton = ({ loungeId, className }: VisitButtonProps) => {
   const { user } = useAuth();
-  const navigate = useNavigate();
   const queryClient = useQueryClient();
   const { toast } = useToast();
+  const [sheetOpen, setSheetOpen] = useState(false);
 
   const { data: visit } = useQuery({
     queryKey: ["visit", loungeId],
