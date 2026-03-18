@@ -378,12 +378,14 @@ const FeedCard = ({
   userId,
   reactionCount,
   userReacted,
+  reactionsQueryKey,
 }: {
   item: FeedItem;
   index: number;
   userId: string | undefined;
   reactionCount: number;
   userReacted: boolean;
+  reactionsQueryKey: readonly unknown[];
 }) => {
   const isReview = item.action_type === "reviewed";
   const isAchievement = item.action_type === "achievement";
