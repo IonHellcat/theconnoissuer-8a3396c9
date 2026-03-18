@@ -74,7 +74,12 @@ const ReviewForm = ({ loungeId }: ReviewFormProps) => {
     });
     setLoading(false);
     if (error) {
-      toast({ title: "Error submitting review", description: error.message, variant: "destructive" });
+      const isDuplicate = error.code === "23505" || error.message?.includes("unique");
+      toast({
+        title: isDuplicate ? "Already reviewed" : "Error submitting review",
+        description: isDuplicate ? "You've already left a review for this lounge." : error.message,
+        variant: "destructive",
+      });
     } else {
       toast({ title: "Review submitted!" });
       setRating(0);
