@@ -1,8 +1,9 @@
+import { useState } from "react";
 import { Heart } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { useFavorites } from "@/hooks/useFavorites";
-import { useNavigate } from "react-router-dom";
 import { cn } from "@/lib/utils";
+import AuthPromptSheet from "@/components/AuthPromptSheet";
 
 interface FavoriteButtonProps {
   loungeId: string;
