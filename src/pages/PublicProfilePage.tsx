@@ -207,10 +207,29 @@ const PublicProfilePage = () => {
                   animate={{ opacity: 1, y: 0 }}
                   className="mb-10"
                 >
-                  <h2 className="font-display text-xl font-semibold text-foreground flex items-center gap-2 mb-4">
-                    <Crown className="h-5 w-5 text-primary" />
-                    Top 4 Lounges
-                  </h2>
+                  <div className="flex items-center justify-between mb-4">
+                    <h2 className="font-display text-xl font-semibold text-foreground flex items-center gap-2">
+                      <Crown className="h-5 w-5 text-primary" />
+                      Top 4 Lounges
+                    </h2>
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      onClick={async () => {
+                        const url = window.location.href;
+                        if (navigator.share) {
+                          await navigator.share({ title: `${displayName}'s Top 4 — The Connoisseur`, url });
+                        } else {
+                          await navigator.clipboard.writeText(url);
+                          toast({ title: "Link copied!" });
+                        }
+                      }}
+                      className="text-muted-foreground hover:text-foreground gap-1.5"
+                    >
+                      <Share2 className="h-3.5 w-3.5" />
+                      <span className="text-xs">Share</span>
+                    </Button>
+                  </div>
                   <TopFourLounges userId={userId} editable={false} />
                 </motion.section>
               )}
