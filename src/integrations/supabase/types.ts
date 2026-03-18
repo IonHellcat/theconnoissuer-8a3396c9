@@ -927,22 +927,18 @@ export type Database = {
       }
       visits_public: {
         Row: {
+          city_name: string | null
+          connoisseur_score: number | null
           id: string | null
           lounge_id: string | null
+          lounge_image_url: string | null
+          lounge_name: string | null
+          lounge_rating: number | null
+          lounge_slug: string | null
+          score_label: string | null
+          score_source: string | null
           user_id: string | null
           visited_at: string | null
-        }
-        Insert: {
-          id?: string | null
-          lounge_id?: string | null
-          user_id?: string | null
-          visited_at?: string | null
-        }
-        Update: {
-          id?: string | null
-          lounge_id?: string | null
-          user_id?: string | null
-          visited_at?: string | null
         }
         Relationships: [
           {
