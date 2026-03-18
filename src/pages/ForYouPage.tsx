@@ -136,19 +136,6 @@ const ForYouPage = () => {
                   </div>
                 )}
               </div>
-              <button
-                onClick={requestGeo}
-                disabled={geoLoading}
-                className="w-full flex items-center justify-center gap-2 px-3 py-2.5 rounded-lg border border-border text-sm font-body font-medium text-foreground hover:bg-background transition-colors"
-              >
-                <Navigation className="h-4 w-4" />
-                {geoLoading ? "Locating..." : "Use my location"}
-              </button>
-              {geoError && (
-                <p className="text-xs text-destructive font-body text-center">
-                  Could not access your location. This may be blocked by your browser or preview settings. Search for a city instead.
-                </p>
-              )}
             </div>
           )}
 
