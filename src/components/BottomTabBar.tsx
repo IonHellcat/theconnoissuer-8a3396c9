@@ -11,8 +11,8 @@ const BottomTabBar = () => {
     ? [
         { to: "/", label: "Home", icon: Home },
         { to: "/for-you", label: "For You", icon: Sparkles },
-        { to: "/feed", label: "Feed", icon: Rss },
         { to: "/visited", label: "Passport", icon: MapPinCheck },
+        { to: "/profile", label: "Profile", icon: User },
       ]
     : [
         { to: "/", label: "Home", icon: Home },

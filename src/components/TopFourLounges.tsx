@@ -1,12 +1,12 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Link } from "react-router-dom";
 import { Plus, X, Share2 } from "lucide-react";
-import { motion } from "framer-motion";
 import OptimizedImage from "@/components/OptimizedImage";
 import { useToast } from "@/hooks/use-toast";
 import { Input } from "@/components/ui/input";
+import { cn } from "@/lib/utils";
 import {
   Dialog,
   DialogContent,
@@ -40,13 +40,7 @@ const TopFourLounges = ({ userId, editable, displayName, profileUrl }: TopFourLo
   const [searchOpen, setSearchOpen] = useState(false);
   const [searchSlot, setSearchSlot] = useState<number | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
-  const [debouncedQuery, setDebouncedQuery] = useState("");
   const [shareOpen, setShareOpen] = useState(false);
-
-  useEffect(() => {
-    const timer = setTimeout(() => setDebouncedQuery(searchQuery), 300);
-    return () => clearTimeout(timer);
-  }, [searchQuery]);
 
   const { data: topLounges, refetch } = useQuery({
     queryKey: ["top-lounges", userId],
@@ -61,20 +55,33 @@ const TopFourLounges = ({ userId, editable, displayName, profileUrl }: TopFourLo
     staleTime: 5 * 60 * 1000,
   });
 
-  const { data: searchResults } = useQuery({
-    queryKey: ["top4-lounge-search", debouncedQuery],
+  const { data: visitedLounges } = useQuery({
+    queryKey: ["visited-lounges-top4", userId],
     queryFn: async () => {
-      if (debouncedQuery.length < 2) return [];
       const { data } = await supabase
-        .from("lounges")
-        .select("id, name, slug, image_url, cities(name)")
-        .ilike("name", `%${debouncedQuery}%`)
-        .limit(10);
-      return data || [];
+        .from("visits")
+        .select("lounge_id, lounges(id, name, slug, image_url, cities(name))")
+        .eq("user_id", userId)
+        .order("visited_at", { ascending: false });
+      if (!data) return [];
+      const seen = new Set();
+      return data
+        .map((v: any) => v.lounges)
+        .filter((l: any) => {
+          if (!l || seen.has(l.id)) return false;
+          seen.add(l.id);
+          return true;
+        });
     },
-    enabled: debouncedQuery.length >= 2,
-    staleTime: 60_000,
+    enabled: editable && !!userId,
+    staleTime: 2 * 60 * 1000,
   });
+
+  const filteredLounges = (visitedLounges || []).filter((l: any) =>
+    searchQuery.length === 0 ||
+    l.name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    l.cities?.name?.toLowerCase().includes(searchQuery.toLowerCase())
+  );
 
   const slots = [1, 2, 3, 4].map((pos) => ({
     position: pos,
@@ -187,52 +194,79 @@ const TopFourLounges = ({ userId, editable, displayName, profileUrl }: TopFourLo
         </button>
       )}
 
-      <Dialog open={searchOpen} onOpenChange={setSearchOpen}>
+      <Dialog open={searchOpen} onOpenChange={(open) => {
+        setSearchOpen(open);
+        if (!open) setSearchQuery("");
+      }}>
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
             <DialogTitle className="font-display">Add to Top 4</DialogTitle>
           </DialogHeader>
           <Input
-            placeholder="Search lounges..."
+            placeholder="Filter visited lounges..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             className="bg-secondary border-border/50"
             autoFocus
           />
-          {(searchResults ?? []).length > 0 ? (
-            <div className="max-h-64 overflow-y-auto space-y-1">
-              {(searchResults ?? []).map((lounge: any) => (
-                <button
-                  key={lounge.id}
-                  onClick={() => handleSelect(lounge.id)}
-                  className="w-full flex items-center gap-3 p-2 rounded-lg hover:bg-secondary transition-colors text-left"
-                >
-                  <div className="h-10 w-10 rounded-lg overflow-hidden flex-shrink-0 bg-secondary">
-                    <OptimizedImage
-                      src={lounge.image_url || "/placeholder.svg"}
-                      alt={lounge.name}
-                      width={80}
-                      height={80}
-                      sizes="40px"
-                      widths={[40, 80]}
-                      className="w-full h-full object-cover"
-                    />
-                  </div>
-                  <div className="min-w-0">
-                    <p className="text-sm font-display font-bold text-foreground truncate">
-                      {lounge.name}
-                    </p>
-                    <p className="text-xs text-muted-foreground font-body">
-                      {lounge.cities?.name}
-                    </p>
-                  </div>
-                </button>
-              ))}
+          {(visitedLounges || []).length === 0 ? (
+            <div className="py-8 text-center">
+              <p className="text-sm text-muted-foreground font-body">
+                Check into lounges first to add them to your Top 4
+              </p>
             </div>
-          ) : (
+          ) : filteredLounges.length === 0 ? (
             <p className="text-sm text-muted-foreground font-body text-center py-4">
-              {debouncedQuery.length >= 2 ? "No lounges found" : "Type to search lounges..."}
+              No matching lounges
             </p>
+          ) : (
+            <div className="max-h-64 overflow-y-auto space-y-1">
+              {filteredLounges.map((lounge: any) => {
+                const alreadyIn = topLounges?.some((t) => t.lounges.id === lounge.id);
+                return (
+                  <button
+                    key={lounge.id}
+                    onClick={() => !alreadyIn && handleSelect(lounge.id)}
+                    disabled={alreadyIn}
+                    className={cn(
+                      "w-full flex items-center gap-3 p-2 rounded-lg transition-colors text-left",
+                      alreadyIn
+                        ? "opacity-40 cursor-not-allowed"
+                        : "hover:bg-secondary cursor-pointer"
+                    )}
+                  >
+                    <div className="h-10 w-10 rounded-lg overflow-hidden flex-shrink-0 bg-secondary">
+                      {lounge.image_url ? (
+                        <OptimizedImage
+                          src={lounge.image_url}
+                          alt={lounge.name}
+                          width={80}
+                          height={80}
+                          sizes="40px"
+                          widths={[40, 80]}
+                          className="w-full h-full object-cover"
+                        />
+                      ) : (
+                        <div className="w-full h-full bg-muted" />
+                      )}
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <p className="text-sm font-display font-bold text-foreground truncate">
+                        {lounge.name}
+                      </p>
+                      <p className="text-xs text-muted-foreground font-body">
+                        {lounge.cities?.name}
+                      </p>
+                    </div>
+                    {alreadyIn && (
+                      <span className="text-[10px] text-muted-foreground font-body shrink-0">
+                        In Top 4
+                      </span>
+                    )}
+                  </button>
+                );
+              })}
+            </div>
           )}
         </DialogContent>
       </Dialog>
