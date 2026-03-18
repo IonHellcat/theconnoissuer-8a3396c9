@@ -225,7 +225,7 @@ const ActivityFeedPage = () => {
         .select("user_id, display_name, avatar_url")
         .in("user_id", Array.from(actorIds));
 
-      const profileMap = new Map((profiles || []).map((p: any) => [p.user_id, p]));
+      const profileMap = new Map<string, any>((profiles || []).map((p: any) => [p.user_id, p]));
 
       const items: FeedItem[] = [
         ...(visits || []).map((v: any) => ({
