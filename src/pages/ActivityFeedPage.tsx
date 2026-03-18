@@ -31,6 +31,7 @@ import OptimizedImage from "@/components/OptimizedImage";
 import ConnoisseurScoreBadge from "@/components/ConnoisseurScoreBadge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
+import AuthPromptSheet from "@/components/AuthPromptSheet";
 
 /* ── icon map (same as AchievementBadge) ── */
 const iconMap: Record<string, LucideIcon> = {
