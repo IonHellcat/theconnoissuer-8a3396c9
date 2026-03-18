@@ -217,7 +217,7 @@ const TopFourLounges = ({ userId, editable }: TopFourLoungesProps) => {
             </div>
           ) : (
             <p className="text-sm text-muted-foreground font-body text-center py-4">
-              {debouncedQuery.length >= 2 ? "No matching visited lounges" : "No visited lounges yet"}
+              {debouncedQuery.length >= 2 ? "No lounges found" : "Type to search lounges..."}
             </p>
           )}
         </DialogContent>
