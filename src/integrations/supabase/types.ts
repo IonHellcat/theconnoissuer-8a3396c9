@@ -925,6 +925,42 @@ export type Database = {
         }
         Relationships: []
       }
+      visits_public: {
+        Row: {
+          id: string | null
+          lounge_id: string | null
+          user_id: string | null
+          visited_at: string | null
+        }
+        Insert: {
+          id?: string | null
+          lounge_id?: string | null
+          user_id?: string | null
+          visited_at?: string | null
+        }
+        Update: {
+          id?: string | null
+          lounge_id?: string | null
+          user_id?: string | null
+          visited_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "visits_lounge_id_fkey"
+            columns: ["lounge_id"]
+            isOneToOne: false
+            referencedRelation: "leaderboard_top100"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "visits_lounge_id_fkey"
+            columns: ["lounge_id"]
+            isOneToOne: false
+            referencedRelation: "lounges"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Functions: {
       delete_email: {
