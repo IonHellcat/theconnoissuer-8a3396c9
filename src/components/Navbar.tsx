@@ -33,7 +33,7 @@ const Navbar = () => {
         <div className="container mx-auto px-4 h-16 flex items-center justify-between gap-4">
           <Link to="/" className="flex-shrink-0 flex items-center gap-2">
             <img src={logo} alt="The Connoisseur" className="h-8 w-8 object-contain" width={32} height={32} />
-            <span className="hidden md:inline font-display text-xl font-bold text-gradient-gold">
+            <span className="font-display text-xl font-bold text-gradient-gold">
               The Connoisseur
             </span>
           </Link>
