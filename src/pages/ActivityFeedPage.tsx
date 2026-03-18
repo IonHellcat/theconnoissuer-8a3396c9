@@ -14,7 +14,7 @@ import {
   MapPin,
   Award,
   Crown,
-  Map,
+  Map as MapIcon,
   Globe,
   PenLine,
   BookOpen,
