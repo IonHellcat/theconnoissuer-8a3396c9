@@ -33,7 +33,7 @@ import { Button } from "@/components/ui/button";
 
 /* ── icon map (same as AchievementBadge) ── */
 const iconMap: Record<string, LucideIcon> = {
-  MapPin, Award, Crown, Map, Globe, Star, PenLine, BookOpen, Flame, Heart,
+  MapPin, Award, Crown, Map: MapIcon, Globe, Star, PenLine, BookOpen, Flame, Heart,
 };
 
 const tierColors: Record<string, string> = {
