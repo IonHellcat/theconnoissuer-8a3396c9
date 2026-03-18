@@ -390,9 +390,9 @@ const FeedCard = ({
   const isVisit = item.action_type === "visited";
 
   const borderClass = isReview
-    ? "border-l-2 border-primary/30 border border-border/50"
+    ? "border border-border/50 border-l-2 border-l-primary/30"
     : isAchievement
-    ? "border-l-2 border-purple-500/30 border border-border/50"
+    ? "border border-border/50 border-l-2 border-l-purple-500/30"
     : "border border-border/50";
 
   return (
