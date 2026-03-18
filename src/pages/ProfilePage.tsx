@@ -71,6 +71,7 @@ const ProfilePage = () => {
       return data;
     },
     enabled: !!user,
+    staleTime: 5 * 60 * 1000,
   });
 
   const { data: favorites } = useQuery({
@@ -86,6 +87,7 @@ const ProfilePage = () => {
       return data;
     },
     enabled: !!user,
+    staleTime: 5 * 60 * 1000,
   });
 
   const updateProfile = useMutation({
