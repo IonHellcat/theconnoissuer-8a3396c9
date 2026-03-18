@@ -9,6 +9,7 @@ import { Star } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useQueryClient } from "@tanstack/react-query";
 import { Link } from "react-router-dom";
+import AuthPromptSheet from "@/components/AuthPromptSheet";
 
 interface ReviewFormProps {
   loungeId: string;
