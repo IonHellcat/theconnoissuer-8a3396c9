@@ -30,7 +30,7 @@ const ExplorePage = () => {
       </Helmet>
       <Navbar />
       <main className="pt-16">
-        <section className="container mx-auto px-4 py-12">
+        <section className="container mx-auto px-4 pt-12 pb-28 md:pb-10">
           <h1 className="font-display text-3xl md:text-4xl font-bold text-foreground mb-2">Explore Cities</h1>
           <p className="text-muted-foreground font-body mb-8">Discover cigar lounges around the world</p>
 

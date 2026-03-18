@@ -112,7 +112,11 @@ const AuthPage = () => {
       <Navbar />
       <main className="pt-16 flex items-center justify-center min-h-[calc(100vh-4rem)]">
         <div className="w-full max-w-sm mx-auto px-4">
-          <h1 className="font-display text-2xl font-bold text-gradient-gold text-center mb-8">Welcome</h1>
+          <h1 className="font-display text-2xl font-bold text-gradient-gold text-center mb-2">Welcome</h1>
+
+          <p className="text-sm text-muted-foreground font-body text-center mb-8 leading-relaxed">
+            Track your cigar passport, save favorites, write reviews, and earn achievements at lounges around the world.
+          </p>
 
           <Button
             type="button"

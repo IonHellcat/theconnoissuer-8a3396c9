@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Link } from "react-router-dom";
@@ -9,6 +10,8 @@ interface ReviewListProps {
 }
 
 const ReviewList = ({ loungeId }: ReviewListProps) => {
+  const [showAll, setShowAll] = useState(false);
+
   const { data: reviews, isLoading } = useQuery({
     queryKey: ["reviews", loungeId],
     queryFn: async () => {
@@ -19,7 +22,6 @@ const ReviewList = ({ loungeId }: ReviewListProps) => {
         .order("created_at", { ascending: false });
       if (error) throw error;
 
-      // Fetch profiles for review authors
       const userIds = [...new Set(reviewsData.map((r) => r.user_id))];
       const { data: profiles } = await supabase
         .from("profiles")
@@ -49,9 +51,11 @@ const ReviewList = ({ loungeId }: ReviewListProps) => {
     );
   }
 
+  const displayedReviews = showAll ? reviews : reviews.slice(0, 3);
+
   return (
     <div className="space-y-4">
-      {reviews.map((review) => {
+      {displayedReviews.map((review) => {
         const profile = review.profile as any;
         return (
           <div key={review.id} className="bg-card rounded-xl border border-border/50 p-5 space-y-3">
@@ -105,6 +109,15 @@ const ReviewList = ({ loungeId }: ReviewListProps) => {
           </div>
         );
       })}
+
+      {reviews.length > 3 && (
+        <button
+          onClick={() => setShowAll(v => !v)}
+          className="w-full mt-3 py-3 text-sm font-body text-muted-foreground hover:text-foreground border border-border/50 rounded-xl transition-colors"
+        >
+          {showAll ? "Show less" : `Show all ${reviews.length} reviews`}
+        </button>
+      )}
     </div>
   );
 };
