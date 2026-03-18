@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect } from "react";
 import { Helmet } from "react-helmet-async";
 import { useQuery } from "@tanstack/react-query";
 import Navbar from "@/components/Navbar";
@@ -7,7 +7,7 @@ import { supabase } from "@/integrations/supabase/client";
 import type { VisitType, VenueType, RecommendedLounge } from "@/lib/recommendations";
 import { ResultsList } from "@/components/for-you/ResultsList";
 import { PillToggle } from "@/components/for-you/PillToggle";
-import { Sparkles, MapPin, Navigation, ChevronDown } from "lucide-react";
+import { Sparkles, MapPin, ChevronDown, Loader2 } from "lucide-react";
 import { Card } from "@/components/ui/card";
 
 interface CityOption {
