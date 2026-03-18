@@ -22,7 +22,7 @@ const CityCard = ({ name, country, loungeCount, imageUrl, slug, index }: CityCar
     >
       <Link
         to={`/city/${slug}`}
-        className="group block relative rounded-xl overflow-hidden aspect-[3/4] bg-secondary"
+        className="group block relative rounded-xl overflow-hidden aspect-[4/3] bg-secondary"
       >
         <OptimizedImage
           src={imageUrl}

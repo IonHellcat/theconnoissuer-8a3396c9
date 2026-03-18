@@ -1,18 +1,12 @@
-import { useState } from "react";
+import { Link } from "react-router-dom";
 import { motion } from "framer-motion";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import CityCard from "./CityCard";
 import FeaturedCities from "./FeaturedCities";
-import { Button } from "@/components/ui/button";
-import { ChevronDown, ChevronUp } from "lucide-react";
-
-const MOBILE_LIMIT = 12;
+import { ArrowRight } from "lucide-react";
 
 const PopularCities = () => {
-  const [showAll, setShowAll] = useState(false);
-
-  const { data: cities, isLoading } = useQuery({
+  const { data: cities } = useQuery({
     queryKey: ["cities"],
     queryFn: async () => {
       const { data, error } = await supabase
@@ -25,7 +19,6 @@ const PopularCities = () => {
   });
 
   const totalCount = cities?.length ?? 0;
-  const visibleCities = cities ?? [];
 
   return (
     <section className="py-12 sm:py-20">
@@ -38,7 +31,7 @@ const PopularCities = () => {
           className="text-center mb-8 sm:mb-12"
         >
           <h2 className="font-display text-3xl md:text-4xl font-bold text-foreground">
-            Popular Cities
+            Popular Destinations
           </h2>
           <p className="mt-3 text-muted-foreground font-body">
             Explore top cigar destinations around the world
@@ -47,61 +40,14 @@ const PopularCities = () => {
 
         <FeaturedCities />
 
-        {isLoading ? (
-          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 md:gap-6">
-            {Array.from({ length: 8 }).map((_, i) => (
-              <div key={i} className="aspect-[3/4] rounded-xl bg-secondary animate-pulse" />
-            ))}
-          </div>
-        ) : (
-          <>
-            {/* Desktop: show all, Mobile: show limited */}
-            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 md:gap-6">
-              {visibleCities.map((city, index) => (
-                <div
-                  key={city.id}
-                  className={
-                    !showAll && index >= MOBILE_LIMIT
-                      ? "hidden md:block"
-                      : undefined
-                  }
-                >
-                  <CityCard
-                    name={city.name}
-                    country={city.country}
-                    loungeCount={city.lounge_count}
-                    imageUrl={city.image_url || ""}
-                    slug={city.slug}
-                    index={index}
-                  />
-                </div>
-              ))}
-            </div>
-
-            {/* Show more/less button — mobile only */}
-            {totalCount > MOBILE_LIMIT && (
-              <div className="mt-6 text-center md:hidden">
-                <Button
-                  variant="outline"
-                  onClick={() => setShowAll(!showAll)}
-                  className="gap-2"
-                >
-                  {showAll ? (
-                    <>
-                      <ChevronUp className="h-4 w-4" />
-                      Show Less
-                    </>
-                  ) : (
-                    <>
-                      <ChevronDown className="h-4 w-4" />
-                      View All {totalCount} Cities
-                    </>
-                  )}
-                </Button>
-              </div>
-            )}
-          </>
-        )}
+        <div className="mt-8 text-center">
+          <Link
+            to="/explore"
+            className="inline-flex items-center gap-2 text-primary font-medium font-body hover:underline transition-colors"
+          >
+            Explore all {totalCount} cities <ArrowRight className="h-4 w-4" />
+          </Link>
+        </div>
       </div>
     </section>
   );

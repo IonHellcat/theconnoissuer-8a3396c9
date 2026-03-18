@@ -30,10 +30,10 @@ const Index = () => {
       <Navbar />
       <main className="pt-16">
         <HeroSection />
-        <WhyConnoisseur />
-        <ForYouPromo />
         <PopularCities />
         <TrendingThisWeek />
+        <WhyConnoisseur />
+        <ForYouPromo />
       </main>
       <Footer />
     </div>

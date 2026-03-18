@@ -76,6 +76,32 @@ const HeroSection = () => {
           </div>
         </motion.form>
 
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.8, delay: 0.6, ease: "easeOut" }}
+          className="mt-6 sm:mt-8 flex flex-wrap items-center justify-center gap-3"
+        >
+          <Link
+            to="/for-you"
+            className="inline-flex items-center gap-1.5 px-4 py-2 rounded-full bg-secondary border border-border/50 text-sm font-medium font-body text-foreground hover:border-primary/50 transition-colors"
+          >
+            <Sparkles className="h-4 w-4 text-primary" /> For You
+          </Link>
+          <Link
+            to="/leaderboard"
+            className="inline-flex items-center gap-1.5 px-4 py-2 rounded-full bg-secondary border border-border/50 text-sm font-medium font-body text-foreground hover:border-primary/50 transition-colors"
+          >
+            <Trophy className="h-4 w-4 text-primary" /> Top Rated
+          </Link>
+          <Link
+            to="/explore"
+            className="inline-flex items-center gap-1.5 px-4 py-2 rounded-full bg-secondary border border-border/50 text-sm font-medium font-body text-foreground hover:border-primary/50 transition-colors"
+          >
+            <Globe className="h-4 w-4 text-primary" /> Browse Cities
+          </Link>
+        </motion.div>
+
         <TrustStats />
       </div>
     </section>
