@@ -80,13 +80,22 @@ const PublicProfilePage = () => {
     queryKey: ["public-visits", userId],
     queryFn: async () => {
       const { data, error } = await supabase
-        .from("visits")
-        .select("*, lounges!inner(name, slug, image_url, cities!inner(name))")
+        .from("visits_public" as any)
+        .select("id, user_id, lounge_id, visited_at, lounge_name, lounge_slug, lounge_image_url, city_name")
         .eq("user_id", userId!)
         .order("visited_at", { ascending: false })
         .limit(4);
       if (error) throw error;
-      return data;
+      // Map flat view data to nested structure expected by template
+      return (data || []).map((v: any) => ({
+        ...v,
+        lounges: {
+          name: v.lounge_name,
+          slug: v.lounge_slug,
+          image_url: v.lounge_image_url,
+          cities: { name: v.city_name },
+        },
+      }));
     },
     enabled: !!userId,
   });

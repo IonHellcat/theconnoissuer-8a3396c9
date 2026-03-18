@@ -194,13 +194,29 @@ const ActivityFeedPage = () => {
     queryFn: async () => {
       if (!followingIds || followingIds.length === 0) return [];
 
-      // visits
-      const { data: visits } = await supabase
-        .from("visits")
-        .select("id, user_id, visited_at, lounges!inner(name, slug, image_url, connoisseur_score, score_label, score_source, rating, cities!inner(name))")
+      // visits — use public view to avoid exposing private notes/photos
+      const { data: rawVisits } = await supabase
+        .from("visits_public" as any)
+        .select("id, user_id, visited_at, lounge_id, lounge_name, lounge_slug, lounge_image_url, connoisseur_score, score_label, score_source, lounge_rating, city_name")
         .in("user_id", followingIds)
         .order("visited_at", { ascending: false })
         .limit(100);
+      // Map flat view to nested structure expected downstream
+      const visits = (rawVisits || []).map((v: any) => ({
+        id: v.id,
+        user_id: v.user_id,
+        visited_at: v.visited_at,
+        lounges: {
+          name: v.lounge_name,
+          slug: v.lounge_slug,
+          image_url: v.lounge_image_url,
+          connoisseur_score: v.connoisseur_score,
+          score_label: v.score_label,
+          score_source: v.score_source,
+          rating: v.lounge_rating,
+          cities: { name: v.city_name },
+        },
+      }));
 
       // reviews
       const { data: reviews } = await supabase
