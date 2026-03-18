@@ -98,45 +98,49 @@ const FeaturedCities = () => {
     return () => el.removeEventListener("scroll", handleScroll);
   }, [handleScroll]);
 
-  if (!cities || cities.length === 0) return null;
+  const isLoading = !cities;
 
   return (
     <div className="mb-10 sm:mb-14">
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        whileInView={{ opacity: 1, y: 0 }}
-        viewport={{ once: true }}
-        transition={{ duration: 0.6 }}
-        className="text-center mb-6 sm:mb-8"
-      >
+      <div className="text-center mb-6 sm:mb-8">
         <h3 className="font-display text-xl md:text-2xl font-bold text-foreground">
           Featured Destinations
         </h3>
-      </motion.div>
-
-      <div
-        ref={scrollRef}
-        className="flex overflow-x-auto gap-4 snap-x snap-mandatory pb-4 scrollbar-hide md:grid md:grid-cols-4 md:gap-6 md:overflow-visible md:snap-none md:pb-0"
-      >
-        {cities.map((city, index) => (
-          <CityCard key={city.id} city={city} index={index} />
-        ))}
       </div>
 
-      {/* Scroll indicator dots — mobile only */}
-      <div className="flex justify-center gap-1.5 mt-2 md:hidden">
-        {cities.map((city, i) => (
+      {isLoading ? (
+        <div className="flex overflow-hidden gap-4 md:grid md:grid-cols-4 md:gap-6">
+          {[1, 2, 3, 4].map((i) => (
+            <div key={i} className="min-w-[70vw] md:min-w-0 aspect-[4/3] rounded-xl bg-secondary animate-pulse" />
+          ))}
+        </div>
+      ) : cities.length === 0 ? null : (
+        <>
           <div
-            key={city.id}
-            className={cn(
-              "h-1.5 rounded-full transition-all duration-300",
-              i === activeIndex
-                ? "w-4 bg-primary"
-                : "w-1.5 bg-muted-foreground/30"
-            )}
-          />
-        ))}
-      </div>
+            ref={scrollRef}
+            className="flex overflow-x-auto gap-4 snap-x snap-mandatory pb-4 scrollbar-hide md:grid md:grid-cols-4 md:gap-6 md:overflow-visible md:snap-none md:pb-0"
+          >
+            {cities.map((city, index) => (
+              <CityCard key={city.id} city={city} index={index} />
+            ))}
+          </div>
+
+          {/* Scroll indicator dots — mobile only */}
+          <div className="flex justify-center gap-1.5 mt-2 md:hidden">
+            {cities.map((city, i) => (
+              <div
+                key={city.id}
+                className={cn(
+                  "h-1.5 rounded-full transition-all duration-300",
+                  i === activeIndex
+                    ? "w-4 bg-primary"
+                    : "w-1.5 bg-muted-foreground/30"
+                )}
+              />
+            ))}
+          </div>
+        </>
+      )}
     </div>
   );
 };

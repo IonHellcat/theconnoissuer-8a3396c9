@@ -21,22 +21,16 @@ const PopularCities = () => {
   const totalCount = cities?.length ?? 0;
 
   return (
-    <section className="py-12 sm:py-20">
+    <section className="py-12 sm:py-20" style={{ minHeight: 420 }}>
       <div className="container mx-auto px-4">
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true }}
-          transition={{ duration: 0.6 }}
-          className="text-center mb-8 sm:mb-12"
-        >
+        <div className="text-center mb-8 sm:mb-12">
           <h2 className="font-display text-3xl md:text-4xl font-bold text-foreground">
             Popular Destinations
           </h2>
           <p className="mt-3 text-muted-foreground font-body">
             Explore top cigar destinations around the world
           </p>
-        </motion.div>
+        </div>
 
         <FeaturedCities />
 
