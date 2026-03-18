@@ -57,21 +57,19 @@ const TopFourLounges = ({ userId, editable }: TopFourLoungesProps) => {
     staleTime: 5 * 60 * 1000,
   });
 
-  const { data: visitedLounges } = useQuery({
-    queryKey: ["visited-lounges-for-top4", userId],
+  const { data: searchResults } = useQuery({
+    queryKey: ["top4-lounge-search", debouncedQuery],
     queryFn: async () => {
+      if (debouncedQuery.length < 2) return [];
       const { data } = await supabase
-        .from("visits")
-        .select("lounge_id, lounges(id, name, slug, image_url, cities(name))")
-        .eq("user_id", userId);
-      return (data || []).map((v: any) => v.lounges).filter(Boolean);
+        .from("lounges")
+        .select("id, name, slug, image_url, cities(name)")
+        .ilike("name", `%${debouncedQuery}%`)
+        .limit(10);
+      return data || [];
     },
-    enabled: editable,
-  });
-
-  const filteredVisited = (visitedLounges || []).filter((l: any) => {
-    if (debouncedQuery.length < 2) return true;
-    return l.name?.toLowerCase().includes(debouncedQuery.toLowerCase());
+    enabled: debouncedQuery.length >= 2,
+    staleTime: 60_000,
   });
 
   const slots = [1, 2, 3, 4].map((pos) => ({
@@ -181,15 +179,15 @@ const TopFourLounges = ({ userId, editable }: TopFourLoungesProps) => {
             <DialogTitle className="font-display">Add to Top 4</DialogTitle>
           </DialogHeader>
           <Input
-            placeholder="Filter visited lounges..."
+            placeholder="Search lounges..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             className="bg-secondary border-border/50"
             autoFocus
           />
-          {filteredVisited.length > 0 ? (
+          {(searchResults ?? []).length > 0 ? (
             <div className="max-h-64 overflow-y-auto space-y-1">
-              {filteredVisited.map((lounge: any) => (
+              {(searchResults ?? []).map((lounge: any) => (
                 <button
                   key={lounge.id}
                   onClick={() => handleSelect(lounge.id)}
@@ -219,7 +217,7 @@ const TopFourLounges = ({ userId, editable }: TopFourLoungesProps) => {
             </div>
           ) : (
             <p className="text-sm text-muted-foreground font-body text-center py-4">
-              {debouncedQuery.length >= 2 ? "No matching visited lounges" : "No visited lounges yet"}
+              {debouncedQuery.length >= 2 ? "No lounges found" : "Type to search lounges..."}
             </p>
           )}
         </DialogContent>

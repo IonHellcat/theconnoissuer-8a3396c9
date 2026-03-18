@@ -24,7 +24,6 @@ const ForYouPage = () => {
   const [geoLoading, setGeoLoading] = useState(true);
   const [geoAttempted, setGeoAttempted] = useState(false);
   const [cityQuery, setCityQuery] = useState("");
-  const [cityOptions, setCityOptions] = useState<CityOption[]>([]);
   const [showCityDropdown, setShowCityDropdown] = useState(false);
   const [visitType, setVisitType] = useState<VisitType | "Any">("Any");
   const [venueType, setVenueType] = useState<VenueType>("All");
@@ -49,14 +48,15 @@ const ForYouPage = () => {
   }, []);
 
   // Load city list for search fallback
-  useEffect(() => {
-    (async () => {
+  const { data: cityOptions } = useQuery({
+    queryKey: ["city-options-for-you"],
+    queryFn: async () => {
       const { data } = await supabase
         .from("lounges")
         .select("city_id, latitude, longitude, cities(name)")
         .not("latitude", "is", null)
         .not("longitude", "is", null);
-      if (!data) return;
+      if (!data) return [];
 
       const map = new Map<string, { lats: number[]; lngs: number[]; name: string }>();
       data.forEach((l: any) => {
@@ -80,9 +80,10 @@ const ForYouPage = () => {
         });
       });
       options.sort((a, b) => a.city_name.localeCompare(b.city_name));
-      setCityOptions(options);
-    })();
-  }, []);
+      return options;
+    },
+    staleTime: 30 * 60 * 1000,
+  });
 
   const selectCity = (city: CityOption) => {
     setUserLat(city.lat); setUserLng(city.lng); setLocationLabel(city.city_name);
@@ -114,9 +115,10 @@ const ForYouPage = () => {
     staleTime: 5 * 60 * 1000,
   });
 
+  const safeCityOptions = cityOptions ?? [];
   const filteredCities = cityQuery.length > 0
-    ? cityOptions.filter((c) => c.city_name.toLowerCase().includes(cityQuery.toLowerCase()))
-    : cityOptions;
+    ? safeCityOptions.filter((c) => c.city_name.toLowerCase().includes(cityQuery.toLowerCase()))
+    : safeCityOptions;
 
   const hasLocation = userLat !== null && userLng !== null;
 
