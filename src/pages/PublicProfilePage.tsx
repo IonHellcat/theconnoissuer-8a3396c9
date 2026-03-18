@@ -200,6 +200,21 @@ const PublicProfilePage = () => {
                 </div>
               </motion.div>
 
+              {/* Top 4 Lounges */}
+              {userId && (
+                <motion.section
+                  initial={{ opacity: 0, y: 16 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  className="mb-10"
+                >
+                  <h2 className="font-display text-xl font-semibold text-foreground flex items-center gap-2 mb-4">
+                    <Crown className="h-5 w-5 text-primary" />
+                    Top 4 Lounges
+                  </h2>
+                  <TopFourLounges userId={userId} editable={false} />
+                </motion.section>
+              )}
+
               {/* Visited Lounges */}
               {visits && visits.length > 0 && (
                 <section className="mb-10">
