@@ -163,7 +163,7 @@ const ForYouPage = () => {
               </button>
               {geoError && (
                 <p className="text-xs text-destructive font-body text-center">
-                  Location access denied. Search for a city instead.
+                  Could not access your location. This may be blocked by your browser or preview settings. Search for a city instead.
                 </p>
               )}
             </div>

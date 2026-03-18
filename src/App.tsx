@@ -9,6 +9,7 @@ import { AuthProvider } from "@/hooks/useAuth";
 import { AdminRoute } from "@/components/AdminRoute";
 import { RouteErrorBoundary } from "@/components/RouteErrorBoundary";
 import BottomTabBar from "@/components/BottomTabBar";
+import ScrollToTop from "@/components/ScrollToTop";
 import {
   HomeSkeleton, CityPageSkeleton, LoungePageSkeleton, SearchPageSkeleton,
   ForYouSkeleton, AuthSkeleton, ProfileSkeleton, AdminSkeleton, GenericSkeleton,
@@ -92,6 +93,7 @@ const App = () => (
               <Route path="/admin/suggestions" element={<LazyRoute skeleton={<AdminSkeleton />}><AdminRoute><AdminSuggestionsPage /></AdminRoute></LazyRoute>} />
               <Route path="*" element={<LazyRoute skeleton={<GenericSkeleton />}><NotFound /></LazyRoute>} />
             </Routes>
+            <ScrollToTop />
             <BottomTabBar />
           </BrowserRouter>
         </TooltipProvider>
