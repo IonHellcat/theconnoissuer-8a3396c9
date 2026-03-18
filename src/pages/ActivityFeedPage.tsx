@@ -187,6 +187,7 @@ const ActivityFeedPage = () => {
       return data.map((f: any) => f.following_id);
     },
     enabled: !!user,
+    staleTime: 5 * 60 * 1000,
   });
 
   const { data: feed, isLoading } = useQuery({

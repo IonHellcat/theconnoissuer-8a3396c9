@@ -16,7 +16,8 @@ const TrendingThisWeek = () => {
       const { data: visits, error } = await supabase
         .from("visits_public" as any)
         .select("lounge_id, lounge_name, lounge_slug, lounge_image_url, connoisseur_score, score_label, score_source, lounge_rating, city_name")
-        .gte("visited_at", oneWeekAgo.toISOString());
+        .gte("visited_at", oneWeekAgo.toISOString())
+        .limit(500);
 
       if (error) throw error;
       if (!visits || visits.length < 3) return null;

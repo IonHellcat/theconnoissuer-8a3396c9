@@ -179,7 +179,7 @@ const TopFourLounges = ({ userId, editable }: TopFourLoungesProps) => {
             <DialogTitle className="font-display">Add to Top 4</DialogTitle>
           </DialogHeader>
           <Input
-            placeholder="Filter visited lounges..."
+            placeholder="Search lounges..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             className="bg-secondary border-border/50"
