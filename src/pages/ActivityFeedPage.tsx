@@ -312,7 +312,71 @@ const ActivityFeedPage = () => {
     staleTime: 60_000,
   });
 
-  if (!authLoading && !user) return <Navigate to="/auth" replace />;
+  const [sheetOpen, setSheetOpen] = useState(false);
+
+  if (!authLoading && !user) {
+    return (
+      <div className="min-h-screen bg-background">
+        <Helmet>
+          <title>Feed — The Connoisseur</title>
+          <meta name="robots" content="noindex" />
+        </Helmet>
+        <Navbar />
+        <main className="pt-24 pb-20 md:pb-16">
+          <div className="container mx-auto px-4 max-w-2xl">
+            <div className="flex items-center gap-3 mb-8">
+              <Rss className="h-6 w-6 text-primary" />
+              <h1 className="font-display text-2xl font-bold text-foreground">Following</h1>
+            </div>
+
+            {/* Fake feed items — blurred */}
+            <div className="space-y-3 mb-10">
+              {[
+                { name: "Ahmed K.", action: "visited", lounge: "Davidoff of Geneva", city: "London", time: "2h ago" },
+                { name: "Marcus T.", action: "reviewed", lounge: "Gran Habano", city: "Dubai", time: "yesterday" },
+                { name: "James R.", action: "visited", lounge: "Club Macanudo", city: "New York", time: "3 days ago" },
+              ].map((item, i) => (
+                <div key={i} className="bg-card rounded-xl border border-border/50 p-4 flex items-start gap-3 blur-[2px] select-none">
+                  <div className="h-10 w-10 rounded-full bg-primary/20 flex-shrink-0" />
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-body text-foreground">
+                      <span className="font-semibold">{item.name}</span> {item.action}{" "}
+                      <span className="font-semibold">{item.lounge}</span>
+                      <span className="text-muted-foreground"> in {item.city}</span>
+                    </p>
+                    <p className="text-xs text-muted-foreground font-body mt-1">{item.time}</p>
+                  </div>
+                  <div className="h-12 w-12 rounded-lg bg-secondary flex-shrink-0" />
+                </div>
+              ))}
+            </div>
+
+            {/* CTA */}
+            <div className="text-center py-8">
+              <Globe className="h-12 w-12 text-primary mx-auto mb-4" />
+              <h2 className="font-display text-xl font-bold text-foreground mb-2">
+                See what's happening
+              </h2>
+              <p className="text-sm text-muted-foreground font-body max-w-md mx-auto mb-6">
+                Follow other connoisseurs and see their visits, reviews, and achievements in real time.
+              </p>
+              <Button onClick={() => setSheetOpen(true)} className="w-full max-w-xs font-body font-semibold h-11">
+                Create free account
+              </Button>
+              <button
+                onClick={() => setSheetOpen(true)}
+                className="block mt-2 text-sm text-muted-foreground hover:text-foreground font-body mx-auto"
+              >
+                Already have an account? Log in
+              </button>
+            </div>
+          </div>
+        </main>
+        <Footer />
+        <AuthPromptSheet open={sheetOpen} onOpenChange={setSheetOpen} variant="feed" />
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-background">

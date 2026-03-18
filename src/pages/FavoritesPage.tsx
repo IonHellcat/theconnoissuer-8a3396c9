@@ -32,7 +32,66 @@ const FavoritesPage = () => {
     enabled: !!user && favoriteIds.length > 0,
   });
 
-  if (!loading && !user) return <Navigate to="/auth" replace />;
+  const [sheetOpen, setSheetOpen] = useState(false);
+
+  if (!loading && !user) {
+    return (
+      <div className="min-h-screen bg-background">
+        <Helmet>
+          <title>My Favorites — The Connoisseur</title>
+          <meta name="robots" content="noindex" />
+        </Helmet>
+        <Navbar />
+        <main className="pt-16">
+          <section className="container mx-auto px-4 pt-12 pb-28 md:pb-10">
+            <div className="flex items-center gap-2 mb-8">
+              <Heart className="h-6 w-6 text-primary fill-primary" />
+              <h1 className="font-display text-3xl md:text-4xl font-bold text-foreground">My Favorites</h1>
+            </div>
+
+            {/* Blurred placeholder cards */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 mb-10">
+              {[
+                { name: "Casa del Habano", city: "Dubai" },
+                { name: "Davidoff of Geneva", city: "London" },
+                { name: "Club Macanudo", city: "New York" },
+              ].map((item) => (
+                <div key={item.name} className="relative rounded-xl overflow-hidden aspect-[4/3] bg-secondary">
+                  <div className="absolute inset-0 bg-gradient-to-t from-background/90 via-background/30 to-transparent" />
+                  <div className="absolute bottom-0 left-0 right-0 p-5 blur-sm select-none">
+                    <h3 className="font-display text-lg font-bold text-foreground">{item.name}</h3>
+                    <p className="text-sm text-muted-foreground mt-1 font-body">{item.city}</p>
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            {/* CTA card */}
+            <div className="text-center py-8">
+              <Heart className="h-12 w-12 text-primary fill-primary mx-auto mb-4" />
+              <h2 className="font-display text-xl font-bold text-foreground mb-2">
+                Save your favorite lounges
+              </h2>
+              <p className="text-sm text-muted-foreground font-body max-w-md mx-auto mb-6">
+                Build your personal wishlist of lounges to visit next. Access it from anywhere.
+              </p>
+              <Button onClick={() => setSheetOpen(true)} className="w-full max-w-xs font-body font-semibold h-11">
+                Create free account
+              </Button>
+              <button
+                onClick={() => setSheetOpen(true)}
+                className="block mt-2 text-sm text-muted-foreground hover:text-foreground font-body mx-auto"
+              >
+                Already have an account? Log in
+              </button>
+            </div>
+          </section>
+        </main>
+        <Footer />
+        <AuthPromptSheet open={sheetOpen} onOpenChange={setSheetOpen} variant="favorite" />
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-background">

@@ -145,7 +145,66 @@ const VisitedPage = () => {
     };
   }, [visits]);
 
-  if (!authLoading && !user) return <Navigate to="/auth" replace />;
+  const [sheetOpen, setSheetOpen] = useState(false);
+
+  if (!authLoading && !user) {
+    return (
+      <div className="min-h-screen bg-background">
+        <Helmet>
+          <title>My Passport — The Connoisseur</title>
+          <meta name="robots" content="noindex" />
+        </Helmet>
+        <Navbar />
+        <main className="pt-24 pb-20 md:pb-16">
+          <div className="container mx-auto px-4 max-w-5xl">
+            {/* Header */}
+            <div className="flex items-center gap-3 mb-6">
+              <MapPinCheck className="h-7 w-7 text-primary" />
+              <h1 className="font-display text-3xl font-bold text-foreground">My Passport</h1>
+            </div>
+
+            {/* Stats bar — placeholder */}
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-8">
+              {["Lounges Visited", "Cities", "Countries", "Avg Score"].map((label) => (
+                <div key={label} className="bg-card rounded-xl border border-border/50 p-4 text-center">
+                  <p className="text-2xl font-display font-bold text-muted-foreground">—</p>
+                  <p className="text-xs text-muted-foreground font-body mt-1">{label}</p>
+                </div>
+              ))}
+            </div>
+
+            {/* Map preview */}
+            <div className="bg-card rounded-xl border border-border/50 p-6 mb-8 overflow-hidden" style={{ minHeight: 240 }}>
+              <p className="text-xs text-muted-foreground font-body mb-4">Your visited locations</p>
+              <WorldMapSvg className="w-full text-muted-foreground/15" markers={[]} />
+            </div>
+
+            {/* CTA overlay card */}
+            <div className="text-center py-8">
+              <MapPinCheck className="h-12 w-12 text-primary mx-auto mb-4" />
+              <h2 className="font-display text-xl font-bold text-foreground mb-2">
+                Build your cigar passport
+              </h2>
+              <p className="text-sm text-muted-foreground font-body max-w-md mx-auto mb-6">
+                Check into lounges around the world, track your visits on a live map, and earn achievements for every milestone.
+              </p>
+              <Button onClick={() => setSheetOpen(true)} className="w-full max-w-xs font-body font-semibold h-11">
+                Create free account
+              </Button>
+              <button
+                onClick={() => setSheetOpen(true)}
+                className="block mt-2 text-sm text-muted-foreground hover:text-foreground font-body mx-auto"
+              >
+                Already have an account? Log in
+              </button>
+            </div>
+          </div>
+        </main>
+        <Footer />
+        <AuthPromptSheet open={sheetOpen} onOpenChange={setSheetOpen} variant="visit" />
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-background">
