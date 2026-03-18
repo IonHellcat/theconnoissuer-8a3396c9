@@ -13,8 +13,8 @@ interface FavoriteButtonProps {
 const FavoriteButton = ({ loungeId, className }: FavoriteButtonProps) => {
   const { user } = useAuth();
   const { isFavorite, toggleFavorite } = useFavorites();
-  const navigate = useNavigate();
   const favorited = isFavorite(loungeId);
+  const [sheetOpen, setSheetOpen] = useState(false);
 
   const handleClick = (e: React.MouseEvent) => {
     e.preventDefault();
