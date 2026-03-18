@@ -21,8 +21,8 @@ const ForYouPage = () => {
   const [userLat, setUserLat] = useState<number | null>(null);
   const [userLng, setUserLng] = useState<number | null>(null);
   const [locationLabel, setLocationLabel] = useState("");
-  const [geoLoading, setGeoLoading] = useState(false);
-  const [geoError, setGeoError] = useState(false);
+  const [geoLoading, setGeoLoading] = useState(true);
+  const [geoAttempted, setGeoAttempted] = useState(false);
   const [cityQuery, setCityQuery] = useState("");
   const [cityOptions, setCityOptions] = useState<CityOption[]>([]);
   const [showCityDropdown, setShowCityDropdown] = useState(false);
@@ -30,38 +30,21 @@ const ForYouPage = () => {
   const [venueType, setVenueType] = useState<VenueType>("All");
   const [showVisitStyle, setShowVisitStyle] = useState(false);
 
-  // Load city list
+  // Auto-attempt geolocation on mount
   useEffect(() => {
-    (async () => {
-      const { data } = await supabase
-        .from("lounges")
-        .select("city_id, latitude, longitude, cities(name)")
-        .not("latitude", "is", null)
-        .not("longitude", "is", null);
-      if (!data) return;
-
-      const map = new Map<string, { lats: number[]; lngs: number[]; name: string }>();
-      data.forEach((l) => {
-        if (!l.city_id || l.latitude == null || l.longitude == null) return;
-        const existing = map.get(l.city_id);
-        if (existing) { existing.lats.push(l.latitude); existing.lngs.push(l.longitude); }
-        else { map.set(l.city_id, { lats: [l.latitude], lngs: [l.longitude], name: l.cities?.name ?? "" }); }
-      });
-      const options: CityOption[] = [];
-      map.forEach((v, k) => {
-        options.push({ city_id: k, city_name: v.name, lat: v.lats.reduce((a, b) => a + b, 0) / v.lats.length, lng: v.lngs.reduce((a, b) => a + b, 0) / v.lngs.length });
-      });
-      options.sort((a, b) => a.city_name.localeCompare(b.city_name));
-      setCityOptions(options);
-    })();
-  }, []);
-
-  const requestGeo = useCallback(() => {
-    setGeoLoading(true);
-    setGeoError(false);
     navigator.geolocation.getCurrentPosition(
-      (pos) => { setUserLat(pos.coords.latitude); setUserLng(pos.coords.longitude); setLocationLabel("Current Location"); setGeoLoading(false); },
-      () => { setGeoError(true); setGeoLoading(false); },
+      (pos) => {
+        setUserLat(pos.coords.latitude);
+        setUserLng(pos.coords.longitude);
+        setLocationLabel("Current Location");
+        setGeoLoading(false);
+        setGeoAttempted(true);
+      },
+      () => {
+        setGeoLoading(false);
+        setGeoAttempted(true);
+      },
+      { timeout: 5000 },
     );
   }, []);
 
