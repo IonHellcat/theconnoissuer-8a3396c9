@@ -24,7 +24,6 @@ const ForYouPage = () => {
   const [geoLoading, setGeoLoading] = useState(true);
   const [geoAttempted, setGeoAttempted] = useState(false);
   const [cityQuery, setCityQuery] = useState("");
-  const [cityOptions, setCityOptions] = useState<CityOption[]>([]);
   const [showCityDropdown, setShowCityDropdown] = useState(false);
   const [visitType, setVisitType] = useState<VisitType | "Any">("Any");
   const [venueType, setVenueType] = useState<VenueType>("All");
