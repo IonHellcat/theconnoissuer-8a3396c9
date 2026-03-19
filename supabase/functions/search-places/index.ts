@@ -393,10 +393,15 @@ serve(async (req) => {
       );
     }
 
-    // ── 2. AI Relevance + Type Classification ──
-    const { relevant: relevantPlaces, skippedCount: skippedIrrelevant } =
-      await filterAndClassifyPlaces(allPlaces);
-    console.log(`${relevantPlaces.size} relevant after AI filter (${skippedIrrelevant} filtered)`);
+    // ── 2a. Pre-filter by type/name ──
+    const { filtered: preFiltered, skippedCount: skippedByPreFilter } = preFilterPlaces(allPlaces);
+    console.log(`${preFiltered.size} after pre-filter (${skippedByPreFilter} blocked)`);
+
+    // ── 2b. AI Relevance + Type Classification ──
+    const { relevant: relevantPlaces, skippedCount: skippedByAI } =
+      await filterAndClassifyPlaces(preFiltered);
+    const skippedIrrelevant = skippedByPreFilter + skippedByAI;
+    console.log(`${relevantPlaces.size} relevant after AI filter (${skippedIrrelevant} total irrelevant)`);
 
     // ── 3. Google Place ID dedup ──
     const placeIds = [...relevantPlaces.keys()];
