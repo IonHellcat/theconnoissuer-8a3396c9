@@ -15,7 +15,7 @@ import {
 
 const BATCH_SIZE = 60;
 
-type FlaggedVenue = { id: string; name: string; address: string | null; google_types: any };
+type FlaggedVenue = { id: string; name: string; address: string | null; google_types: any; image_url: string | null };
 
 async function runWithConcurrency<T>(tasks: (() => Promise<T>)[], limit: number): Promise<T[]> {
   const results: T[] = [];
