@@ -1,7 +1,6 @@
 import { Link } from "react-router-dom";
 import { Badge } from "@/components/ui/badge";
-import { Card } from "@/components/ui/card";
-import { Cigarette } from "lucide-react";
+import { Cigarette, MapPin, RotateCcw, Share2 } from "lucide-react";
 import { motion } from "framer-motion";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
@@ -16,11 +15,11 @@ interface ItineraryScreenProps {
   onReset: () => void;
 }
 
-function getStopLabel(index: number, lounge: LoungeWithCoords, total: number): string {
+function getStopLabel(index: number, lounge: LoungeWithCoords): string {
   const t = (lounge.type || "lounge").toLowerCase();
   if (index === 0 && (t === "shop" || t === "both")) return "Start here — pick up your cigars";
   if (index === 0) return "Your main destination";
-  return `Stop ${String(index + 1).padStart(2, "0")}`;
+  return `Stop ${index + 1}`;
 }
 
 export const ItineraryScreen = ({ itinerary, cityName, requestedStops, onReset }: ItineraryScreenProps) => {
@@ -33,112 +32,148 @@ export const ItineraryScreen = ({ itinerary, cityName, requestedStops, onReset }
   };
 
   return (
-    <div className="flex flex-col gap-6">
+    <div className="flex flex-col gap-5">
       {/* Header */}
-      <div className="text-center">
+      <motion.div
+        initial={{ opacity: 0, y: -12 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.5 }}
+        className="text-center space-y-2"
+      >
+        <div className="inline-flex items-center gap-2 text-primary">
+          <MapPin className="h-4 w-4" />
+          <span className="text-xs font-body uppercase tracking-widest">Your Itinerary</span>
+        </div>
         <h1 className="font-display text-2xl font-bold text-foreground">
-          Your {cityName} Itinerary
+          {cityName}
         </h1>
-        <p className="text-muted-foreground font-body text-sm mt-1">
-          {itinerary.length} stop{itinerary.length !== 1 ? "s" : ""} selected for you
+        <p className="text-muted-foreground font-body text-xs">
+          {itinerary.length} curated stop{itinerary.length !== 1 ? "s" : ""} · ranked by Connoisseur Score
         </p>
-      </div>
+        <div className="mx-auto w-12 h-px bg-primary/30 mt-1" />
+      </motion.div>
 
-      {/* Stop cards */}
-      <div className="flex flex-col gap-3">
-        {itinerary.map((lounge, i) => (
-          <motion.div
-            key={lounge.id}
-            initial={{ opacity: 0, y: 24 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: i * 0.4, duration: 0.5 }}
-          >
-            <Link to={`/lounge/${lounge.slug}`}>
-              <Card className="relative overflow-hidden border-l-4 border-l-primary bg-card p-4 hover:border-l-primary/80 transition-colors active:scale-[0.98]">
+      {/* Timeline */}
+      <div className="relative">
+        {/* Vertical timeline line */}
+        <div className="absolute left-[19px] top-4 bottom-4 w-px bg-primary/20" />
+
+        <div className="flex flex-col gap-4">
+          {itinerary.map((lounge, i) => (
+            <motion.div
+              key={lounge.id}
+              initial={{ opacity: 0, x: -16 }}
+              animate={{ opacity: 1, x: 0 }}
+              transition={{ delay: 0.3 + i * 0.35, duration: 0.45 }}
+            >
+              <Link to={`/lounge/${lounge.slug}`} className="block group">
                 <div className="flex gap-3">
-                  {/* Stop number */}
-                  <div className="flex-shrink-0 w-8">
-                    <span className="font-display text-2xl font-bold text-primary/40">
-                      {String(i + 1).padStart(2, "0")}
-                    </span>
+                  {/* Timeline node */}
+                  <div className="flex-shrink-0 w-10 flex flex-col items-center pt-4">
+                    <div className={`h-7 w-7 rounded-full border-2 flex items-center justify-center text-xs font-display font-bold ${
+                      i === 0
+                        ? "border-primary bg-primary text-primary-foreground"
+                        : "border-primary/40 bg-card text-primary/60"
+                    }`}>
+                      {i + 1}
+                    </div>
                   </div>
 
-                  {/* Content */}
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-start justify-between gap-2">
-                      <div className="min-w-0">
-                        <div className="flex items-center gap-1.5">
-                          <h3 className="font-display text-sm font-semibold text-foreground truncate">
-                            {lounge.name}
-                          </h3>
-                          <Badge variant="outline" className="text-[10px] px-1 py-0 shrink-0 capitalize border-border/50">
-                            {lounge.type}
-                          </Badge>
+                  {/* Card */}
+                  <div className="flex-1 min-w-0 rounded-xl bg-card border border-border/50 overflow-hidden group-hover:border-primary/30 transition-colors group-active:scale-[0.98] transition-transform">
+                    {/* Image banner */}
+                    <div className="h-24 w-full relative">
+                      {lounge.image_url ? (
+                        <OptimizedImage
+                          src={lounge.image_url}
+                          alt={lounge.name}
+                          width={400}
+                          height={192}
+                          sizes="(max-width: 448px) calc(100vw - 72px), 376px"
+                          widths={[376, 752]}
+                          className="h-full w-full object-cover"
+                        />
+                      ) : (
+                        <div className="h-full w-full bg-secondary flex items-center justify-center">
+                          <Cigarette className="h-6 w-6 text-muted-foreground/20" />
                         </div>
-                        <p className="text-[11px] text-muted-foreground font-body mt-0.5">
-                          {getStopLabel(i, lounge, itinerary.length)}
-                        </p>
-                        {lounge.score_summary && (
-                          <p className="text-[11px] text-muted-foreground/70 font-body italic mt-1 line-clamp-2">
-                            "{lounge.score_summary}"
-                          </p>
-                        )}
+                      )}
+                      {/* Score overlay */}
+                      <div className="absolute top-2 right-2">
+                        <ConnoisseurScoreBadge
+                          score={lounge.connoisseur_score}
+                          scoreLabel={lounge.score_label}
+                          scoreSource={lounge.score_source}
+                          googleRating={lounge.rating}
+                          size="sm"
+                        />
                       </div>
-
-                      {/* Image */}
-                      <div className="h-20 w-20 rounded-lg overflow-hidden flex-shrink-0">
-                        {lounge.image_url ? (
-                          <OptimizedImage
-                            src={lounge.image_url}
-                            alt={lounge.name}
-                            width={160}
-                            height={160}
-                            sizes="80px"
-                            widths={[80, 160]}
-                            className="h-full w-full object-cover"
-                          />
-                        ) : (
-                          <div className="h-full w-full bg-secondary flex items-center justify-center">
-                            <Cigarette className="h-6 w-6 text-muted-foreground/30" />
-                          </div>
-                        )}
-                      </div>
+                      {/* Gradient fade */}
+                      <div className="absolute inset-x-0 bottom-0 h-10 bg-gradient-to-t from-card to-transparent" />
                     </div>
 
-                    {/* Score */}
-                    <div className="mt-2">
-                      <ConnoisseurScoreBadge
-                        score={lounge.connoisseur_score}
-                        scoreLabel={lounge.score_label}
-                        scoreSource={lounge.score_source}
-                        googleRating={lounge.rating}
-                        size="sm"
-                      />
+                    {/* Details */}
+                    <div className="px-3 pb-3 -mt-1">
+                      <div className="flex items-center gap-1.5 mb-0.5">
+                        <h3 className="font-display text-sm font-semibold text-foreground truncate">
+                          {lounge.name}
+                        </h3>
+                        <Badge variant="outline" className="text-[9px] px-1.5 py-0 shrink-0 capitalize border-primary/30 text-primary/80">
+                          {lounge.type}
+                        </Badge>
+                      </div>
+                      <p className="text-[11px] text-primary/70 font-body font-medium">
+                        {getStopLabel(i, lounge)}
+                      </p>
+                      {lounge.score_summary && (
+                        <p className="text-[11px] text-muted-foreground/60 font-body italic mt-1 line-clamp-2 leading-relaxed">
+                          "{lounge.score_summary}"
+                        </p>
+                      )}
                     </div>
                   </div>
                 </div>
-              </Card>
-            </Link>
-          </motion.div>
-        ))}
+              </Link>
+            </motion.div>
+          ))}
+        </div>
       </div>
 
       {/* Fewer stops notice */}
       {itinerary.length < requestedStops && (
-        <p className="text-xs text-muted-foreground font-body text-center">
-          Only {itinerary.length} scored venue{itinerary.length !== 1 ? "s" : ""} available in {cityName} — more coming soon.
-        </p>
+        <motion.p
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ delay: 0.3 + itinerary.length * 0.35 }}
+          className="text-xs text-muted-foreground font-body text-center py-2"
+        >
+          Only {itinerary.length} scored venue{itinerary.length !== 1 ? "s" : ""} in {cityName} — more coming soon.
+        </motion.p>
       )}
 
       {/* Actions */}
-      <div className="flex gap-3 mb-20">
-        <Button variant="outline" className="flex-1 h-12 font-body" onClick={onReset}>
+      <motion.div
+        initial={{ opacity: 0, y: 12 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.3 + itinerary.length * 0.35 + 0.2 }}
+        className="flex gap-3 mb-20"
+      >
+        <Button
+          variant="outline"
+          className="flex-1 h-11 font-body text-sm gap-2 border-border/50"
+          onClick={onReset}
+        >
+          <RotateCcw className="h-3.5 w-3.5" />
           Start Over
         </Button>
-        <Button className="flex-1 h-12 font-body bg-primary text-primary-foreground hover:brightness-110" onClick={handleShare}>
-          Share Itinerary
+        <Button
+          className="flex-1 h-11 font-body text-sm gap-2 bg-primary text-primary-foreground hover:brightness-110"
+          onClick={handleShare}
+        >
+          <Share2 className="h-3.5 w-3.5" />
+          Share
         </Button>
-      </div>
+      </motion.div>
     </div>
   );
 };
