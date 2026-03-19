@@ -253,33 +253,44 @@ const AdminPendingPage = () => {
           <ImportForm onComplete={() => queryClient.invalidateQueries({ queryKey: ["pending-lounges"] })} initialCities={discoveredCities} />
         </div>
 
-        <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3 mt-6 mb-4">
-          <Tabs value={statusFilter} onValueChange={(v) => { setStatusFilter(v); setSelectedIds(new Set()); }}>
+        <Tabs value={statusFilter} onValueChange={(v) => { setStatusFilter(v); setSelectedIds(new Set()); }}>
+          <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3 mb-4">
             <TabsList>
               <TabsTrigger value="pending">Pending</TabsTrigger>
               <TabsTrigger value="approved">Approved</TabsTrigger>
               <TabsTrigger value="rejected">Rejected</TabsTrigger>
+              <TabsTrigger value="audit">Audit</TabsTrigger>
             </TabsList>
-          </Tabs>
-          <Input placeholder="Search by name or city..." value={search} onChange={(e) => setSearch(e.target.value)} className="max-w-xs" />
-        </div>
+            {statusFilter !== "audit" && (
+              <Input placeholder="Search by name or city..." value={search} onChange={(e) => setSearch(e.target.value)} className="max-w-xs" />
+            )}
+          </div>
 
-        {isLoading ? (
-          <div className="flex justify-center py-12"><Loader2 className="h-6 w-6 animate-spin text-primary" /></div>
-        ) : Object.keys(grouped).length === 0 ? (
-          <p className="text-muted-foreground text-center py-12">No {statusFilter} lounges found.</p>
-        ) : (
-          <PendingLoungeList
-            grouped={grouped} isPending={isPending} selectedIds={selectedIds}
-            onToggleSelect={toggleSelect} onToggleGroupSelect={toggleGroupSelect}
-            onApprove={(l) => approveMutation.mutate(l)} onReject={(l) => rejectMutation.mutate(l)}
-            onEdit={(l) => setEditLounge(l)}
-            onDelete={(l) => { if (confirm(`Permanently delete "${l.name}"?`)) deleteMutation.mutate(l); }}
-            onBulkApprove={(ids) => bulkApproveMutation.mutate(ids)}
-            onBulkReject={(ids) => bulkRejectMutation.mutate(ids)}
-            isPossibleDuplicate={isPossibleDuplicate}
-          />
-        )}
+          <TabsContent value="audit">
+            <AuditLoungesTab />
+          </TabsContent>
+
+          {statusFilter !== "audit" && (
+            <>
+              {isLoading ? (
+                <div className="flex justify-center py-12"><Loader2 className="h-6 w-6 animate-spin text-primary" /></div>
+              ) : Object.keys(grouped).length === 0 ? (
+                <p className="text-muted-foreground text-center py-12">No {statusFilter} lounges found.</p>
+              ) : (
+                <PendingLoungeList
+                  grouped={grouped} isPending={isPending} selectedIds={selectedIds}
+                  onToggleSelect={toggleSelect} onToggleGroupSelect={toggleGroupSelect}
+                  onApprove={(l) => approveMutation.mutate(l)} onReject={(l) => rejectMutation.mutate(l)}
+                  onEdit={(l) => setEditLounge(l)}
+                  onDelete={(l) => { if (confirm(`Permanently delete "${l.name}"?`)) deleteMutation.mutate(l); }}
+                  onBulkApprove={(ids) => bulkApproveMutation.mutate(ids)}
+                  onBulkReject={(ids) => bulkRejectMutation.mutate(ids)}
+                  isPossibleDuplicate={isPossibleDuplicate}
+                />
+              )}
+            </>
+          )}
+        </Tabs>
       </div>
 
       <BulkActionBar count={selectedIds.size} onApprove={() => bulkApproveMutation.mutate([...selectedIds])} onReject={() => bulkRejectMutation.mutate([...selectedIds])} isApproving={bulkApproveMutation.isPending} isRejecting={bulkRejectMutation.isPending} />
