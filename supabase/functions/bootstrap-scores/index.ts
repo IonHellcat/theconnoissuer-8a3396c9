@@ -997,7 +997,7 @@ serve(async (req) => {
       }
 
       // Build scoring context
-      const { globalMean, cityCountryMap, countryMedianMap, globalMedian } = await buildScoringContext(serviceClient);
+      const { globalMean, cityCountryMap, countryMedianMap, countryMeanRatingMap, globalMedian } = await buildScoringContext(serviceClient);
 
       console.log(
         `Bulk full pipeline: processing ${lounges.length} venues (${total} remaining), concurrency=${concurrency}`,
