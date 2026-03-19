@@ -261,6 +261,7 @@ Deno.serve(async (req) => {
                     name: item.venue.name,
                     address: item.venue.address,
                     google_types: item.venue.google_types,
+                    image_url: item.venue.image_url || null,
                   });
                 }
               }
