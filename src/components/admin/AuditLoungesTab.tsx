@@ -6,7 +6,7 @@ import { useToast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Loader2, CheckCircle2, Trash2 } from "lucide-react";
+import { Loader2, CheckCircle2, Trash2, ImageOff } from "lucide-react";
 import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
@@ -15,7 +15,7 @@ import {
 
 const BATCH_SIZE = 60;
 
-type FlaggedVenue = { id: string; name: string; address: string | null; google_types: any };
+type FlaggedVenue = { id: string; name: string; address: string | null; google_types: any; image_url: string | null };
 
 async function runWithConcurrency<T>(tasks: (() => Promise<T>)[], limit: number): Promise<T[]> {
   const results: T[] = [];
@@ -183,6 +183,13 @@ export function AuditLoungesTab() {
                         });
                       }}
                     />
+                    {v.image_url ? (
+                      <img src={v.image_url} alt={v.name} className="w-16 h-16 rounded object-cover shrink-0" />
+                    ) : (
+                      <div className="w-16 h-16 rounded bg-muted flex items-center justify-center shrink-0">
+                        <ImageOff className="h-5 w-5 text-muted-foreground" />
+                      </div>
+                    )}
                     <div className="min-w-0 flex-1">
                       <p className="font-medium text-sm truncate">{v.name}</p>
                       {v.address && <p className="text-xs text-muted-foreground truncate">{v.address}</p>}

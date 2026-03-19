@@ -131,7 +131,7 @@ Deno.serve(async (req) => {
 
     const { data: venues, error: fetchErr } = await serviceClient
       .from("lounges")
-      .select("id, name, address, google_types, website, google_place_id, description")
+      .select("id, name, address, google_types, website, google_place_id, description, image_url")
       .range(offset, offset + BATCH_SIZE - 1)
       .order("created_at", { ascending: true });
 
@@ -149,7 +149,7 @@ Deno.serve(async (req) => {
       ? await enrichMissingTypes(venues, serviceClient, GOOGLE_PLACES_API_KEY)
       : venues;
 
-    const flagged: { id: string; name: string; address: string | null; google_types: any }[] = [];
+    const flagged: { id: string; name: string; address: string | null; google_types: any; image_url: string | null }[] = [];
     const needsAI: { idx: number; venue: any }[] = [];
 
     // Pre-filter
@@ -261,6 +261,7 @@ Deno.serve(async (req) => {
                     name: item.venue.name,
                     address: item.venue.address,
                     google_types: item.venue.google_types,
+                    image_url: item.venue.image_url || null,
                   });
                 }
               }
