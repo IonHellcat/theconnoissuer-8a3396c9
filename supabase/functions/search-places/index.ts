@@ -455,7 +455,26 @@ serve(async (req) => {
     const skippedDuplicates = skippedByPlaceId + skippedByName;
     console.log(`${newPlaces.size} new places after all dedup (${skippedDuplicates} dupes total)`);
 
-    if (newPlaces.size === 0) {
+    // ── 4b. Generic tobacco retail post-filter ──
+    const GENERIC_TOBACCO_RETAIL_RE = /^(tabac|tabak|tabacchi|tabaccheria|tabacaria|estanco|tobak|tabagie)\b/i;
+    const afterRetailFilter = new Map<string, { place: PlaceResult; type: string }>();
+    let skippedGenericRetail = 0;
+    for (const [id, entry] of newPlaces) {
+      const name = entry.place.displayName?.text || "";
+      const nameLower = name.toLowerCase();
+      if (GENERIC_TOBACCO_RETAIL_RE.test(name) && !POSITIVE_CIGAR_KEYWORDS.some((kw) => nameLower.includes(kw))) {
+        console.log(`Skipped (generic tobacco retail): "${name}"`);
+        skippedGenericRetail++;
+        skippedIrrelevant++;
+      } else {
+        afterRetailFilter.set(id, entry);
+      }
+    }
+    if (skippedGenericRetail > 0) {
+      console.log(`${skippedGenericRetail} skipped as generic tobacco retail`);
+    }
+
+    if (afterRetailFilter.size === 0) {
       return new Response(
         JSON.stringify({
           success: true, count: 0, total_found: totalFound,
