@@ -22,31 +22,32 @@ async function enrichMissingTypes(
   googleApiKey: string
 ): Promise<any[]> {
   const enriched = [...venues];
+  const toEnrich = enriched
+    .map((v, i) => ({ v, i }))
+    .filter(({ v }) => !((v.google_types as any)?.types?.length > 0) && v.google_place_id);
 
-  for (let i = 0; i < enriched.length; i++) {
-    const v = enriched[i];
-    const hasTypes = (v.google_types as any)?.types?.length > 0;
-    if (hasTypes || !v.google_place_id) continue;
-
-    try {
-      const res = await fetch(
-        `https://places.googleapis.com/v1/places/${v.google_place_id}`,
-        { headers: { "X-Goog-Api-Key": googleApiKey, "X-Goog-FieldMask": PLACE_FIELD_MASK } }
-      );
-      if (!res.ok) continue;
-
-      const data = await res.json();
-      const googleTypes = { primaryType: data.primaryType || null, types: data.types || [] };
-
-      const update: any = { google_types: googleTypes };
-      if (!v.website && data.websiteUri) update.website = data.websiteUri;
-
-      await serviceClient.from("lounges").update(update).eq("id", v.id);
-      enriched[i] = { ...v, google_types: googleTypes, website: v.website || data.websiteUri || null };
-      console.log(`Enriched "${v.name}" with types: ${googleTypes.types.join(", ")}`);
-    } catch (e) {
-      console.error(`Enrichment failed for "${v.name}":`, e);
-    }
+  for (let b = 0; b < toEnrich.length; b += 5) {
+    const batch = toEnrich.slice(b, b + 5);
+    await Promise.allSettled(
+      batch.map(async ({ v, i }) => {
+        try {
+          const res = await fetch(
+            `https://places.googleapis.com/v1/places/${v.google_place_id}`,
+            { headers: { "X-Goog-Api-Key": googleApiKey, "X-Goog-FieldMask": PLACE_FIELD_MASK } }
+          );
+          if (!res.ok) return;
+          const data = await res.json();
+          const googleTypes = { primaryType: data.primaryType || null, types: data.types || [] };
+          const update: any = { google_types: googleTypes };
+          if (!v.website && data.websiteUri) update.website = data.websiteUri;
+          await serviceClient.from("lounges").update(update).eq("id", v.id);
+          enriched[i] = { ...v, google_types: googleTypes, website: v.website || data.websiteUri || null };
+          console.log(`Enriched "${v.name}" with types: ${googleTypes.types.join(", ")}`);
+        } catch (e) {
+          console.error(`Enrichment failed for "${v.name}":`, e);
+        }
+      })
+    );
   }
 
   return enriched;
