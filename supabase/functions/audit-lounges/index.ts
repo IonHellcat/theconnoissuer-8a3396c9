@@ -149,6 +149,21 @@ Deno.serve(async (req) => {
       ? await enrichMissingTypes(venues, serviceClient, GOOGLE_PLACES_API_KEY)
       : venues;
 
+    // Fetch review samples for all venues in batch
+    const venueIds = enrichedVenues.map((v: any) => v.id);
+    const { data: allReviews } = await serviceClient
+      .from("google_reviews")
+      .select("lounge_id, review_text")
+      .in("lounge_id", venueIds)
+      .not("review_text", "is", null)
+      .limit(300);
+
+    const reviewsByLounge = new Map<string, string[]>();
+    for (const r of (allReviews || [])) {
+      if (!reviewsByLounge.has(r.lounge_id)) reviewsByLounge.set(r.lounge_id, []);
+      reviewsByLounge.get(r.lounge_id)!.push(r.review_text);
+    }
+
     const flagged: { id: string; name: string; address: string | null; google_types: any; image_url: string | null }[] = [];
     const needsAI: { idx: number; venue: any }[] = [];
 
@@ -166,7 +181,8 @@ Deno.serve(async (req) => {
       const hasTypes = (v.google_types as any)?.types?.length > 0;
       const hasDesc = !!v.description;
       const hasWebsite = !!v.website;
-      if (!hasTypes && !hasDesc && !hasWebsite) {
+      const hasReviews = (reviewsByLounge.get(v.id)?.length || 0) > 0;
+      if (!hasTypes && !hasDesc && !hasWebsite && !hasReviews) {
         continue; // Can't evaluate — keep by default
       }
 
