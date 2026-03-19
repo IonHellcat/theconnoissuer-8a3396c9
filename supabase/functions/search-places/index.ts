@@ -407,7 +407,7 @@ serve(async (req) => {
     // ── 2b. AI Relevance + Type Classification ──
     const { relevant: relevantPlaces, skippedCount: skippedByAI } =
       await filterAndClassifyPlaces(preFiltered);
-    const skippedIrrelevant = skippedByPreFilter + skippedByAI;
+    let skippedIrrelevant = skippedByPreFilter + skippedByAI;
     console.log(`${relevantPlaces.size} relevant after AI filter (${skippedIrrelevant} total irrelevant)`);
 
     // ── 3. Google Place ID dedup ──
