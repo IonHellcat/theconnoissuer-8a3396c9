@@ -119,9 +119,14 @@ Deno.serve(async (req) => {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   } catch (err) {
-    return new Response(JSON.stringify({ error: (err as Error).message }), {
-      status: 400,
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
-    });
+    console.error("check-achievements error:", err);
+    const isClientError = err instanceof Error && err.message === "user_id required";
+    return new Response(
+      JSON.stringify({ error: isClientError ? err.message : "Internal server error" }),
+      {
+        status: isClientError ? 400 : 500,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      }
+    );
   }
 });
