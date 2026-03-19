@@ -1,17 +1,19 @@
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import logo from "@/assets/logo.png";
-import { Search, Menu, X, User, LogOut, Heart, Sparkles, MapPinCheck } from "lucide-react";
+import { Search, Menu, X, User, LogOut, Heart, Sparkles, MapPinCheck, ShieldCheck } from "lucide-react";
 import NotificationBell from "@/components/NotificationBell";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useAuth } from "@/hooks/useAuth";
+import { useAdminRole } from "@/hooks/useAdminRole";
 
 const Navbar = () => {
   const [isOpen, setIsOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const navigate = useNavigate();
   const { user, signOut } = useAuth();
+  const { data: isAdmin } = useAdminRole();
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
@@ -63,6 +65,12 @@ const Navbar = () => {
             <Link to="/visited" className="text-sm text-muted-foreground hover:text-foreground transition-colors">
               Passport
             </Link>
+            {isAdmin && (
+              <Link to="/admin/pending" className="text-sm text-muted-foreground hover:text-foreground transition-colors flex items-center gap-1">
+                <ShieldCheck className="h-3.5 w-3.5" />
+                Admin
+              </Link>
+            )}
             {user ? (
               <div className="flex items-center gap-3">
                 <NotificationBell />
@@ -127,6 +135,16 @@ const Navbar = () => {
               </Link>
               {user ? (
                 <>
+                  {isAdmin && (
+                    <Link
+                      to="/admin/pending"
+                      onClick={() => setIsOpen(false)}
+                      className="flex items-center gap-3 px-4 py-3.5 rounded-xl text-base font-body text-foreground hover:bg-secondary transition-colors"
+                    >
+                      <ShieldCheck className="h-5 w-5 text-primary" />
+                      Admin Panel
+                    </Link>
+                  )}
                   <Link
                     to="/profile"
                     onClick={() => setIsOpen(false)}
