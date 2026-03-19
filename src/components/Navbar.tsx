@@ -145,7 +145,7 @@ const Navbar = () => {
                       Admin Panel
                     </Link>
                   )}
-                    to="/profile"
+                  <Link
                     onClick={() => setIsOpen(false)}
                     className="flex items-center gap-3 px-4 py-3.5 rounded-xl text-base font-body text-foreground hover:bg-secondary transition-colors"
                   >
