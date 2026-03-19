@@ -500,7 +500,7 @@ serve(async (req) => {
         cityRow = newCity;
       }
 
-      for (const [placeId, { place, type: venueType }] of newPlaces) {
+      for (const [placeId, { place, type: venueType }] of finalPlaces) {
         const name = place.displayName?.text || "Unknown";
         const slug = name.toLowerCase().replace(/\s+/g, "-").replace(/[^\w-]/g, "") + "-" + placeId.slice(-6);
         const googleTypes = place.primaryType || place.types?.length
