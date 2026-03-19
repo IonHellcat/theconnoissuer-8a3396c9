@@ -9,11 +9,11 @@ const corsHeaders = {
 
 // ─── Score Label Tiers ───
 function getScoreLabel(score: number): string | null {
-  if (score >= 90) return "Legendary";
-  if (score >= 82) return "Exceptional";
-  if (score >= 74) return "Outstanding";
-  if (score >= 66) return "Excellent";
-  if (score >= 55) return "Good";
+  if (score >= 92) return "Legendary";
+  if (score >= 84) return "Exceptional";
+  if (score >= 75) return "Outstanding";
+  if (score >= 65) return "Excellent";
+  if (score >= 52) return "Good";
   return null;
 }
 
@@ -34,7 +34,6 @@ function buildCountryMedianMap(
   cityCountryMap: Map<string, string>,
 ): Map<string, number> {
   const countryGroups = new Map<string, number[]>();
-
   for (const row of rows) {
     if (!row.city_id) continue;
     const country = cityCountryMap.get(row.city_id);
@@ -43,49 +42,93 @@ function buildCountryMedianMap(
     if (!countryGroups.has(country)) countryGroups.set(country, []);
     countryGroups.get(country)!.push(count);
   }
-
   const medianMap = new Map<string, number>();
   countryGroups.forEach((counts, country) => {
     const sorted = [...counts].sort((a, b) => a - b);
     const mid = Math.floor(sorted.length / 2);
-    const median = sorted.length % 2 === 0 ? (sorted[mid - 1] + sorted[mid]) / 2 : sorted[mid];
+    const median = sorted.length % 2 === 0
+      ? (sorted[mid - 1] + sorted[mid]) / 2
+      : sorted[mid];
     medianMap.set(country, Math.max(1, Math.round(median)));
   });
-
   return medianMap;
+}
+
+function buildCountryMeanRatingMap(
+  rows: Array<{ rating: number | null; city_id: string | null }>,
+  cityCountryMap: Map<string, string>,
+  globalMean: number
+): Map<string, number> {
+  const countryGroups = new Map<string, number[]>();
+  for (const row of rows) {
+    if (!row.city_id || row.rating == null) continue;
+    const country = cityCountryMap.get(row.city_id);
+    if (!country) continue;
+    const r = Number(row.rating);
+    if (r <= 0) continue;
+    if (!countryGroups.has(country)) countryGroups.set(country, []);
+    countryGroups.get(country)!.push(r);
+  }
+  const meanMap = new Map<string, number>();
+  countryGroups.forEach((ratings, country) => {
+    if (ratings.length < 3) return;
+    const mean = ratings.reduce((a, b) => a + b, 0) / ratings.length;
+    meanMap.set(country, mean);
+  });
+  return meanMap;
 }
 
 // ─── Deterministic Scoring Formula ───
 
-function computeQualityScore(rating: number, reviewCount: number, globalMean: number): number {
-  const C = 25;
-  const bayesian = (rating * reviewCount + globalMean * C) / (reviewCount + C);
-  const normalized = clampScore(((bayesian - 2.5) / 2.5) * 100) / 100;
-  return Math.round(clampScore(Math.pow(normalized, 1.5) * 100));
+function computeQualityScore(rating: number, reviewCount: number, countryMean: number): number {
+  const C = 50;
+  const bayesian = (rating * reviewCount + countryMean * C) / (reviewCount + C);
+  const normalized = (bayesian - 3.0) / 2.0; // floor 3.0, ceiling 5.0
+  return Math.round(clampScore(normalized * 100));
 }
 
-function computeSentimentScore(classifications: Array<{ aspects: Record<string, any> }>, aspects: string[]): number {
+const LOUNGE_ASPECT_WEIGHTS: Record<string, number> = {
+  cigar_selection: 0.50,
+  atmosphere: 0.25,
+  service: 0.20,
+  drinks: 0.05,
+};
+
+const SHOP_ASPECT_WEIGHTS: Record<string, number> = {
+  selection: 0.55,
+  staff: 0.30,
+  pricing: 0.15,
+};
+
+function computeSentimentScore(
+  classifications: Array<{ aspects: Record<string, any> }>,
+  aspects: string[],
+  venueType: string
+): number {
   if (classifications.length === 0) return 50;
 
-  // 1. Aspect-level sentiment (positive vs negative mentions across all aspects)
-  let totalPositive = 0;
-  let totalMentioned = 0;
+  const weights = venueType === "shop" ? SHOP_ASPECT_WEIGHTS : LOUNGE_ASPECT_WEIGHTS;
 
-  for (const c of classifications) {
-    for (const aspect of aspects) {
+  let weightedSum = 0;
+  let weightedTotal = 0;
+
+  for (const aspect of aspects) {
+    let pos = 0, neg = 0;
+    for (const c of classifications) {
       const val = c.aspects?.[aspect];
-      if (val === "positive") {
-        totalPositive++;
-        totalMentioned++;
-      } else if (val === "negative") {
-        totalMentioned++;
-      }
+      if (val === "positive") pos++;
+      else if (val === "negative") neg++;
     }
+    const mentioned = pos + neg;
+    if (mentioned === 0) continue;
+    const ratio = pos / mentioned;
+    const weight = weights[aspect] ?? (1 / aspects.length);
+    weightedSum += ratio * weight;
+    weightedTotal += weight;
   }
 
-  const aspectRatio = totalMentioned > 0 ? totalPositive / totalMentioned : null;
+  const aspectScore = weightedTotal > 0 ? weightedSum / weightedTotal : null;
 
-  // 2. Overall sentiment (from the overall_sentiment field on each classification)
   const SENTIMENT_MAP: Record<string, number> = {
     strong_positive: 1.0,
     positive: 0.75,
@@ -94,8 +137,7 @@ function computeSentimentScore(classifications: Array<{ aspects: Record<string, 
     strong_negative: 0.0,
   };
 
-  let overallSum = 0;
-  let overallCount = 0;
+  let overallSum = 0, overallCount = 0;
   for (const c of classifications) {
     const os = c.aspects?.overall_sentiment;
     if (os && SENTIMENT_MAP[os] !== undefined) {
@@ -103,15 +145,10 @@ function computeSentimentScore(classifications: Array<{ aspects: Record<string, 
       overallCount++;
     }
   }
-
   const overallAvg = overallCount > 0 ? overallSum / overallCount : 0.5;
 
-  // 3. Blend: 60% aspect-level, 40% overall sentiment
-  if (aspectRatio === null) {
-    return Math.round(overallAvg * 100);
-  }
-
-  return Math.round((aspectRatio * 0.6 + overallAvg * 0.4) * 100);
+  if (aspectScore === null) return Math.round(overallAvg * 100);
+  return Math.round((aspectScore * 0.6 + overallAvg * 0.4) * 100);
 }
 
 function computeVolumeScore(reviewCount: number, countryMedian: number): number {
@@ -122,12 +159,14 @@ function computeVolumeScore(reviewCount: number, countryMedian: number): number 
 }
 
 function computeConsistencyScore(ratings: number[]): number {
-  if (ratings.length < 2) return 50;
-  const mean = ratings.reduce((a, b) => a + b, 0) / ratings.length;
-  const variance = ratings.reduce((sum, r) => sum + (r - mean) ** 2, 0) / ratings.length;
+  const n = ratings.length;
+  if (n < 3) return 50;
+  const mean = ratings.reduce((a, b) => a + b, 0) / n;
+  const variance = ratings.reduce((sum, r) => sum + (r - mean) ** 2, 0) / n;
   const stdDev = Math.sqrt(variance);
-  const score = clampScore((1 - stdDev / 2) * 100);
-  return Math.round(score);
+  const rawScore = clampScore((1 - stdDev / 2) * 100);
+  const shrinkage = Math.min(1, (n - 2) / 10);
+  return Math.round(shrinkage * rawScore + (1 - shrinkage) * 50);
 }
 
 function computeConnoisseurScore(
@@ -135,21 +174,26 @@ function computeConnoisseurScore(
   reviewCount: number,
   classifications: Array<{ aspects: Record<string, any> }>,
   aspects: string[],
+  venueType: string,
   ratings: number[],
-  globalMean: number,
+  countryMean: number,
   countryMedian: number,
 ): { score: number; quality: number; sentiment: number; volume: number; consistency: number } {
-  const quality = computeQualityScore(rating, reviewCount, globalMean);
-  const sentiment = computeSentimentScore(classifications, aspects);
+  const quality = computeQualityScore(rating, reviewCount, countryMean);
+  const sentiment = computeSentimentScore(classifications, aspects, venueType);
   const volume = computeVolumeScore(reviewCount, countryMedian);
   const consistency = computeConsistencyScore(ratings);
-
-  const score = Math.round(quality * 0.35 + sentiment * 0.3 + volume * 0.25 + consistency * 0.1);
-
+  const score = Math.round(
+    quality * 0.35 +
+    sentiment * 0.45 +
+    volume * 0.10 +
+    consistency * 0.10
+  );
   return { score, quality, sentiment, volume, consistency };
 }
 
 function computeConfidence(reviewCount: number): string {
+  if (reviewCount >= 20) return "very_high";
   if (reviewCount >= 10) return "high";
   if (reviewCount >= 5) return "medium";
   return "low";
@@ -194,31 +238,31 @@ function buildPillarScores(
 
 // ─── Shared helpers for scoring context ───
 async function buildScoringContext(serviceClient: any) {
-  // Global mean rating
-  const { data: allRatings } = await serviceClient.from("lounges").select("rating").not("rating", "is", null);
+  const { data: allRatingRows } = await serviceClient
+    .from("lounges")
+    .select("rating, city_id")
+    .not("rating", "is", null);
+
   const globalMean =
-    allRatings && allRatings.length > 0
-      ? allRatings.reduce((sum: number, r: any) => sum + Number(r.rating), 0) / allRatings.length
+    allRatingRows && allRatingRows.length > 0
+      ? allRatingRows.reduce((sum: number, r: any) => sum + Number(r.rating), 0) / allRatingRows.length
       : 4.1;
 
-  // Build city → country lookup
   const { data: allCities } = await serviceClient.from("cities").select("id, country");
   const cityCountryMap = new Map<string, string>();
-  for (const city of allCities || []) {
-    cityCountryMap.set(city.id, city.country);
-  }
+  for (const city of allCities || []) cityCountryMap.set(city.id, city.country);
 
-  // Build country → median review count
-  const { data: allLoungeStats } = await serviceClient.from("lounges").select("review_count, city_id");
+  const { data: allLoungeStats } = await serviceClient.from("lounges").select("review_count, rating, city_id");
+
   const countryMedianMap = buildCountryMedianMap(allLoungeStats || [], cityCountryMap);
+  const countryMeanRatingMap = buildCountryMeanRatingMap(allRatingRows || [], cityCountryMap, globalMean);
 
-  // Global fallback median
   const allCounts = (allLoungeStats || [])
     .map((r: any) => Number(r.review_count ?? 0))
     .sort((a: number, b: number) => a - b);
   const globalMedian = allCounts.length > 0 ? allCounts[Math.floor(allCounts.length / 2)] : 100;
 
-  return { globalMean, cityCountryMap, countryMedianMap, globalMedian };
+  return { globalMean, cityCountryMap, countryMedianMap, countryMeanRatingMap, globalMedian };
 }
 
 function getCountryMedian(
@@ -229,6 +273,16 @@ function getCountryMedian(
 ): number {
   const country = cityCountryMap.get(cityId) || "";
   return countryMedianMap.get(country) || globalMedian;
+}
+
+function getCountryMeanRating(
+  cityId: string,
+  cityCountryMap: Map<string, string>,
+  countryMeanRatingMap: Map<string, number>,
+  globalMean: number,
+): number {
+  const country = cityCountryMap.get(cityId) || "";
+  return countryMeanRatingMap.get(country) || globalMean;
 }
 
 // ─── Auth ───
@@ -604,19 +658,21 @@ serve(async (req) => {
       const { data: reviews } = await serviceClient.from("google_reviews").select("rating").eq("lounge_id", lounge_id);
 
       // Build scoring context
-      const { globalMean, cityCountryMap, countryMedianMap, globalMedian } = await buildScoringContext(serviceClient);
+      const { globalMean, cityCountryMap, countryMedianMap, countryMeanRatingMap, globalMedian } = await buildScoringContext(serviceClient);
 
       const ratings = (reviews || []).map((r: any) => r.rating).filter((r: number | null): r is number => r !== null);
       const aspects = getAspects(lounge.type);
       const countryMedian = getCountryMedian(lounge.city_id, cityCountryMap, countryMedianMap, globalMedian);
+      const countryMean = getCountryMeanRating(lounge.city_id, cityCountryMap, countryMeanRatingMap, globalMean);
 
       const { score, quality, sentiment, volume, consistency } = computeConnoisseurScore(
         Number(lounge.rating),
         lounge.review_count,
         classifications,
         aspects,
+        lounge.type,
         ratings,
-        globalMean,
+        countryMean,
         countryMedian,
       );
 
@@ -770,7 +826,7 @@ serve(async (req) => {
       }
 
       // Build scoring context
-      const { globalMean, cityCountryMap, countryMedianMap, globalMedian } = await buildScoringContext(serviceClient);
+      const { globalMean, cityCountryMap, countryMedianMap, countryMeanRatingMap, globalMedian } = await buildScoringContext(serviceClient);
 
       console.log(`Bulk pipeline chunk: ${lounges.length} lounges at offset ${offset}`);
 
@@ -833,14 +889,16 @@ serve(async (req) => {
           const ratings = reviews.map((r: any) => r.rating).filter((r: number | null): r is number => r !== null);
           const aspects = getAspects(lounge.type);
           const countryMedian = getCountryMedian(lounge.city_id, cityCountryMap, countryMedianMap, globalMedian);
+          const countryMean = getCountryMeanRating(lounge.city_id, cityCountryMap, countryMeanRatingMap, globalMean);
 
-          const { score } = computeConnoisseurScore(
+          const { score, quality, sentiment, volume, consistency } = computeConnoisseurScore(
             Number(lounge.rating),
             lounge.review_count,
             allC,
             aspects,
+            lounge.type,
             ratings,
-            globalMean,
+            countryMean,
             countryMedian,
           );
           const pillarScores = buildPillarScores(allC, aspects);
@@ -939,7 +997,7 @@ serve(async (req) => {
       }
 
       // Build scoring context
-      const { globalMean, cityCountryMap, countryMedianMap, globalMedian } = await buildScoringContext(serviceClient);
+      const { globalMean, cityCountryMap, countryMedianMap, countryMeanRatingMap, globalMedian } = await buildScoringContext(serviceClient);
 
       console.log(
         `Bulk full pipeline: processing ${lounges.length} venues (${total} remaining), concurrency=${concurrency}`,
@@ -1025,14 +1083,16 @@ serve(async (req) => {
           const ratings = savedReviews.map((r: any) => r.rating).filter((r: number | null): r is number => r !== null);
           const aspects = getAspects(lounge.type);
           const countryMedian = getCountryMedian(lounge.city_id, cityCountryMap, countryMedianMap, globalMedian);
+          const countryMean = getCountryMeanRating(lounge.city_id, cityCountryMap, countryMeanRatingMap, globalMean);
 
-          const { score } = computeConnoisseurScore(
+          const { score, quality, sentiment, volume, consistency } = computeConnoisseurScore(
             Number(lounge.rating),
             lounge.review_count,
             allC,
             aspects,
+            lounge.type,
             ratings,
-            globalMean,
+            countryMean,
             countryMedian,
           );
           const pillarScores = buildPillarScores(allC, aspects);
@@ -1139,7 +1199,7 @@ serve(async (req) => {
       }
 
       // Build scoring context
-      const { globalMean, cityCountryMap, countryMedianMap, globalMedian } = await buildScoringContext(serviceClient);
+      const { globalMean, cityCountryMap, countryMedianMap, countryMeanRatingMap, globalMedian } = await buildScoringContext(serviceClient);
 
       let recalculated = 0,
         skipped = 0;
@@ -1165,14 +1225,16 @@ serve(async (req) => {
         const ratings = (reviews || []).map((r: any) => r.rating).filter((r: number | null): r is number => r !== null);
         const aspects = getAspects(lounge.type);
         const countryMedian = getCountryMedian(lounge.city_id, cityCountryMap, countryMedianMap, globalMedian);
+        const countryMean = getCountryMeanRating(lounge.city_id, cityCountryMap, countryMeanRatingMap, globalMean);
 
-        const { score } = computeConnoisseurScore(
+        const { score, quality, sentiment, volume, consistency } = computeConnoisseurScore(
           Number(lounge.rating),
           lounge.review_count,
           classifications,
           aspects,
+          lounge.type,
           ratings,
-          globalMean,
+          countryMean,
           countryMedian,
         );
 
