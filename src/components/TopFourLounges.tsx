@@ -137,7 +137,7 @@ const TopFourLounges = ({ userId, editable, displayName, profileUrl }: TopFourLo
                 />
                 <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-transparent to-transparent" />
                 <div className="absolute bottom-0 left-0 right-0 p-3">
-                  <h3 className="font-display text-sm font-bold text-white line-clamp-1">
+                  <h3 className="font-display text-sm font-bold text-white leading-tight line-clamp-2">
                     {entry.lounges.name}
                   </h3>
                   <p className="text-xs text-white/70 font-body mt-0.5">

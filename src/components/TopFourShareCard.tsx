@@ -1,6 +1,6 @@
 import { Plus } from "lucide-react";
 
-function truncateName(name: string, max = 22): string {
+function truncateName(name: string, max = 34): string {
   if (name.length <= max) return name;
   return name.slice(0, max).trimEnd() + "…";
 }
@@ -65,9 +65,9 @@ const TopFourShareCard = ({ displayName, lounges, cardRef }: TopFourShareCardPro
                 <div className="absolute bottom-0 left-0 right-0 p-2 pb-2.5" style={{ background: "linear-gradient(to top, rgba(0,0,0,0.9) 0%, rgba(0,0,0,0.6) 60%, transparent 100%)" }}>
                   <p
                     className="font-display font-bold text-white leading-tight mb-0.5"
-                    style={{ fontSize: "11px", maxWidth: "100%" }}
+                    style={{ fontSize: "10.5px", lineHeight: "1.25", maxHeight: "2.5em", overflow: "hidden" }}
                   >
-                    {truncateName(lounge.name, 20)}
+                    {truncateName(lounge.name, 34)}
                   </p>
                   <p className="font-body text-white/60" style={{ fontSize: "9px" }}>
                     {lounge.cityName}
