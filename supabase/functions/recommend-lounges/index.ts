@@ -12,11 +12,33 @@ Deno.serve(async (req) => {
   }
 
   try {
-    const { lat, lng, visit_type, venue_type = "All" } = await req.json();
+    const body = await req.json();
+    const lat = body.lat;
+    const lng = body.lng;
+    const visit_type = body.visit_type;
+    const venue_type = body.venue_type ?? "All";
 
-    if (lat == null || lng == null || !visit_type) {
+    const ALLOWED_VISIT_TYPES = ["Quick Smoke", "Full Evening", "Both"];
+    const ALLOWED_VENUE_TYPES = ["All", "Lounge", "Shop"];
+
+    if (typeof lat !== "number" || !isFinite(lat) || lat < -90 || lat > 90 ||
+        typeof lng !== "number" || !isFinite(lng) || lng < -180 || lng > 180) {
       return new Response(
-        JSON.stringify({ error: "lat, lng, and visit_type are required" }),
+        JSON.stringify({ error: "Invalid coordinates" }),
+        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+      );
+    }
+
+    if (typeof visit_type !== "string" || !ALLOWED_VISIT_TYPES.includes(visit_type)) {
+      return new Response(
+        JSON.stringify({ error: "Invalid visit_type" }),
+        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+      );
+    }
+
+    if (typeof venue_type !== "string" || !ALLOWED_VENUE_TYPES.includes(venue_type)) {
+      return new Response(
+        JSON.stringify({ error: "Invalid venue_type" }),
         { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } },
       );
     }
