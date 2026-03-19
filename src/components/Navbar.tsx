@@ -13,6 +13,7 @@ const Navbar = () => {
   const [searchQuery, setSearchQuery] = useState("");
   const navigate = useNavigate();
   const { user, signOut } = useAuth();
+  const { data: isAdmin } = useAdminRole();
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
