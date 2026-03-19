@@ -159,12 +159,14 @@ function computeVolumeScore(reviewCount: number, countryMedian: number): number 
 }
 
 function computeConsistencyScore(ratings: number[]): number {
-  if (ratings.length < 2) return 50;
-  const mean = ratings.reduce((a, b) => a + b, 0) / ratings.length;
-  const variance = ratings.reduce((sum, r) => sum + (r - mean) ** 2, 0) / ratings.length;
+  const n = ratings.length;
+  if (n < 3) return 50;
+  const mean = ratings.reduce((a, b) => a + b, 0) / n;
+  const variance = ratings.reduce((sum, r) => sum + (r - mean) ** 2, 0) / n;
   const stdDev = Math.sqrt(variance);
-  const score = clampScore((1 - stdDev / 2) * 100);
-  return Math.round(score);
+  const rawScore = clampScore((1 - stdDev / 2) * 100);
+  const shrinkage = Math.min(1, (n - 2) / 10);
+  return Math.round(shrinkage * rawScore + (1 - shrinkage) * 50);
 }
 
 function computeConnoisseurScore(
@@ -172,21 +174,26 @@ function computeConnoisseurScore(
   reviewCount: number,
   classifications: Array<{ aspects: Record<string, any> }>,
   aspects: string[],
+  venueType: string,
   ratings: number[],
-  globalMean: number,
+  countryMean: number,
   countryMedian: number,
 ): { score: number; quality: number; sentiment: number; volume: number; consistency: number } {
-  const quality = computeQualityScore(rating, reviewCount, globalMean);
-  const sentiment = computeSentimentScore(classifications, aspects);
+  const quality = computeQualityScore(rating, reviewCount, countryMean);
+  const sentiment = computeSentimentScore(classifications, aspects, venueType);
   const volume = computeVolumeScore(reviewCount, countryMedian);
   const consistency = computeConsistencyScore(ratings);
-
-  const score = Math.round(quality * 0.35 + sentiment * 0.3 + volume * 0.25 + consistency * 0.1);
-
+  const score = Math.round(
+    quality * 0.35 +
+    sentiment * 0.45 +
+    volume * 0.10 +
+    consistency * 0.10
+  );
   return { score, quality, sentiment, volume, consistency };
 }
 
 function computeConfidence(reviewCount: number): string {
+  if (reviewCount >= 20) return "very_high";
   if (reviewCount >= 10) return "high";
   if (reviewCount >= 5) return "medium";
   return "low";
