@@ -53,6 +53,10 @@ const BLOCKED_PRIMARY_TYPES = new Set([
 const BLOCKED_NAME_KEYWORDS = [
   "hookah", "shisha", "nargile", "vape", "vapor", "e-cig", "ecig", "cannabis",
   "dispensary", "marijuana", "weed", "cbd", "head shop", "smoke shop",
+  "snus", "iqos", "ploom", "glo tobacco", "heated tobacco",
+  "presse", "loto", "loterie", "tabac presse", "tabac loto",
+  "airport lounge", "vip lounge", "cip lounge", "departure lounge",
+  "business lounge", "premium lounge", "transit lounge",
 ];
 
 const POSITIVE_CIGAR_KEYWORDS = [
