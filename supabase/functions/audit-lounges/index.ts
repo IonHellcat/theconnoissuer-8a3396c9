@@ -10,13 +10,6 @@ const BATCH_SIZE = 60;
 
 const POSITIVE_KEYWORDS = ["cigar", "cigars", "tobacco", "tobacconist", "humidor", "havana", "habano", "stogie"];
 
-const BLOCKED_GOOGLE_TYPES = new Set([
-  "hookah_bar", "vape_store", "convenience_store", "gas_station",
-  "grocery_store", "supermarket", "beauty_salon", "nail_salon", "spa",
-  "restaurant", "fast_food_restaurant", "cafe", "coffee_shop",
-  "pharmacy", "drugstore", "gym", "fitness_center", "movie_theater",
-  "casino", "hotel", "motel",
-]);
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
@@ -101,7 +94,7 @@ Deno.serve(async (req) => {
 
     const { data: venues, error: fetchErr } = await serviceClient
       .from("lounges")
-      .select("id, name, address, google_types, website, google_place_id")
+      .select("id, name, address, google_types, website, google_place_id, description")
       .range(offset, offset + BATCH_SIZE - 1)
       .order("created_at", { ascending: true });
 
@@ -126,14 +119,7 @@ Deno.serve(async (req) => {
         continue;
       }
 
-      // Blocked Google type → irrelevant
-      const types: string[] = (v.google_types as any)?.types || [];
-      if (types.some((t) => BLOCKED_GOOGLE_TYPES.has(t))) {
-        flagged.push({ id: v.id, name: v.name, address: v.address, google_types: v.google_types });
-        continue;
-      }
-
-      // Needs AI classification
+      // Everything else needs AI classification
       needsAI.push({ idx: i, venue: v });
     }
 
@@ -151,7 +137,8 @@ Deno.serve(async (req) => {
               ? `Google types: ${(v.google_types as any).types.join(", ")}`
               : "no Google type data";
             const website = v.website ? `website: ${v.website}` : "no website";
-            return `${i + 1}. "${v.name}" - ${v.address || "no address"} - ${googleTypes} - ${website}`;
+            const desc = v.description ? `description: ${v.description.substring(0, 150)}` : "no description";
+            return `${i + 1}. "${v.name}" - ${v.address || "no address"} - ${googleTypes} - ${website} - ${desc}`;
           })
           .join("\n");
 
@@ -167,8 +154,8 @@ Deno.serve(async (req) => {
               messages: [
                 {
                   role: "system",
-                  content:
-                    "You determine if a business is a cigar-focused venue. Mark relevant=true ONLY for cigar lounges, cigar bars, cigar shops, or tobacconists where cigars are the primary product. Mark relevant=false for hookah bars, vape shops, cannabis dispensaries, generic smoke shops, bars, restaurants, hotels, and anything not primarily about cigars. When in doubt, mark relevant=false.",
+                   content:
+                    "You determine if a business belongs in a curated cigar venue directory. Mark relevant=true for cigar lounges, cigar bars, cigar shops, tobacconists, and upscale lounges or bars where cigars are a primary or significant offering. Mark relevant=false only if you are confident the business has no meaningful cigar focus — for example: hookah-only bars, vape shops, cannabis dispensaries, convenience stores, or clearly unrelated businesses. When in doubt, mark relevant=true. These venues were previously approved so give them the benefit of the doubt.",
                 },
                 {
                   role: "user",
