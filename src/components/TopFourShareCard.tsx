@@ -65,9 +65,9 @@ const TopFourShareCard = ({ displayName, lounges, cardRef }: TopFourShareCardPro
                 <div className="absolute bottom-0 left-0 right-0 p-2 pb-2.5" style={{ background: "linear-gradient(to top, rgba(0,0,0,0.9) 0%, rgba(0,0,0,0.6) 60%, transparent 100%)" }}>
                   <p
                     className="font-display font-bold text-white leading-tight mb-0.5"
-                    style={{ fontSize: "10.5px", lineHeight: "1.25", maxHeight: "2.5em", overflow: "hidden" }}
+                    style={{ fontSize: "10.5px", lineHeight: "1.25", minHeight: "2.5em" }}
                   >
-                    {truncateName(lounge.name, 34)}
+                    {truncateName(lounge.name, 30)}
                   </p>
                   <p className="font-body text-white/60" style={{ fontSize: "9px" }}>
                     {lounge.cityName}
