@@ -65,6 +65,12 @@ const Navbar = () => {
             <Link to="/visited" className="text-sm text-muted-foreground hover:text-foreground transition-colors">
               Passport
             </Link>
+            {isAdmin && (
+              <Link to="/admin/pending" className="text-sm text-muted-foreground hover:text-foreground transition-colors flex items-center gap-1">
+                <ShieldCheck className="h-3.5 w-3.5" />
+                Admin
+              </Link>
+            )}
             {user ? (
               <div className="flex items-center gap-3">
                 <NotificationBell />
