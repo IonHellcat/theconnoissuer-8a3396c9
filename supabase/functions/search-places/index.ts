@@ -40,15 +40,70 @@ function normalizeName(name: string): string {
     .trim();
 }
 
+const BLOCKED_PRIMARY_TYPES = new Set([
+  "hookah_bar", "vape_store", "convenience_store", "gas_station", "grocery_store",
+  "supermarket", "beauty_salon", "nail_salon", "spa", "restaurant", "fast_food_restaurant",
+  "cafe", "coffee_shop", "pharmacy", "drugstore", "clothing_store", "shoe_store",
+  "jewelry_store", "furniture_store", "home_goods_store", "electronics_store", "book_store",
+  "sporting_goods_store", "pet_store", "florist", "bakery", "car_dealer", "car_wash",
+  "gym", "fitness_center", "movie_theater", "casino", "hotel", "motel", "parking", "airport",
+]);
+
+const BLOCKED_NAME_KEYWORDS = [
+  "hookah", "shisha", "nargile", "vape", "vapor", "e-cig", "ecig", "cannabis",
+  "dispensary", "marijuana", "weed", "cbd", "head shop", "smoke shop",
+];
+
+const POSITIVE_CIGAR_KEYWORDS = [
+  "cigar", "cigars", "tobacco", "tobacconist", "humidor", "havana", "habano", "stogie",
+];
+
+function preFilterPlaces(
+  places: Map<string, PlaceResult>
+): { filtered: Map<string, PlaceResult>; skippedCount: number } {
+  const filtered = new Map<string, PlaceResult>();
+  let skippedCount = 0;
+
+  for (const [id, place] of places) {
+    const nameLower = (place.displayName?.text || "").toLowerCase();
+
+    // Positive keyword bypass
+    if (POSITIVE_CIGAR_KEYWORDS.some((kw) => nameLower.includes(kw))) {
+      filtered.set(id, place);
+      continue;
+    }
+
+    // Blocked primaryType or types[]
+    const allTypes = [
+      ...(place.primaryType ? [place.primaryType] : []),
+      ...(place.types || []),
+    ];
+    if (allTypes.some((t) => BLOCKED_PRIMARY_TYPES.has(t))) {
+      console.log(`Pre-filter blocked (type): "${place.displayName?.text}" [${allTypes.join(", ")}]`);
+      skippedCount++;
+      continue;
+    }
+
+    // Blocked name keyword
+    if (BLOCKED_NAME_KEYWORDS.some((kw) => nameLower.includes(kw))) {
+      console.log(`Pre-filter blocked (name): "${place.displayName?.text}"`);
+      skippedCount++;
+      continue;
+    }
+
+    filtered.set(id, place);
+  }
+
+  return { filtered, skippedCount };
+}
+
 async function filterAndClassifyPlaces(
   places: Map<string, PlaceResult>
 ): Promise<{ relevant: Map<string, { place: PlaceResult; type: string }>; skippedCount: number }> {
   const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
   if (!LOVABLE_API_KEY) {
-    console.warn("LOVABLE_API_KEY not set, skipping AI filter");
-    const result = new Map<string, { place: PlaceResult; type: string }>();
-    for (const [id, p] of places) result.set(id, { place: p, type: "lounge" });
-    return { relevant: result, skippedCount: 0 };
+    console.warn("LOVABLE_API_KEY not set, failing closed — rejecting all places");
+    return { relevant: new Map(), skippedCount: places.size };
   }
 
   const entries = [...places.entries()];
@@ -72,7 +127,7 @@ async function filterAndClassifyPlaces(
           {
             role: "system",
             content:
-              "You classify cigar businesses. For each numbered business, determine: 1) Is it relevant (a cigar lounge, cigar bar, cigar shop, or tobacconist)? Answer NO for hookah bars, vape shops, smoke shops without cigar focus, or unrelated businesses. 2) If relevant, classify the type: 'lounge' (cigar lounge, cigar bar, or place primarily for smoking cigars on-site), 'shop' (retail cigar shop or tobacconist primarily for purchasing cigars to take away), or 'both' (offers both a lounge experience and retail shop).",
+              "You classify whether a business is a cigar-focused venue. Mark relevant=true ONLY for: cigar lounges, cigar bars, cigar shops/tobacconists where cigars are the primary product. Mark relevant=false for: hookah/shisha bars, vape/e-cigarette shops, cannabis dispensaries, generic smoke shops with no clear cigar focus, bars or restaurants that happen to allow smoking, and any business not primarily centered on cigars. When in doubt, mark relevant=false.",
           },
           {
             role: "user",
@@ -114,18 +169,14 @@ async function filterAndClassifyPlaces(
 
     if (!res.ok) {
       console.error("AI filter request failed:", res.status, await res.text());
-      const result = new Map<string, { place: PlaceResult; type: string }>();
-      for (const [id, p] of places) result.set(id, { place: p, type: "lounge" });
-      return { relevant: result, skippedCount: 0 };
+      return { relevant: new Map(), skippedCount: places.size };
     }
 
     const data = await res.json();
     const toolCall = data.choices?.[0]?.message?.tool_calls?.[0];
     if (!toolCall) {
-      console.warn("No tool call in AI response, keeping all places");
-      const result = new Map<string, { place: PlaceResult; type: string }>();
-      for (const [id, p] of places) result.set(id, { place: p, type: "lounge" });
-      return { relevant: result, skippedCount: 0 };
+      console.warn("No tool call in AI response, failing closed — rejecting all places");
+      return { relevant: new Map(), skippedCount: places.size };
     }
 
     const parsed = JSON.parse(toolCall.function.arguments);
@@ -150,9 +201,7 @@ async function filterAndClassifyPlaces(
     return { relevant, skippedCount };
   } catch (err) {
     console.error("AI relevance filter error:", err);
-    const result = new Map<string, { place: PlaceResult; type: string }>();
-    for (const [id, p] of places) result.set(id, { place: p, type: "lounge" });
-    return { relevant: result, skippedCount: 0 };
+    return { relevant: new Map(), skippedCount: places.size };
   }
 }
 
@@ -344,10 +393,15 @@ serve(async (req) => {
       );
     }
 
-    // ── 2. AI Relevance + Type Classification ──
-    const { relevant: relevantPlaces, skippedCount: skippedIrrelevant } =
-      await filterAndClassifyPlaces(allPlaces);
-    console.log(`${relevantPlaces.size} relevant after AI filter (${skippedIrrelevant} filtered)`);
+    // ── 2a. Pre-filter by type/name ──
+    const { filtered: preFiltered, skippedCount: skippedByPreFilter } = preFilterPlaces(allPlaces);
+    console.log(`${preFiltered.size} after pre-filter (${skippedByPreFilter} blocked)`);
+
+    // ── 2b. AI Relevance + Type Classification ──
+    const { relevant: relevantPlaces, skippedCount: skippedByAI } =
+      await filterAndClassifyPlaces(preFiltered);
+    const skippedIrrelevant = skippedByPreFilter + skippedByAI;
+    console.log(`${relevantPlaces.size} relevant after AI filter (${skippedIrrelevant} total irrelevant)`);
 
     // ── 3. Google Place ID dedup ──
     const placeIds = [...relevantPlaces.keys()];
