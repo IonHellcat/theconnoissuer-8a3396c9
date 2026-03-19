@@ -38,12 +38,21 @@ const TopFourShareModal = ({
     if (!cardRef.current) return null;
     setGenerating(true);
     try {
+      if ("fonts" in document) {
+        await document.fonts.ready;
+      }
+      await new Promise<void>((resolve) => {
+        requestAnimationFrame(() => resolve());
+      });
+
       const canvas = await html2canvas(cardRef.current, {
         scale: 2,
         useCORS: true,
         allowTaint: false,
         backgroundColor: "#1a1a1a",
         logging: false,
+        width: cardRef.current.offsetWidth,
+        height: cardRef.current.offsetHeight,
       });
       return canvas;
     } finally {
@@ -161,7 +170,7 @@ const TopFourShareModal = ({
         </div>
 
         {/* Off-screen full-size card for html2canvas capture */}
-        <div style={{ position: "fixed", left: "-9999px", top: "-9999px" }}>
+        <div style={{ position: "fixed", left: 0, top: 0, transform: "translateX(-200vw)" }}>
           <TopFourShareCard displayName={displayName} lounges={lounges} cardRef={cardRef} />
         </div>
       </DialogContent>
