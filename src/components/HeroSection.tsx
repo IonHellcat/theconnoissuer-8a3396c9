@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { Search, Sparkles, Trophy, Globe } from "lucide-react";
+import { Search, MapPin, Trophy, Globe } from "lucide-react";
 import { motion } from "framer-motion";
 import TrustStats from "./TrustStats";
 
