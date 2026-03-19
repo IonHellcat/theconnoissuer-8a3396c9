@@ -170,7 +170,7 @@ const TopFourShareModal = ({
         </div>
 
         {/* Off-screen full-size card for html2canvas capture */}
-        <div style={{ position: "fixed", left: "-9999px", top: "-9999px" }}>
+        <div style={{ position: "fixed", left: 0, top: 0, transform: "translateX(-200vw)" }}>
           <TopFourShareCard displayName={displayName} lounges={lounges} cardRef={cardRef} />
         </div>
       </DialogContent>
