@@ -87,28 +87,48 @@ function computeQualityScore(rating: number, reviewCount: number, countryMean: n
   return Math.round(clampScore(normalized * 100));
 }
 
-function computeSentimentScore(classifications: Array<{ aspects: Record<string, any> }>, aspects: string[]): number {
+const LOUNGE_ASPECT_WEIGHTS: Record<string, number> = {
+  cigar_selection: 0.50,
+  atmosphere: 0.25,
+  service: 0.20,
+  drinks: 0.05,
+};
+
+const SHOP_ASPECT_WEIGHTS: Record<string, number> = {
+  selection: 0.55,
+  staff: 0.30,
+  pricing: 0.15,
+};
+
+function computeSentimentScore(
+  classifications: Array<{ aspects: Record<string, any> }>,
+  aspects: string[],
+  venueType: string
+): number {
   if (classifications.length === 0) return 50;
 
-  // 1. Aspect-level sentiment (positive vs negative mentions across all aspects)
-  let totalPositive = 0;
-  let totalMentioned = 0;
+  const weights = venueType === "shop" ? SHOP_ASPECT_WEIGHTS : LOUNGE_ASPECT_WEIGHTS;
 
-  for (const c of classifications) {
-    for (const aspect of aspects) {
+  let weightedSum = 0;
+  let weightedTotal = 0;
+
+  for (const aspect of aspects) {
+    let pos = 0, neg = 0;
+    for (const c of classifications) {
       const val = c.aspects?.[aspect];
-      if (val === "positive") {
-        totalPositive++;
-        totalMentioned++;
-      } else if (val === "negative") {
-        totalMentioned++;
-      }
+      if (val === "positive") pos++;
+      else if (val === "negative") neg++;
     }
+    const mentioned = pos + neg;
+    if (mentioned === 0) continue;
+    const ratio = pos / mentioned;
+    const weight = weights[aspect] ?? (1 / aspects.length);
+    weightedSum += ratio * weight;
+    weightedTotal += weight;
   }
 
-  const aspectRatio = totalMentioned > 0 ? totalPositive / totalMentioned : null;
+  const aspectScore = weightedTotal > 0 ? weightedSum / weightedTotal : null;
 
-  // 2. Overall sentiment (from the overall_sentiment field on each classification)
   const SENTIMENT_MAP: Record<string, number> = {
     strong_positive: 1.0,
     positive: 0.75,
@@ -117,8 +137,7 @@ function computeSentimentScore(classifications: Array<{ aspects: Record<string, 
     strong_negative: 0.0,
   };
 
-  let overallSum = 0;
-  let overallCount = 0;
+  let overallSum = 0, overallCount = 0;
   for (const c of classifications) {
     const os = c.aspects?.overall_sentiment;
     if (os && SENTIMENT_MAP[os] !== undefined) {
@@ -126,15 +145,10 @@ function computeSentimentScore(classifications: Array<{ aspects: Record<string, 
       overallCount++;
     }
   }
-
   const overallAvg = overallCount > 0 ? overallSum / overallCount : 0.5;
 
-  // 3. Blend: 60% aspect-level, 40% overall sentiment
-  if (aspectRatio === null) {
-    return Math.round(overallAvg * 100);
-  }
-
-  return Math.round((aspectRatio * 0.6 + overallAvg * 0.4) * 100);
+  if (aspectScore === null) return Math.round(overallAvg * 100);
+  return Math.round((aspectScore * 0.6 + overallAvg * 0.4) * 100);
 }
 
 function computeVolumeScore(reviewCount: number, countryMedian: number): number {
