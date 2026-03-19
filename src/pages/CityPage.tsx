@@ -226,11 +226,10 @@ const CityPage = () => {
           ) : lounges && lounges.length > 0 ? (
             (() => {
               const scoreSort = (a: any, b: any) => {
-                const aScore = a.connoisseur_score ?? -1;
-                const bScore = b.connoisseur_score ?? -1;
-                if (bScore !== aScore) return bScore - aScore;
-                return computeWeightedScore(Number(b.rating), b.review_count) -
-                  computeWeightedScore(Number(a.rating), a.review_count);
+                const scoreA = a.connoisseur_score ?? -1;
+                const scoreB = b.connoisseur_score ?? -1;
+                if (scoreA !== scoreB) return scoreB - scoreA;
+                return Number(b.rating) - Number(a.rating);
               };
 
               const filtered = venueFilter === "all"
