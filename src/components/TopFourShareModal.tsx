@@ -139,7 +139,7 @@ const TopFourShareModal = ({
             className="w-full min-h-[44px] gap-2"
           >
             {generating ? <Loader2 className="h-4 w-4 animate-spin" /> : <Download className="h-4 w-4" />}
-            Save image
+            Save to Photos
           </Button>
           <Button
             variant="secondary"

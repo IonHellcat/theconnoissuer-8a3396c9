@@ -57,11 +57,11 @@ const TopFourShareCard = ({ displayName, lounges, cardRef }: TopFourShareCardPro
                   className="w-full h-full object-cover"
                 />
                 <div className="absolute inset-0 bg-gradient-to-t from-black/80 to-transparent" />
-                <div className="absolute bottom-0 left-0 right-0 p-2.5">
-                  <p className="font-display text-xs font-bold text-white line-clamp-1">
+                <div className="absolute bottom-0 left-0 right-0 p-2 pb-2.5" style={{ background: "linear-gradient(to top, rgba(0,0,0,0.9) 0%, rgba(0,0,0,0.6) 60%, transparent 100%)" }}>
+                  <p className="font-display font-bold text-white leading-tight mb-0.5" style={{ fontSize: "11px", display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical", overflow: "hidden" }}>
                     {lounge.name}
                   </p>
-                  <p className="font-body text-white/60" style={{ fontSize: "10px" }}>
+                  <p className="font-body text-white/60" style={{ fontSize: "9px" }}>
                     {lounge.cityName}
                   </p>
                 </div>
