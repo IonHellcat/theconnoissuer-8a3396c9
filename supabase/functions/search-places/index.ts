@@ -487,6 +487,7 @@ serve(async (req) => {
     // ── 5. Insert ──
     let insertedCount = 0;
 
+    const finalPlaces = afterRetailFilter;
     if (auto_approve) {
       let { data: cityRow } = await supabase
         .from("cities").select("id").eq("name", city).maybeSingle();
