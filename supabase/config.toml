@@ -32,3 +32,6 @@ verify_jwt = true
 
 [functions.check-achievements]
 verify_jwt = false
+
+[functions.audit-lounges]
+verify_jwt = false
