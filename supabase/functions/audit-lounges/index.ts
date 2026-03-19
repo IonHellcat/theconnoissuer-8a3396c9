@@ -149,6 +149,21 @@ Deno.serve(async (req) => {
       ? await enrichMissingTypes(venues, serviceClient, GOOGLE_PLACES_API_KEY)
       : venues;
 
+    // Fetch review samples for all venues in batch
+    const venueIds = enrichedVenues.map((v: any) => v.id);
+    const { data: allReviews } = await serviceClient
+      .from("google_reviews")
+      .select("lounge_id, review_text")
+      .in("lounge_id", venueIds)
+      .not("review_text", "is", null)
+      .limit(300);
+
+    const reviewsByLounge = new Map<string, string[]>();
+    for (const r of (allReviews || [])) {
+      if (!reviewsByLounge.has(r.lounge_id)) reviewsByLounge.set(r.lounge_id, []);
+      reviewsByLounge.get(r.lounge_id)!.push(r.review_text);
+    }
+
     const flagged: { id: string; name: string; address: string | null; google_types: any; image_url: string | null }[] = [];
     const needsAI: { idx: number; venue: any }[] = [];
 
@@ -166,7 +181,8 @@ Deno.serve(async (req) => {
       const hasTypes = (v.google_types as any)?.types?.length > 0;
       const hasDesc = !!v.description;
       const hasWebsite = !!v.website;
-      if (!hasTypes && !hasDesc && !hasWebsite) {
+      const hasReviews = (reviewsByLounge.get(v.id)?.length || 0) > 0;
+      if (!hasTypes && !hasDesc && !hasWebsite && !hasReviews) {
         continue; // Can't evaluate — keep by default
       }
 
@@ -189,7 +205,11 @@ Deno.serve(async (req) => {
               : "no Google type data";
             const website = v.website ? `website: ${v.website}` : "no website";
             const desc = v.description ? `description: ${v.description.substring(0, 150)}` : "no description";
-            return `${i + 1}. "${v.name}" - ${v.address || "no address"} - ${googleTypes} - ${website} - ${desc}`;
+            const venueReviews = reviewsByLounge.get(v.id) || [];
+            const reviewSnippet = venueReviews.length > 0
+              ? venueReviews.slice(0, 4).map((r: string) => r.substring(0, 120)).join(" | ")
+              : "none";
+            return `${i + 1}. "${v.name}" - ${v.address || "no address"} - ${googleTypes} - ${website} - ${desc} - reviews: ${reviewSnippet}`;
           })
           .join("\n");
 
@@ -206,7 +226,7 @@ Deno.serve(async (req) => {
                 {
                   role: "system",
                    content:
-                    "You determine if a business belongs in a curated cigar venue directory. Mark relevant=true for cigar lounges, cigar bars, cigar shops, tobacconists, and upscale lounges or bars where cigars are a primary or significant offering. Mark relevant=false only if you are confident the business has no meaningful cigar focus — for example: hookah-only bars, vape shops, cannabis dispensaries, convenience stores, or clearly unrelated businesses. When in doubt, mark relevant=true. These venues were previously approved so give them the benefit of the doubt.",
+                    "You determine if a business belongs in a curated cigar venue directory. Mark relevant=true for cigar lounges, cigar bars, cigar shops, tobacconists, and upscale lounges or bars where cigars are a primary or significant offering. Mark relevant=false only if you are confident the business has no meaningful cigar focus — for example: hookah-only bars, vape shops, cannabis dispensaries, convenience stores, or clearly unrelated businesses. When in doubt, mark relevant=true. These venues were previously approved so give them the benefit of the doubt. Pay special attention to the reviews field — if reviews exist and none mention cigars, smoking, humidors, or tobacco, that is strong evidence the venue is not cigar-related.",
                 },
                 {
                   role: "user",
