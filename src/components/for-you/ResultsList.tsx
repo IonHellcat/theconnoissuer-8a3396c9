@@ -103,8 +103,8 @@ export const ItineraryScreen = ({ itinerary, cityName, requestedStops, onReset }
                     </div>
 
                     {/* Details */}
-                    <div className="px-3 pb-3 -mt-1">
-                      <div className="flex items-end justify-between gap-2 mb-0.5">
+                    <div className="px-3 pb-3 pt-2">
+                      <div className="flex items-start justify-between gap-2 mb-0.5">
                         <div className="min-w-0">
                           <div className="flex items-center gap-1.5">
                             <h3 className="font-display text-sm font-semibold text-foreground truncate">
@@ -118,13 +118,15 @@ export const ItineraryScreen = ({ itinerary, cityName, requestedStops, onReset }
                             {getStopLabel(i, lounge)}
                           </p>
                         </div>
-                        <ConnoisseurScoreBadge
-                          score={lounge.connoisseur_score}
-                          scoreLabel={lounge.score_label}
-                          scoreSource={lounge.score_source}
-                          googleRating={lounge.rating}
-                          size="sm"
-                        />
+                        <div className="pt-1 shrink-0">
+                          <ConnoisseurScoreBadge
+                            score={lounge.connoisseur_score}
+                            scoreLabel={lounge.score_label}
+                            scoreSource={lounge.score_source}
+                            googleRating={lounge.rating}
+                            size="sm"
+                          />
+                        </div>
                       </div>
                       {lounge.score_summary && (
                         <p className="text-[11px] text-muted-foreground/60 font-body italic mt-1 line-clamp-2 leading-relaxed">
