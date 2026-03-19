@@ -119,14 +119,7 @@ Deno.serve(async (req) => {
         continue;
       }
 
-      // Blocked Google type → irrelevant
-      const types: string[] = (v.google_types as any)?.types || [];
-      if (types.some((t) => BLOCKED_GOOGLE_TYPES.has(t))) {
-        flagged.push({ id: v.id, name: v.name, address: v.address, google_types: v.google_types });
-        continue;
-      }
-
-      // Needs AI classification
+      // Everything else needs AI classification
       needsAI.push({ idx: i, venue: v });
     }
 
