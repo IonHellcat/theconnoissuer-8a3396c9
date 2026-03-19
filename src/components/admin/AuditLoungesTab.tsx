@@ -105,7 +105,7 @@ export function AuditLoungesTab() {
         }
       });
 
-      await runWithConcurrency(tasks, 5);
+      await runWithConcurrency(tasks, 3);
       setProgress(`Audit complete: ${scannedSoFar} lounges scanned, ${flaggedSoFar} flagged.`);
       setDone(true);
     } catch (err: any) {
