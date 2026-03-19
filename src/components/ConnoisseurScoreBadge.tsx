@@ -41,10 +41,12 @@ const ConnoisseurScoreBadge = ({
     if (googleRating) {
       return (
         <div className="flex flex-col items-center gap-0.5">
-          <div className="flex items-center gap-1 text-muted-foreground">
-            <span className="text-xs font-body font-medium">G</span>
-            <span className="text-xs font-body">★</span>
-            <span className="text-xs font-semibold font-body">{Number(googleRating).toFixed(1)}</span>
+          <div className="flex flex-col items-center gap-0.5 text-muted-foreground">
+            <div className="flex items-center gap-1">
+              <span className="text-xs font-body">★</span>
+              <span className="text-xs font-semibold font-body">{Number(googleRating).toFixed(1)}</span>
+            </div>
+            <span className="text-[8px] font-body uppercase tracking-wider">Google</span>
           </div>
         </div>
       );
