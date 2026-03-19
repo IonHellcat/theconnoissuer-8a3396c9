@@ -278,7 +278,7 @@ Deno.serve(async (req) => {
             const toolCall = data.choices?.[0]?.message?.tool_calls?.[0];
             if (toolCall) {
               const parsed = JSON.parse(toolCall.function.arguments);
-              const classifications: { index: number; relevant: boolean }[] = parsed.classifications || [];
+              const classifications: { index: number; relevant: boolean; reason?: string }[] = parsed.classifications || [];
               for (const c of classifications) {
                 const item = needsAI[c.index - 1];
                 if (item && c.relevant === false) {
@@ -288,6 +288,7 @@ Deno.serve(async (req) => {
                     address: item.venue.address,
                     google_types: item.venue.google_types,
                     image_url: item.venue.image_url || null,
+                    reason: c.reason || null,
                   });
                 }
               }

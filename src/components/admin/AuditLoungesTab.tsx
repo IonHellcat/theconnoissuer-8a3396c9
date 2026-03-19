@@ -254,6 +254,7 @@ export function AuditLoungesTab() {
                       <p className="font-medium text-sm truncate">{v.name}</p>
                       {v.address && <p className="text-xs text-muted-foreground truncate">{v.address}</p>}
                       <p className="text-xs text-muted-foreground">Types: {types}</p>
+                      {v.reason && <p className="text-xs italic text-amber-600 dark:text-amber-400">{v.reason}</p>}
                     </div>
                   </div>
                 );
