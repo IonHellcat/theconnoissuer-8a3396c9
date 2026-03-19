@@ -131,7 +131,7 @@ export const ItineraryScreen = ({ itinerary, cityName, requestedStops, onReset }
       )}
 
       {/* Actions */}
-      <div className="flex gap-3">
+      <div className="flex gap-3 mb-20">
         <Button variant="outline" className="flex-1 h-12 font-body" onClick={onReset}>
           Start Over
         </Button>
