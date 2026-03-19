@@ -6,7 +6,7 @@ import { useToast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Loader2, CheckCircle2, Trash2, ImageOff } from "lucide-react";
+import { Loader2, CheckCircle2, Trash2, ImageOff, Download } from "lucide-react";
 import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
@@ -168,8 +168,25 @@ export function AuditLoungesTab() {
 
       {flagged.length > 0 && (
         <Card>
-          <CardHeader>
+          <CardHeader className="flex flex-row items-center justify-between">
             <CardTitle className="text-lg">Flagged Venues ({flagged.length})</CardTitle>
+            <Button variant="outline" size="sm" onClick={() => {
+              const header = "Name,Address,Google Types\n";
+              const rows = flagged.map((v) => {
+                const types = (v.google_types as any)?.types?.join("; ") || "";
+                return `"${(v.name || "").replace(/"/g, '""')}","${(v.address || "").replace(/"/g, '""')}","${types.replace(/"/g, '""')}"`;
+              }).join("\n");
+              const blob = new Blob([header + rows], { type: "text/csv" });
+              const url = URL.createObjectURL(blob);
+              const a = document.createElement("a");
+              a.href = url;
+              a.download = `flagged-venues-${new Date().toISOString().split("T")[0]}.csv`;
+              a.click();
+              URL.revokeObjectURL(url);
+            }}>
+              <Download className="h-4 w-4 mr-1" />
+              Export CSV
+            </Button>
           </CardHeader>
           <CardContent className="space-y-3">
             <div className="flex items-center gap-2 pb-2 border-b">
