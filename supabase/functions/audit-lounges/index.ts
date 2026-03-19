@@ -143,17 +143,31 @@ Deno.serve(async (req) => {
       );
     }
 
+    // Enrich venues missing Google type data
+    const GOOGLE_PLACES_API_KEY = Deno.env.get("GOOGLE_PLACES_API_KEY");
+    const enrichedVenues = GOOGLE_PLACES_API_KEY
+      ? await enrichMissingTypes(venues, serviceClient, GOOGLE_PLACES_API_KEY)
+      : venues;
+
     const flagged: { id: string; name: string; address: string | null; google_types: any }[] = [];
     const needsAI: { idx: number; venue: any }[] = [];
 
     // Pre-filter
-    for (let i = 0; i < venues.length; i++) {
-      const v = venues[i];
+    for (let i = 0; i < enrichedVenues.length; i++) {
+      const v = enrichedVenues[i];
       const nameLower = (v.name || "").toLowerCase();
 
       // Positive keyword → relevant, skip
       if (POSITIVE_KEYWORDS.some((kw) => nameLower.includes(kw))) {
         continue;
+      }
+
+      // Data sufficiency check: skip AI if no evaluable data
+      const hasTypes = (v.google_types as any)?.types?.length > 0;
+      const hasDesc = !!v.description;
+      const hasWebsite = !!v.website;
+      if (!hasTypes && !hasDesc && !hasWebsite) {
+        continue; // Can't evaluate — keep by default
       }
 
       // Everything else needs AI classification
