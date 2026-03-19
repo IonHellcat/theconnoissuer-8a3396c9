@@ -22,31 +22,32 @@ async function enrichMissingTypes(
   googleApiKey: string
 ): Promise<any[]> {
   const enriched = [...venues];
+  const toEnrich = enriched
+    .map((v, i) => ({ v, i }))
+    .filter(({ v }) => !((v.google_types as any)?.types?.length > 0) && v.google_place_id);
 
-  for (let i = 0; i < enriched.length; i++) {
-    const v = enriched[i];
-    const hasTypes = (v.google_types as any)?.types?.length > 0;
-    if (hasTypes || !v.google_place_id) continue;
-
-    try {
-      const res = await fetch(
-        `https://places.googleapis.com/v1/places/${v.google_place_id}`,
-        { headers: { "X-Goog-Api-Key": googleApiKey, "X-Goog-FieldMask": PLACE_FIELD_MASK } }
-      );
-      if (!res.ok) continue;
-
-      const data = await res.json();
-      const googleTypes = { primaryType: data.primaryType || null, types: data.types || [] };
-
-      const update: any = { google_types: googleTypes };
-      if (!v.website && data.websiteUri) update.website = data.websiteUri;
-
-      await serviceClient.from("lounges").update(update).eq("id", v.id);
-      enriched[i] = { ...v, google_types: googleTypes, website: v.website || data.websiteUri || null };
-      console.log(`Enriched "${v.name}" with types: ${googleTypes.types.join(", ")}`);
-    } catch (e) {
-      console.error(`Enrichment failed for "${v.name}":`, e);
-    }
+  for (let b = 0; b < toEnrich.length; b += 5) {
+    const batch = toEnrich.slice(b, b + 5);
+    await Promise.allSettled(
+      batch.map(async ({ v, i }) => {
+        try {
+          const res = await fetch(
+            `https://places.googleapis.com/v1/places/${v.google_place_id}`,
+            { headers: { "X-Goog-Api-Key": googleApiKey, "X-Goog-FieldMask": PLACE_FIELD_MASK } }
+          );
+          if (!res.ok) return;
+          const data = await res.json();
+          const googleTypes = { primaryType: data.primaryType || null, types: data.types || [] };
+          const update: any = { google_types: googleTypes };
+          if (!v.website && data.websiteUri) update.website = data.websiteUri;
+          await serviceClient.from("lounges").update(update).eq("id", v.id);
+          enriched[i] = { ...v, google_types: googleTypes, website: v.website || data.websiteUri || null };
+          console.log(`Enriched "${v.name}" with types: ${googleTypes.types.join(", ")}`);
+        } catch (e) {
+          console.error(`Enrichment failed for "${v.name}":`, e);
+        }
+      })
+    );
   }
 
   return enriched;
@@ -168,7 +169,7 @@ Deno.serve(async (req) => {
       reviewsByLounge.get(r.lounge_id)!.push(r.review_text);
     }
 
-    const flagged: { id: string; name: string; address: string | null; google_types: any; image_url: string | null }[] = [];
+    const flagged: { id: string; name: string; address: string | null; google_types: any; image_url: string | null; reason: string | null }[] = [];
     const needsAI: { idx: number; venue: any }[] = [];
 
     // Pre-filter
@@ -230,7 +231,7 @@ Deno.serve(async (req) => {
                 {
                   role: "system",
                    content:
-                    "You determine if a business belongs in a curated cigar venue directory. Mark relevant=true for cigar lounges, cigar bars, cigar shops, tobacconists, and upscale lounges or bars where cigars are a primary or significant offering. Mark relevant=false only if you are confident the business has no meaningful cigar focus — for example: hookah-only bars, vape shops, cannabis dispensaries, convenience stores, or clearly unrelated businesses. When in doubt, mark relevant=true. These venues were previously approved so give them the benefit of the doubt. Pay special attention to the reviews field — if reviews exist and none mention cigars, smoking, humidors, or tobacco, that is strong evidence the venue is not cigar-related.",
+                    "You determine if a business belongs in a curated cigar venue directory. Mark relevant=true for cigar lounges, cigar bars, cigar shops, tobacconists, and upscale lounges or bars where cigars are a primary or significant offering. Mark relevant=false only if you are confident the business has no meaningful cigar focus — for example: hookah-only bars, vape shops, cannabis dispensaries, convenience stores, or clearly unrelated businesses. When in doubt, mark relevant=true. These venues were previously approved so give them the benefit of the doubt. Pay special attention to the reviews field — if reviews exist and none mention cigars, smoking, humidors, or tobacco, that is strong evidence the venue is not cigar-related. For each venue you mark relevant=false, populate the reason field with a single short phrase explaining why (max 8 words, e.g. 'no cigar mentions in reviews', 'hotel spa unrelated to cigars').",
                 },
                 {
                   role: "user",
@@ -253,6 +254,7 @@ Deno.serve(async (req) => {
                             properties: {
                               index: { type: "number" },
                               relevant: { type: "boolean" },
+                              reason: { type: "string" },
                             },
                             required: ["index", "relevant"],
                             additionalProperties: false,
@@ -276,7 +278,7 @@ Deno.serve(async (req) => {
             const toolCall = data.choices?.[0]?.message?.tool_calls?.[0];
             if (toolCall) {
               const parsed = JSON.parse(toolCall.function.arguments);
-              const classifications: { index: number; relevant: boolean }[] = parsed.classifications || [];
+              const classifications: { index: number; relevant: boolean; reason?: string }[] = parsed.classifications || [];
               for (const c of classifications) {
                 const item = needsAI[c.index - 1];
                 if (item && c.relevant === false) {
@@ -286,6 +288,7 @@ Deno.serve(async (req) => {
                     address: item.venue.address,
                     google_types: item.venue.google_types,
                     image_url: item.venue.image_url || null,
+                    reason: c.reason || null,
                   });
                 }
               }
