@@ -38,12 +38,21 @@ const TopFourShareModal = ({
     if (!cardRef.current) return null;
     setGenerating(true);
     try {
+      if ("fonts" in document) {
+        await document.fonts.ready;
+      }
+      await new Promise<void>((resolve) => {
+        requestAnimationFrame(() => resolve());
+      });
+
       const canvas = await html2canvas(cardRef.current, {
         scale: 2,
         useCORS: true,
         allowTaint: false,
         backgroundColor: "#1a1a1a",
         logging: false,
+        width: cardRef.current.offsetWidth,
+        height: cardRef.current.offsetHeight,
       });
       return canvas;
     } finally {
