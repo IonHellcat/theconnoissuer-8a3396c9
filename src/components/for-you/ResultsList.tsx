@@ -98,8 +98,26 @@ export const ItineraryScreen = ({ itinerary, cityName, requestedStops, onReset }
                           <Cigarette className="h-6 w-6 text-muted-foreground/20" />
                         </div>
                       )}
-                      {/* Score overlay */}
-                      <div className="absolute top-2 right-2">
+                      {/* Gradient fade */}
+                      <div className="absolute inset-x-0 bottom-0 h-10 bg-gradient-to-t from-card to-transparent" />
+                    </div>
+
+                    {/* Details */}
+                    <div className="px-3 pb-3 -mt-1">
+                      <div className="flex items-center justify-between gap-2 mb-0.5">
+                        <div className="min-w-0">
+                          <div className="flex items-center gap-1.5">
+                            <h3 className="font-display text-sm font-semibold text-foreground truncate">
+                              {lounge.name}
+                            </h3>
+                            <Badge variant="outline" className="text-[9px] px-1.5 py-0 shrink-0 capitalize border-primary/30 text-primary/80">
+                              {lounge.type}
+                            </Badge>
+                          </div>
+                          <p className="text-[11px] text-primary/70 font-body font-medium mt-0.5">
+                            {getStopLabel(i, lounge)}
+                          </p>
+                        </div>
                         <ConnoisseurScoreBadge
                           score={lounge.connoisseur_score}
                           scoreLabel={lounge.score_label}
@@ -108,23 +126,6 @@ export const ItineraryScreen = ({ itinerary, cityName, requestedStops, onReset }
                           size="sm"
                         />
                       </div>
-                      {/* Gradient fade */}
-                      <div className="absolute inset-x-0 bottom-0 h-10 bg-gradient-to-t from-card to-transparent" />
-                    </div>
-
-                    {/* Details */}
-                    <div className="px-3 pb-3 -mt-1">
-                      <div className="flex items-center gap-1.5 mb-0.5">
-                        <h3 className="font-display text-sm font-semibold text-foreground truncate">
-                          {lounge.name}
-                        </h3>
-                        <Badge variant="outline" className="text-[9px] px-1.5 py-0 shrink-0 capitalize border-primary/30 text-primary/80">
-                          {lounge.type}
-                        </Badge>
-                      </div>
-                      <p className="text-[11px] text-primary/70 font-body font-medium">
-                        {getStopLabel(i, lounge)}
-                      </p>
                       {lounge.score_summary && (
                         <p className="text-[11px] text-muted-foreground/60 font-body italic mt-1 line-clamp-2 leading-relaxed">
                           "{lounge.score_summary}"
