@@ -68,27 +68,41 @@ export function AuditLoungesTab() {
       let flaggedSoFar = 0;
 
       const tasks = offsets.map((offset) => async () => {
-        const res = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/audit-lounges`, {
-          method: "POST",
-          headers: {
-            Authorization: `Bearer ${session.access_token}`,
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({ offset }),
-        });
-        if (!res.ok) throw new Error(await res.text());
-        const data = await res.json();
+        const maxRetries = 2;
+        for (let attempt = 0; attempt <= maxRetries; attempt++) {
+          try {
+            const res = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/audit-lounges`, {
+              method: "POST",
+              headers: {
+                Authorization: `Bearer ${session.access_token}`,
+                "Content-Type": "application/json",
+              },
+              body: JSON.stringify({ offset }),
+            });
+            if (!res.ok) {
+              const text = await res.text();
+              if (attempt < maxRetries) { console.warn(`Batch offset=${offset} failed (attempt ${attempt + 1}), retrying...`); continue; }
+              console.error(`Batch offset=${offset} failed after retries: ${text}`);
+              return null;
+            }
+            const data = await res.json();
 
-        scannedSoFar += data.total_scanned || 0;
-        flaggedSoFar += data.flagged_count || 0;
+            scannedSoFar += data.total_scanned || 0;
+            flaggedSoFar += data.flagged_count || 0;
 
-        if (data.flagged?.length) {
-          setFlagged((prev) => [...prev, ...data.flagged]);
+            if (data.flagged?.length) {
+              setFlagged((prev) => [...prev, ...data.flagged]);
+            }
+            setTotalScanned(scannedSoFar);
+            setProgress(`Scanned ${scannedSoFar} / ${total} lounges, ${flaggedSoFar} flagged so far...`);
+
+            return data;
+          } catch (err) {
+            if (attempt < maxRetries) { console.warn(`Batch offset=${offset} network error (attempt ${attempt + 1}), retrying...`); continue; }
+            console.error(`Batch offset=${offset} failed after retries:`, err);
+            return null;
+          }
         }
-        setTotalScanned(scannedSoFar);
-        setProgress(`Scanned ${scannedSoFar} / ${total} lounges, ${flaggedSoFar} flagged so far...`);
-
-        return data;
       });
 
       await runWithConcurrency(tasks, 5);
