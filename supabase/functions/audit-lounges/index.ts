@@ -254,6 +254,7 @@ Deno.serve(async (req) => {
                             properties: {
                               index: { type: "number" },
                               relevant: { type: "boolean" },
+                              reason: { type: "string" },
                             },
                             required: ["index", "relevant"],
                             additionalProperties: false,
