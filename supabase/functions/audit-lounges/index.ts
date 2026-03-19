@@ -10,13 +10,6 @@ const BATCH_SIZE = 60;
 
 const POSITIVE_KEYWORDS = ["cigar", "cigars", "tobacco", "tobacconist", "humidor", "havana", "habano", "stogie"];
 
-const BLOCKED_GOOGLE_TYPES = new Set([
-  "hookah_bar", "vape_store", "convenience_store", "gas_station",
-  "grocery_store", "supermarket", "beauty_salon", "nail_salon", "spa",
-  "restaurant", "fast_food_restaurant", "cafe", "coffee_shop",
-  "pharmacy", "drugstore", "gym", "fitness_center", "movie_theater",
-  "casino", "hotel", "motel",
-]);
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
