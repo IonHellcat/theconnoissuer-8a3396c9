@@ -131,7 +131,7 @@ Deno.serve(async (req) => {
 
     const { data: venues, error: fetchErr } = await serviceClient
       .from("lounges")
-      .select("id, name, address, google_types, website, google_place_id, description")
+      .select("id, name, address, google_types, website, google_place_id, description, image_url")
       .range(offset, offset + BATCH_SIZE - 1)
       .order("created_at", { ascending: true });
 
