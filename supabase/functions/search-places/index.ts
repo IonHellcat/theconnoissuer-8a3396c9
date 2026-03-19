@@ -46,7 +46,8 @@ const BLOCKED_PRIMARY_TYPES = new Set([
   "cafe", "coffee_shop", "pharmacy", "drugstore", "clothing_store", "shoe_store",
   "jewelry_store", "furniture_store", "home_goods_store", "electronics_store", "book_store",
   "sporting_goods_store", "pet_store", "florist", "bakery", "car_dealer", "car_wash",
-  "gym", "fitness_center", "movie_theater", "casino", "hotel", "motel", "parking", "airport",
+  "gym", "fitness_center", "movie_theater", "casino", "hotel", "motel", "parking",
+  "airport", "transit_station", "bus_station", "train_station", "light_rail_station",
 ]);
 
 const BLOCKED_NAME_KEYWORDS = [
