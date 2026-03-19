@@ -46,16 +46,23 @@ const BLOCKED_PRIMARY_TYPES = new Set([
   "cafe", "coffee_shop", "pharmacy", "drugstore", "clothing_store", "shoe_store",
   "jewelry_store", "furniture_store", "home_goods_store", "electronics_store", "book_store",
   "sporting_goods_store", "pet_store", "florist", "bakery", "car_dealer", "car_wash",
-  "gym", "fitness_center", "movie_theater", "casino", "hotel", "motel", "parking", "airport",
+  "gym", "fitness_center", "movie_theater", "casino", "hotel", "motel", "parking",
+  "airport", "transit_station", "bus_station", "train_station", "light_rail_station",
 ]);
 
 const BLOCKED_NAME_KEYWORDS = [
   "hookah", "shisha", "nargile", "vape", "vapor", "e-cig", "ecig", "cannabis",
   "dispensary", "marijuana", "weed", "cbd", "head shop", "smoke shop",
+  "snus", "iqos", "ploom", "glo tobacco", "heated tobacco",
+  "presse", "loto", "loterie", "tabac presse", "tabac loto",
+  "airport lounge", "vip lounge", "cip lounge", "departure lounge",
+  "business lounge", "premium lounge", "transit lounge",
 ];
 
 const POSITIVE_CIGAR_KEYWORDS = [
-  "cigar", "cigars", "tobacco", "tobacconist", "humidor", "havana", "habano", "stogie",
+  "cigar", "cigars", "tobacco", "tobacconist", "humidor", "havana", "habano", "habanos",
+  "stogie", "zigarren", "zigar", "puro", "puros", "cohiba", "cohibas", "davidoff",
+  "villiger", "herf", "tabacalera", "torcedor", "vitola",
 ];
 
 function preFilterPlaces(
@@ -400,7 +407,7 @@ serve(async (req) => {
     // ── 2b. AI Relevance + Type Classification ──
     const { relevant: relevantPlaces, skippedCount: skippedByAI } =
       await filterAndClassifyPlaces(preFiltered);
-    const skippedIrrelevant = skippedByPreFilter + skippedByAI;
+    let skippedIrrelevant = skippedByPreFilter + skippedByAI;
     console.log(`${relevantPlaces.size} relevant after AI filter (${skippedIrrelevant} total irrelevant)`);
 
     // ── 3. Google Place ID dedup ──
@@ -448,7 +455,26 @@ serve(async (req) => {
     const skippedDuplicates = skippedByPlaceId + skippedByName;
     console.log(`${newPlaces.size} new places after all dedup (${skippedDuplicates} dupes total)`);
 
-    if (newPlaces.size === 0) {
+    // ── 4b. Generic tobacco retail post-filter ──
+    const GENERIC_TOBACCO_RETAIL_RE = /^(tabac|tabak|tabacchi|tabaccheria|tabacaria|estanco|tobak|tabagie)\b/i;
+    const afterRetailFilter = new Map<string, { place: PlaceResult; type: string }>();
+    let skippedGenericRetail = 0;
+    for (const [id, entry] of newPlaces) {
+      const name = entry.place.displayName?.text || "";
+      const nameLower = name.toLowerCase();
+      if (GENERIC_TOBACCO_RETAIL_RE.test(name) && !POSITIVE_CIGAR_KEYWORDS.some((kw) => nameLower.includes(kw))) {
+        console.log(`Skipped (generic tobacco retail): "${name}"`);
+        skippedGenericRetail++;
+        skippedIrrelevant++;
+      } else {
+        afterRetailFilter.set(id, entry);
+      }
+    }
+    if (skippedGenericRetail > 0) {
+      console.log(`${skippedGenericRetail} skipped as generic tobacco retail`);
+    }
+
+    if (afterRetailFilter.size === 0) {
       return new Response(
         JSON.stringify({
           success: true, count: 0, total_found: totalFound,
@@ -461,6 +487,7 @@ serve(async (req) => {
     // ── 5. Insert ──
     let insertedCount = 0;
 
+    const finalPlaces = afterRetailFilter;
     if (auto_approve) {
       let { data: cityRow } = await supabase
         .from("cities").select("id").eq("name", city).maybeSingle();
@@ -473,7 +500,7 @@ serve(async (req) => {
         cityRow = newCity;
       }
 
-      for (const [placeId, { place, type: venueType }] of newPlaces) {
+      for (const [placeId, { place, type: venueType }] of finalPlaces) {
         const name = place.displayName?.text || "Unknown";
         const slug = name.toLowerCase().replace(/\s+/g, "-").replace(/[^\w-]/g, "") + "-" + placeId.slice(-6);
         const googleTypes = place.primaryType || place.types?.length
@@ -501,7 +528,7 @@ serve(async (req) => {
         .from("lounges").select("id", { count: "exact", head: true }).eq("city_id", cityRow!.id);
       await supabase.from("cities").update({ lounge_count: count || 0 }).eq("id", cityRow!.id);
     } else {
-      for (const [placeId, { place, type: venueType }] of newPlaces) {
+      for (const [placeId, { place, type: venueType }] of finalPlaces) {
         const name = place.displayName?.text || "Unknown";
         const slug = name.toLowerCase().replace(/\s+/g, "-").replace(/[^\w-]/g, "") + "-" + placeId.slice(-6);
         const googleTypes = place.primaryType || place.types?.length
