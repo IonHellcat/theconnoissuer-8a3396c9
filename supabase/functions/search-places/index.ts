@@ -60,7 +60,9 @@ const BLOCKED_NAME_KEYWORDS = [
 ];
 
 const POSITIVE_CIGAR_KEYWORDS = [
-  "cigar", "cigars", "tobacco", "tobacconist", "humidor", "havana", "habano", "stogie",
+  "cigar", "cigars", "tobacco", "tobacconist", "humidor", "havana", "habano", "habanos",
+  "stogie", "zigarren", "zigar", "puro", "puros", "cohiba", "cohibas", "davidoff",
+  "villiger", "herf", "tabacalera", "torcedor", "vitola",
 ];
 
 function preFilterPlaces(
