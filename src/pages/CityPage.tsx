@@ -79,6 +79,7 @@ const RankedLoungeCard = ({ lounge, rank, dimmed }: { lounge: any; rank: number;
             <span className="text-[10px] text-muted-foreground font-body">
               ({lounge.review_count})
             </span>
+            <span className="text-[8px] text-muted-foreground/60 font-body uppercase tracking-wider ml-0.5">Google</span>
           </div>
           <ConnoisseurScoreBadge
             score={lounge.connoisseur_score}
