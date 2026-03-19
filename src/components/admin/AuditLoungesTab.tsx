@@ -145,6 +145,48 @@ export function AuditLoungesTab() {
     }
   }, [session, selectedIds, toast, queryClient]);
 
+  const handleExportCsv = useCallback(() => {
+    try {
+      if (flagged.length === 0) {
+        toast({ title: "No flagged venues", description: "Run an audit first to export results." });
+        return;
+      }
+
+      const csvEscape = (value: string | null | undefined) => `"${(value || "").replace(/"/g, '""')}"`;
+      const csvHeader = "Name,Address,Google Types";
+      const csvRows = flagged.map((v) => {
+        const types = (v.google_types as any)?.types?.join("; ") || "";
+        return [csvEscape(v.name), csvEscape(v.address), csvEscape(types)].join(",");
+      });
+
+      const csvContent = `\uFEFF${[csvHeader, ...csvRows].join("\r\n")}`;
+      const fileName = `flagged-venues-${new Date().toISOString().split("T")[0]}.csv`;
+      const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+      const url = window.URL.createObjectURL(blob);
+
+      const anchor = document.createElement("a");
+      anchor.style.display = "none";
+      anchor.href = url;
+      anchor.download = fileName;
+      anchor.rel = "noopener";
+      document.body.appendChild(anchor);
+      anchor.click();
+      document.body.removeChild(anchor);
+
+      window.setTimeout(() => {
+        window.URL.revokeObjectURL(url);
+      }, 60000);
+
+      toast({ title: "CSV export started", description: "If download is blocked, allow downloads for this site." });
+    } catch (err: any) {
+      toast({
+        title: "CSV export failed",
+        description: err?.message || "Could not generate CSV file.",
+        variant: "destructive",
+      });
+    }
+  }, [flagged, toast]);
+
   const allSelected = flagged.length > 0 && selectedIds.size === flagged.length;
 
   return (
@@ -174,27 +216,13 @@ export function AuditLoungesTab() {
         <Card>
           <CardHeader className="flex flex-row items-center justify-between">
             <CardTitle className="text-lg">Flagged Venues ({flagged.length})</CardTitle>
-            <Button variant="outline" size="sm" onClick={(e) => {
-              e.preventDefault();
-              e.stopPropagation();
-              const header = "Name,Address,Google Types\n";
-              const rows = flagged.map((v) => {
-                const types = (v.google_types as any)?.types?.join("; ") || "";
-                return `"${(v.name || "").replace(/"/g, '""')}","${(v.address || "").replace(/"/g, '""')}","${types.replace(/"/g, '""')}"`;
-              }).join("\n");
-              const blob = new Blob([header + rows], { type: "text/csv;charset=utf-8;" });
-              const url = window.URL.createObjectURL(blob);
-              const a = document.createElement("a");
-              a.style.display = "none";
-              a.href = url;
-              a.download = `flagged-venues-${new Date().toISOString().split("T")[0]}.csv`;
-              document.body.appendChild(a);
-              a.click();
-              setTimeout(() => {
-                document.body.removeChild(a);
-                window.URL.revokeObjectURL(url);
-              }, 100);
-            }}>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => {
+                handleExportCsv();
+              }}
+            >
               <Download className="h-4 w-4 mr-1" />
               Export CSV
             </Button>
