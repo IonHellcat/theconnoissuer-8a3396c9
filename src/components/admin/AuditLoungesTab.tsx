@@ -161,21 +161,11 @@ export function AuditLoungesTab() {
 
       const csvContent = `\uFEFF${[csvHeader, ...csvRows].join("\r\n")}`;
       const fileName = `flagged-venues-${new Date().toISOString().split("T")[0]}.csv`;
-      const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
-      const url = window.URL.createObjectURL(blob);
-
+      const dataUri = "data:text/csv;charset=utf-8," + encodeURIComponent(csvContent);
       const anchor = document.createElement("a");
-      anchor.style.display = "none";
-      anchor.href = url;
+      anchor.href = dataUri;
       anchor.download = fileName;
-      anchor.rel = "noopener";
-      document.body.appendChild(anchor);
       anchor.click();
-      document.body.removeChild(anchor);
-
-      window.setTimeout(() => {
-        window.URL.revokeObjectURL(url);
-      }, 60000);
 
       toast({ title: "CSV export started", description: "If download is blocked, allow downloads for this site." });
     } catch (err: any) {
