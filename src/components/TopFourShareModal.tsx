@@ -54,8 +54,20 @@ const TopFourShareModal = ({
   const handleSave = async () => {
     const canvas = await generateImage();
     if (!canvas) return;
-    canvas.toBlob((blob) => {
+    canvas.toBlob(async (blob) => {
       if (!blob) return;
+      const file = new File([blob], "my-top-4-theconnoisseur.png", { type: "image/png" });
+      // On mobile, use Web Share API so iOS shows "Save Image" option (saves to Camera Roll)
+      if (navigator.canShare?.({ files: [file] })) {
+        try {
+          await navigator.share({ files: [file], title: "My Top 4 — The Connoisseur" });
+          return;
+        } catch {
+          // user cancelled — don't fallback to download
+          return;
+        }
+      }
+      // Desktop fallback — download to files
       const url = URL.createObjectURL(blob);
       const a = document.createElement("a");
       a.href = url;
