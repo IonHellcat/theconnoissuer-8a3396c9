@@ -1,5 +1,5 @@
 import { Link } from "react-router-dom";
-import { Sparkles, ArrowRight } from "lucide-react";
+import { MapPin, ArrowRight } from "lucide-react";
 
 const ForYouPromo = () => (
   <section className="py-8 md:py-12 px-4">
@@ -10,15 +10,15 @@ const ForYouPromo = () => (
 
           <div className="relative flex items-center gap-4">
             <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-primary/15 text-primary">
-              <Sparkles className="h-5 w-5" />
+              <MapPin className="h-5 w-5" />
             </div>
 
             <div className="flex-1 min-w-0">
               <h2 className="font-display text-lg md:text-xl font-bold text-foreground">
-                Personalized For You
+                Plan Your Cigar Trip
               </h2>
-              <p className="font-body text-xs text-muted-foreground mt-0.5 line-clamp-1">
-                Lounges ranked by location, visit style & the Connoisseur Score
+              <p className="font-body text-xs text-muted-foreground mt-0.5 line-clamp-2">
+                Tell us which city you're visiting and we'll build a personalised cigar itinerary
               </p>
             </div>
 
