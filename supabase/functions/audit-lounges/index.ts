@@ -205,7 +205,11 @@ Deno.serve(async (req) => {
               : "no Google type data";
             const website = v.website ? `website: ${v.website}` : "no website";
             const desc = v.description ? `description: ${v.description.substring(0, 150)}` : "no description";
-            return `${i + 1}. "${v.name}" - ${v.address || "no address"} - ${googleTypes} - ${website} - ${desc}`;
+            const venueReviews = reviewsByLounge.get(v.id) || [];
+            const reviewSnippet = venueReviews.length > 0
+              ? venueReviews.slice(0, 4).map((r: string) => r.substring(0, 120)).join(" | ")
+              : "none";
+            return `${i + 1}. "${v.name}" - ${v.address || "no address"} - ${googleTypes} - ${website} - ${desc} - reviews: ${reviewSnippet}`;
           })
           .join("\n");
 
