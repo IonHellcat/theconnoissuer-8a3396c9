@@ -91,7 +91,11 @@ export function AuditLoungesTab() {
             flaggedSoFar += data.flagged_count || 0;
 
             if (data.flagged?.length) {
-              setFlagged((prev) => [...prev, ...data.flagged]);
+              setFlagged((prev) => {
+                const existing = new Set(prev.map((v) => v.id));
+                const unique = data.flagged.filter((v: FlaggedVenue) => !existing.has(v.id));
+                return [...prev, ...unique];
+              });
             }
             setTotalScanned(scannedSoFar);
             setProgress(`Scanned ${scannedSoFar} / ${total} lounges, ${flaggedSoFar} flagged so far...`);
