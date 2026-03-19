@@ -10,6 +10,43 @@ const BATCH_SIZE = 60;
 
 const POSITIVE_KEYWORDS = ["cigar", "cigars", "tobacco", "tobacconist", "humidor", "havana", "habano", "stogie"];
 
+const PLACE_FIELD_MASK = "primaryType,types,websiteUri";
+
+async function enrichMissingTypes(
+  venues: any[],
+  serviceClient: any,
+  googleApiKey: string
+): Promise<any[]> {
+  const enriched = [...venues];
+
+  for (let i = 0; i < enriched.length; i++) {
+    const v = enriched[i];
+    const hasTypes = (v.google_types as any)?.types?.length > 0;
+    if (hasTypes || !v.google_place_id) continue;
+
+    try {
+      const res = await fetch(
+        `https://places.googleapis.com/v1/places/${v.google_place_id}`,
+        { headers: { "X-Goog-Api-Key": googleApiKey, "X-Goog-FieldMask": PLACE_FIELD_MASK } }
+      );
+      if (!res.ok) continue;
+
+      const data = await res.json();
+      const googleTypes = { primaryType: data.primaryType || null, types: data.types || [] };
+
+      const update: any = { google_types: googleTypes };
+      if (!v.website && data.websiteUri) update.website = data.websiteUri;
+
+      await serviceClient.from("lounges").update(update).eq("id", v.id);
+      enriched[i] = { ...v, google_types: googleTypes, website: v.website || data.websiteUri || null };
+      console.log(`Enriched "${v.name}" with types: ${googleTypes.types.join(", ")}`);
+    } catch (e) {
+      console.error(`Enrichment failed for "${v.name}":`, e);
+    }
+  }
+
+  return enriched;
+}
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
@@ -106,17 +143,31 @@ Deno.serve(async (req) => {
       );
     }
 
+    // Enrich venues missing Google type data
+    const GOOGLE_PLACES_API_KEY = Deno.env.get("GOOGLE_PLACES_API_KEY");
+    const enrichedVenues = GOOGLE_PLACES_API_KEY
+      ? await enrichMissingTypes(venues, serviceClient, GOOGLE_PLACES_API_KEY)
+      : venues;
+
     const flagged: { id: string; name: string; address: string | null; google_types: any }[] = [];
     const needsAI: { idx: number; venue: any }[] = [];
 
     // Pre-filter
-    for (let i = 0; i < venues.length; i++) {
-      const v = venues[i];
+    for (let i = 0; i < enrichedVenues.length; i++) {
+      const v = enrichedVenues[i];
       const nameLower = (v.name || "").toLowerCase();
 
       // Positive keyword → relevant, skip
       if (POSITIVE_KEYWORDS.some((kw) => nameLower.includes(kw))) {
         continue;
+      }
+
+      // Data sufficiency check: skip AI if no evaluable data
+      const hasTypes = (v.google_types as any)?.types?.length > 0;
+      const hasDesc = !!v.description;
+      const hasWebsite = !!v.website;
+      if (!hasTypes && !hasDesc && !hasWebsite) {
+        continue; // Can't evaluate — keep by default
       }
 
       // Everything else needs AI classification
