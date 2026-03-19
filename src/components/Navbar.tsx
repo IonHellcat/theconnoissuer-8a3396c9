@@ -135,7 +135,16 @@ const Navbar = () => {
               </Link>
               {user ? (
                 <>
-                  <Link
+                  {isAdmin && (
+                    <Link
+                      to="/admin/pending"
+                      onClick={() => setIsOpen(false)}
+                      className="flex items-center gap-3 px-4 py-3.5 rounded-xl text-base font-body text-foreground hover:bg-secondary transition-colors"
+                    >
+                      <ShieldCheck className="h-5 w-5 text-primary" />
+                      Admin Panel
+                    </Link>
+                  )}
                     to="/profile"
                     onClick={() => setIsOpen(false)}
                     className="flex items-center gap-3 px-4 py-3.5 rounded-xl text-base font-body text-foreground hover:bg-secondary transition-colors"
