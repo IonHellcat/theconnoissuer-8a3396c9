@@ -85,3 +85,68 @@ export function getRecommendations(
     .sort((a, b) => b.recommendationScore - a.recommendationScore)
     .slice(0, 20);
 }
+
+export type VenuePreference = "lounge" | "shop" | "both";
+
+export function buildItinerary(
+  lounges: LoungeWithCoords[],
+  stopCount: number,
+  preference: VenuePreference,
+): LoungeWithCoords[] {
+  let pool = lounges
+    .filter((l) => {
+      const t = (l.type || "lounge").toLowerCase();
+      if (preference === "lounge") return t === "lounge" || t === "both";
+      if (preference === "shop") return t === "shop" || t === "both";
+      return true;
+    })
+    .filter((l) => l.connoisseur_score != null);
+
+  pool.sort((a, b) => (b.connoisseur_score ?? 0) - (a.connoisseur_score ?? 0));
+
+  if (pool.length === 0) return [];
+
+  const selected: LoungeWithCoords[] = [];
+  const usedIds = new Set<string>();
+
+  // Rule: if preference is "both" and there's a shop in top candidates, put it first
+  if (preference === "both") {
+    const topShop = pool.find((l) => {
+      const t = l.type.toLowerCase();
+      return (t === "shop" || t === "both") && !usedIds.has(l.id);
+    });
+    if (topShop && pool.indexOf(topShop) < stopCount * 2) {
+      selected.push(topShop);
+      usedIds.add(topShop.id);
+    }
+  }
+
+  // Fill remaining stops from top scored, alternating type where possible
+  for (const l of pool) {
+    if (selected.length >= stopCount) break;
+    if (usedIds.has(l.id)) continue;
+    const lastType = selected[selected.length - 1]?.type?.toLowerCase();
+    const thisType = l.type?.toLowerCase();
+    if (
+      selected.length >= 2 &&
+      lastType === thisType &&
+      thisType === "lounge" &&
+      pool.some(
+        (p) => !usedIds.has(p.id) && p.type?.toLowerCase() !== "lounge",
+      )
+    )
+      continue;
+    selected.push(l);
+    usedIds.add(l.id);
+  }
+
+  // If still not enough stops, fill without type constraint
+  for (const l of pool) {
+    if (selected.length >= stopCount) break;
+    if (usedIds.has(l.id)) continue;
+    selected.push(l);
+    usedIds.add(l.id);
+  }
+
+  return selected;
+}

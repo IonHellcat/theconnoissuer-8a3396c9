@@ -10,7 +10,7 @@ const BottomTabBar = () => {
   const tabs = user
     ? [
         { to: "/", label: "Home", icon: Home },
-        { to: "/for-you", label: "For You", icon: Sparkles },
+        { to: "/for-you", label: "Plan Trip", icon: Sparkles },
         { to: "/visited", label: "Passport", icon: MapPinCheck },
         { to: "/profile", label: "Profile", icon: User },
       ]

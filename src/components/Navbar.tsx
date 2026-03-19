@@ -54,7 +54,7 @@ const Navbar = () => {
 
           <div className="hidden md:flex items-center gap-6">
             <Link to="/for-you" className="text-sm text-muted-foreground hover:text-foreground transition-colors">
-              For You
+              Plan Trip
             </Link>
             <Link to="/guides" className="text-sm text-muted-foreground hover:text-foreground transition-colors">
               Guides
