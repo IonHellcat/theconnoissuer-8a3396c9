@@ -91,7 +91,11 @@ export function AuditLoungesTab() {
             flaggedSoFar += data.flagged_count || 0;
 
             if (data.flagged?.length) {
-              setFlagged((prev) => [...prev, ...data.flagged]);
+              setFlagged((prev) => {
+                const existing = new Set(prev.map((v) => v.id));
+                const unique = data.flagged.filter((v: FlaggedVenue) => !existing.has(v.id));
+                return [...prev, ...unique];
+              });
             }
             setTotalScanned(scannedSoFar);
             setProgress(`Scanned ${scannedSoFar} / ${total} lounges, ${flaggedSoFar} flagged so far...`);
@@ -170,19 +174,26 @@ export function AuditLoungesTab() {
         <Card>
           <CardHeader className="flex flex-row items-center justify-between">
             <CardTitle className="text-lg">Flagged Venues ({flagged.length})</CardTitle>
-            <Button variant="outline" size="sm" onClick={() => {
+            <Button variant="outline" size="sm" onClick={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
               const header = "Name,Address,Google Types\n";
               const rows = flagged.map((v) => {
                 const types = (v.google_types as any)?.types?.join("; ") || "";
                 return `"${(v.name || "").replace(/"/g, '""')}","${(v.address || "").replace(/"/g, '""')}","${types.replace(/"/g, '""')}"`;
               }).join("\n");
-              const blob = new Blob([header + rows], { type: "text/csv" });
-              const url = URL.createObjectURL(blob);
+              const blob = new Blob([header + rows], { type: "text/csv;charset=utf-8;" });
+              const url = window.URL.createObjectURL(blob);
               const a = document.createElement("a");
+              a.style.display = "none";
               a.href = url;
               a.download = `flagged-venues-${new Date().toISOString().split("T")[0]}.csv`;
+              document.body.appendChild(a);
               a.click();
-              URL.revokeObjectURL(url);
+              setTimeout(() => {
+                document.body.removeChild(a);
+                window.URL.revokeObjectURL(url);
+              }, 100);
             }}>
               <Download className="h-4 w-4 mr-1" />
               Export CSV
