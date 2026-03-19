@@ -9,11 +9,11 @@ const corsHeaders = {
 
 // ─── Score Label Tiers ───
 function getScoreLabel(score: number): string | null {
-  if (score >= 90) return "Legendary";
-  if (score >= 82) return "Exceptional";
-  if (score >= 74) return "Outstanding";
-  if (score >= 66) return "Excellent";
-  if (score >= 55) return "Good";
+  if (score >= 92) return "Legendary";
+  if (score >= 84) return "Exceptional";
+  if (score >= 75) return "Outstanding";
+  if (score >= 65) return "Excellent";
+  if (score >= 52) return "Good";
   return null;
 }
 
