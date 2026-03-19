@@ -19,11 +19,8 @@ import CityJsonLd from "@/components/CityJsonLd";
 const priceTierLabel = (tier: number) => "$".repeat(tier);
 const rankColors = ["", "text-yellow-500", "text-zinc-400", "text-amber-700", "text-primary", "text-primary"];
 
-// Bayesian weighted score: accounts for both rating and review count
-// C = minimum reviews to be considered reliable, m = global average rating
-const computeWeightedScore = (rating: number, reviewCount: number, C = 10, m = 4.0) => {
-  return (reviewCount / (reviewCount + C)) * rating + (C / (reviewCount + C)) * m;
-};
+
+
 
 const RankedLoungeCard = ({ lounge, rank, dimmed }: { lounge: any; rank: number; dimmed?: boolean }) => (
   <motion.div
