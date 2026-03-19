@@ -137,7 +137,8 @@ Deno.serve(async (req) => {
               ? `Google types: ${(v.google_types as any).types.join(", ")}`
               : "no Google type data";
             const website = v.website ? `website: ${v.website}` : "no website";
-            return `${i + 1}. "${v.name}" - ${v.address || "no address"} - ${googleTypes} - ${website}`;
+            const desc = v.description ? `description: ${v.description.substring(0, 150)}` : "no description";
+            return `${i + 1}. "${v.name}" - ${v.address || "no address"} - ${googleTypes} - ${website} - ${desc}`;
           })
           .join("\n");
 
