@@ -1083,14 +1083,16 @@ serve(async (req) => {
           const ratings = savedReviews.map((r: any) => r.rating).filter((r: number | null): r is number => r !== null);
           const aspects = getAspects(lounge.type);
           const countryMedian = getCountryMedian(lounge.city_id, cityCountryMap, countryMedianMap, globalMedian);
+          const countryMean = getCountryMeanRating(lounge.city_id, cityCountryMap, countryMeanRatingMap, globalMean);
 
-          const { score } = computeConnoisseurScore(
+          const { score, quality, sentiment, volume, consistency } = computeConnoisseurScore(
             Number(lounge.rating),
             lounge.review_count,
             allC,
             aspects,
+            lounge.type,
             ratings,
-            globalMean,
+            countryMean,
             countryMedian,
           );
           const pillarScores = buildPillarScores(allC, aspects);
