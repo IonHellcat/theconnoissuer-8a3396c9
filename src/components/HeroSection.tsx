@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { Search, Sparkles, Trophy, Globe } from "lucide-react";
+import { Search, MapPin, Trophy, Globe } from "lucide-react";
 import { motion } from "framer-motion";
 import TrustStats from "./TrustStats";
 
@@ -86,7 +86,7 @@ const HeroSection = () => {
             to="/for-you"
             className="inline-flex items-center gap-1.5 px-4 py-2 rounded-full bg-secondary border border-border/50 text-sm font-medium font-body text-foreground hover:border-primary/50 transition-colors"
           >
-            <Sparkles className="h-4 w-4 text-primary" /> For You
+            <MapPin className="h-4 w-4 text-primary" /> Plan a Trip
           </Link>
           <Link
             to="/leaderboard"
