@@ -153,8 +153,8 @@ Deno.serve(async (req) => {
               messages: [
                 {
                   role: "system",
-                  content:
-                    "You determine if a business is a cigar-focused venue. Mark relevant=true ONLY for cigar lounges, cigar bars, cigar shops, or tobacconists where cigars are the primary product. Mark relevant=false for hookah bars, vape shops, cannabis dispensaries, generic smoke shops, bars, restaurants, hotels, and anything not primarily about cigars. When in doubt, mark relevant=false.",
+                   content:
+                    "You determine if a business belongs in a curated cigar venue directory. Mark relevant=true for cigar lounges, cigar bars, cigar shops, tobacconists, and upscale lounges or bars where cigars are a primary or significant offering. Mark relevant=false only if you are confident the business has no meaningful cigar focus — for example: hookah-only bars, vape shops, cannabis dispensaries, convenience stores, or clearly unrelated businesses. When in doubt, mark relevant=true. These venues were previously approved so give them the benefit of the doubt.",
                 },
                 {
                   role: "user",
