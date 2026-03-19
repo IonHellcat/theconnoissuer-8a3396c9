@@ -26,9 +26,9 @@ const ConnoisseurScoreBadge = ({
   const hasScore = (isEstimated || isVerified) && score !== null;
 
   const sizeClasses = {
-    sm: "h-10 w-10 text-sm",
-    md: "h-14 w-14 text-lg",
-    lg: "h-20 w-20 text-2xl",
+    sm: "h-10 w-10 text-[15px]",
+    md: "h-14 w-14 text-xl",
+    lg: "h-20 w-20 text-3xl",
   };
 
   const labelSizeClasses = {
@@ -59,10 +59,10 @@ const ConnoisseurScoreBadge = ({
       <Tooltip>
         <TooltipTrigger asChild>
           <div
-            className={`${sizeClasses[size]} rounded-full flex items-center justify-center font-display font-bold ${
+            className={`${sizeClasses[size]} rounded-full flex items-center justify-center font-display font-extrabold tracking-tight ${
               isVerified
-                ? "border-2 border-solid border-primary shadow-[0_0_12px_hsl(var(--primary)/0.3)]"
-                : "border-2 border-dashed border-primary opacity-60"
+                ? "border-2 border-solid border-primary shadow-[0_0_12px_hsl(var(--primary)/0.3)] bg-primary/10 text-primary"
+                : "border-2 border-dashed border-primary/50 bg-primary/5 text-foreground"
             }`}
           >
             {score}
