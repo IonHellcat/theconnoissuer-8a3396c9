@@ -169,7 +169,7 @@ Deno.serve(async (req) => {
       reviewsByLounge.get(r.lounge_id)!.push(r.review_text);
     }
 
-    const flagged: { id: string; name: string; address: string | null; google_types: any; image_url: string | null }[] = [];
+    const flagged: { id: string; name: string; address: string | null; google_types: any; image_url: string | null; reason: string | null }[] = [];
     const needsAI: { idx: number; venue: any }[] = [];
 
     // Pre-filter
