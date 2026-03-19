@@ -238,31 +238,31 @@ function buildPillarScores(
 
 // ─── Shared helpers for scoring context ───
 async function buildScoringContext(serviceClient: any) {
-  // Global mean rating
-  const { data: allRatings } = await serviceClient.from("lounges").select("rating").not("rating", "is", null);
+  const { data: allRatingRows } = await serviceClient
+    .from("lounges")
+    .select("rating, city_id")
+    .not("rating", "is", null);
+
   const globalMean =
-    allRatings && allRatings.length > 0
-      ? allRatings.reduce((sum: number, r: any) => sum + Number(r.rating), 0) / allRatings.length
+    allRatingRows && allRatingRows.length > 0
+      ? allRatingRows.reduce((sum: number, r: any) => sum + Number(r.rating), 0) / allRatingRows.length
       : 4.1;
 
-  // Build city → country lookup
   const { data: allCities } = await serviceClient.from("cities").select("id, country");
   const cityCountryMap = new Map<string, string>();
-  for (const city of allCities || []) {
-    cityCountryMap.set(city.id, city.country);
-  }
+  for (const city of allCities || []) cityCountryMap.set(city.id, city.country);
 
-  // Build country → median review count
-  const { data: allLoungeStats } = await serviceClient.from("lounges").select("review_count, city_id");
+  const { data: allLoungeStats } = await serviceClient.from("lounges").select("review_count, rating, city_id");
+
   const countryMedianMap = buildCountryMedianMap(allLoungeStats || [], cityCountryMap);
+  const countryMeanRatingMap = buildCountryMeanRatingMap(allRatingRows || [], cityCountryMap, globalMean);
 
-  // Global fallback median
   const allCounts = (allLoungeStats || [])
     .map((r: any) => Number(r.review_count ?? 0))
     .sort((a: number, b: number) => a - b);
   const globalMedian = allCounts.length > 0 ? allCounts[Math.floor(allCounts.length / 2)] : 100;
 
-  return { globalMean, cityCountryMap, countryMedianMap, globalMedian };
+  return { globalMean, cityCountryMap, countryMedianMap, countryMeanRatingMap, globalMedian };
 }
 
 function getCountryMedian(
@@ -273,6 +273,16 @@ function getCountryMedian(
 ): number {
   const country = cityCountryMap.get(cityId) || "";
   return countryMedianMap.get(country) || globalMedian;
+}
+
+function getCountryMeanRating(
+  cityId: string,
+  cityCountryMap: Map<string, string>,
+  countryMeanRatingMap: Map<string, number>,
+  globalMean: number,
+): number {
+  const country = cityCountryMap.get(cityId) || "";
+  return countryMeanRatingMap.get(country) || globalMean;
 }
 
 // ─── Auth ───
