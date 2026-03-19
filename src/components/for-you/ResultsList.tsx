@@ -104,7 +104,7 @@ export const ItineraryScreen = ({ itinerary, cityName, requestedStops, onReset }
 
                     {/* Details */}
                     <div className="px-3 pb-3 -mt-1">
-                      <div className="flex items-center justify-between gap-2 mb-0.5">
+                      <div className="flex items-end justify-between gap-2 mb-0.5">
                         <div className="min-w-0">
                           <div className="flex items-center gap-1.5">
                             <h3 className="font-display text-sm font-semibold text-foreground truncate">
