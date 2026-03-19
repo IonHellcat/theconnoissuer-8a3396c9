@@ -528,7 +528,7 @@ serve(async (req) => {
         .from("lounges").select("id", { count: "exact", head: true }).eq("city_id", cityRow!.id);
       await supabase.from("cities").update({ lounge_count: count || 0 }).eq("id", cityRow!.id);
     } else {
-      for (const [placeId, { place, type: venueType }] of newPlaces) {
+      for (const [placeId, { place, type: venueType }] of finalPlaces) {
         const name = place.displayName?.text || "Unknown";
         const slug = name.toLowerCase().replace(/\s+/g, "-").replace(/[^\w-]/g, "") + "-" + placeId.slice(-6);
         const googleTypes = place.primaryType || place.types?.length

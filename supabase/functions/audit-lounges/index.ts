@@ -8,7 +8,11 @@ const corsHeaders = {
 
 const BATCH_SIZE = 60;
 
-const POSITIVE_KEYWORDS = ["cigar", "cigars", "tobacco", "tobacconist", "humidor", "havana", "habano", "stogie"];
+const POSITIVE_KEYWORDS = [
+  "cigar", "cigars", "tobacco", "tobacconist", "humidor", "havana", "habano", "habanos",
+  "stogie", "zigarren", "zigar", "puro", "puros", "cohiba", "cohibas", "davidoff",
+  "villiger", "herf", "tabacalera", "torcedor", "vitola",
+];
 
 const PLACE_FIELD_MASK = "primaryType,types,websiteUri";
 
