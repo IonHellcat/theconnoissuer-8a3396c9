@@ -34,7 +34,6 @@ function buildCountryMedianMap(
   cityCountryMap: Map<string, string>,
 ): Map<string, number> {
   const countryGroups = new Map<string, number[]>();
-
   for (const row of rows) {
     if (!row.city_id) continue;
     const country = cityCountryMap.get(row.city_id);
@@ -43,25 +42,49 @@ function buildCountryMedianMap(
     if (!countryGroups.has(country)) countryGroups.set(country, []);
     countryGroups.get(country)!.push(count);
   }
-
   const medianMap = new Map<string, number>();
   countryGroups.forEach((counts, country) => {
     const sorted = [...counts].sort((a, b) => a - b);
     const mid = Math.floor(sorted.length / 2);
-    const median = sorted.length % 2 === 0 ? (sorted[mid - 1] + sorted[mid]) / 2 : sorted[mid];
+    const median = sorted.length % 2 === 0
+      ? (sorted[mid - 1] + sorted[mid]) / 2
+      : sorted[mid];
     medianMap.set(country, Math.max(1, Math.round(median)));
   });
-
   return medianMap;
+}
+
+function buildCountryMeanRatingMap(
+  rows: Array<{ rating: number | null; city_id: string | null }>,
+  cityCountryMap: Map<string, string>,
+  globalMean: number
+): Map<string, number> {
+  const countryGroups = new Map<string, number[]>();
+  for (const row of rows) {
+    if (!row.city_id || row.rating == null) continue;
+    const country = cityCountryMap.get(row.city_id);
+    if (!country) continue;
+    const r = Number(row.rating);
+    if (r <= 0) continue;
+    if (!countryGroups.has(country)) countryGroups.set(country, []);
+    countryGroups.get(country)!.push(r);
+  }
+  const meanMap = new Map<string, number>();
+  countryGroups.forEach((ratings, country) => {
+    if (ratings.length < 3) return;
+    const mean = ratings.reduce((a, b) => a + b, 0) / ratings.length;
+    meanMap.set(country, mean);
+  });
+  return meanMap;
 }
 
 // ─── Deterministic Scoring Formula ───
 
-function computeQualityScore(rating: number, reviewCount: number, globalMean: number): number {
-  const C = 25;
-  const bayesian = (rating * reviewCount + globalMean * C) / (reviewCount + C);
-  const normalized = clampScore(((bayesian - 2.5) / 2.5) * 100) / 100;
-  return Math.round(clampScore(Math.pow(normalized, 1.5) * 100));
+function computeQualityScore(rating: number, reviewCount: number, countryMean: number): number {
+  const C = 50;
+  const bayesian = (rating * reviewCount + countryMean * C) / (reviewCount + C);
+  const normalized = (bayesian - 3.0) / 2.0; // floor 3.0, ceiling 5.0
+  return Math.round(clampScore(normalized * 100));
 }
 
 function computeSentimentScore(classifications: Array<{ aspects: Record<string, any> }>, aspects: string[]): number {
