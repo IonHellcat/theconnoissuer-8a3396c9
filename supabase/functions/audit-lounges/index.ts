@@ -149,7 +149,7 @@ Deno.serve(async (req) => {
       ? await enrichMissingTypes(venues, serviceClient, GOOGLE_PLACES_API_KEY)
       : venues;
 
-    const flagged: { id: string; name: string; address: string | null; google_types: any }[] = [];
+    const flagged: { id: string; name: string; address: string | null; google_types: any; image_url: string | null }[] = [];
     const needsAI: { idx: number; venue: any }[] = [];
 
     // Pre-filter
