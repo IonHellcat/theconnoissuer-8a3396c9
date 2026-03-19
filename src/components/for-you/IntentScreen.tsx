@@ -1,124 +1,172 @@
-import { MapPin, Plane, Clock, Wine, Search, Locate, Armchair, Store, Sparkles, Loader2 } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { PillToggle } from "./PillToggle";
-import type { VisitType, VenueType } from "@/lib/recommendations";
+import { useState, useRef, useEffect } from "react";
+import { MapPin } from "lucide-react";
+import { motion, AnimatePresence } from "framer-motion";
+import type { CityOption } from "@/pages/ForYouPage";
+import type { VenuePreference } from "@/lib/recommendations";
 
-type LocationMode = "here" | "travelling" | null;
-
-interface CityOption {
-  city_id: string;
-  city_name: string;
-  lat: number;
-  lng: number;
-}
-
-interface IntentScreenProps {
-  locationMode: LocationMode;
-  visitType: VisitType | null;
-  venueType: VenueType;
-  userLat: number | null;
-  geoLoading: boolean;
-  geoError: boolean;
-  cityQuery: string;
-  filteredCities: CityOption[];
-  showCityDropdown: boolean;
-  canSubmit: boolean;
-  finding?: boolean;
-  onSetLocationMode: (mode: LocationMode) => void;
-  onSetVisitType: (type: VisitType) => void;
-  onSetVenueType: (type: VenueType) => void;
-  onCityQueryChange: (query: string) => void;
-  onCityFocus: () => void;
+interface SetupScreenProps {
+  cityOptions: CityOption[];
+  selectedCity: CityOption | null;
+  stopCount: number | null;
+  preference: VenuePreference;
   onSelectCity: (city: CityOption) => void;
-  onFind: () => void;
+  onSetStopCount: (n: number) => void;
+  onSetPreference: (p: VenuePreference) => void;
+  onBuild: () => void;
+  canBuild: boolean;
 }
 
-export const IntentScreen = ({
-  locationMode, visitType, venueType, userLat, geoLoading, geoError,
-  cityQuery, filteredCities, showCityDropdown, canSubmit, finding,
-  onSetLocationMode, onSetVisitType, onSetVenueType,
-  onCityQueryChange, onCityFocus, onSelectCity, onFind,
-}: IntentScreenProps) => (
-  <div className="flex flex-col gap-5">
-    {/* Header */}
-    <div className="text-center">
-      <div className="inline-flex items-center gap-2 mb-1">
-        <Sparkles className="h-5 w-5 text-primary" />
-        <h1 className="font-display text-2xl font-bold text-foreground">For You</h1>
-      </div>
-      <p className="text-muted-foreground font-body text-xs">
-        Location · visit style · venue type → your top picks
-      </p>
-    </div>
+export const SetupScreen = ({
+  cityOptions, selectedCity, stopCount, preference,
+  onSelectCity, onSetStopCount, onSetPreference, onBuild, canBuild,
+}: SetupScreenProps) => {
+  const [query, setQuery] = useState("");
+  const [open, setOpen] = useState(false);
+  const ref = useRef<HTMLDivElement>(null);
 
-    {/* 1. Location */}
-    <section className="flex flex-col gap-2">
-      <label className="font-body text-xs font-medium text-muted-foreground uppercase tracking-wider">Location</label>
-      <div className="grid grid-cols-2 gap-2">
-        <PillToggle active={locationMode === "here"} onClick={() => onSetLocationMode("here")} icon={<Locate className="h-4 w-4" />} label="I'm here now" />
-        <PillToggle active={locationMode === "travelling"} onClick={() => onSetLocationMode("travelling")} icon={<Plane className="h-4 w-4" />} label="I'm travelling" />
-      </div>
-      {geoLoading && <p className="text-[11px] text-muted-foreground font-body animate-pulse">Getting your location…</p>}
-      {geoError && <p className="text-[11px] text-destructive font-body">Location denied — search a city instead</p>}
-      {locationMode === "here" && userLat !== null && (
-        <p className="text-[11px] text-primary font-body flex items-center gap-1">
-          <MapPin className="h-3 w-3" /> Using current location
+  useEffect(() => {
+    const handler = (e: MouseEvent) => {
+      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false);
+    };
+    document.addEventListener("mousedown", handler);
+    return () => document.removeEventListener("mousedown", handler);
+  }, []);
+
+  const filtered = query.length > 0
+    ? cityOptions.filter((c) => c.name.toLowerCase().includes(query.toLowerCase()) || c.country.toLowerCase().includes(query.toLowerCase()))
+    : cityOptions;
+
+  const selectCity = (city: CityOption) => {
+    onSelectCity(city);
+    setQuery(city.name);
+    setOpen(false);
+  };
+
+  const stopOptions = [1, 2, 3, 4];
+  const prefOptions: { value: VenuePreference; label: string }[] = [
+    { value: "lounge", label: "Lounges only" },
+    { value: "shop", label: "Shops only" },
+    { value: "both", label: "Both" },
+  ];
+
+  return (
+    <div className="flex flex-col items-center gap-8">
+      {/* Header */}
+      <div className="text-center">
+        <MapPin className="h-8 w-8 text-primary mx-auto mb-3" />
+        <h1 className="font-display text-3xl font-bold text-foreground">Plan Your Trip</h1>
+        <p className="text-muted-foreground font-body text-sm mt-1">
+          Your personal cigar itinerary, curated by score
         </p>
-      )}
-      {(locationMode === "travelling" || geoError) && (
-        <div className="relative">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-          <Input
-            value={cityQuery}
-            onChange={(e) => onCityQueryChange(e.target.value)}
-            onFocus={onCityFocus}
-            placeholder="Search for a city…"
-            className="pl-10 h-10 bg-secondary border-border/50 text-sm"
-          />
-          {showCityDropdown && filteredCities.length > 0 && (
-            <div className="absolute z-20 top-full mt-1 w-full bg-card border border-border rounded-lg shadow-lg max-h-40 overflow-y-auto">
-              {filteredCities.map((c) => (
+      </div>
+
+      {/* City selector */}
+      <div className="w-full" ref={ref}>
+        <input
+          type="text"
+          value={query}
+          onChange={(e) => { setQuery(e.target.value); setOpen(true); if (selectedCity) onSelectCity(null as any); }}
+          onFocus={() => setOpen(true)}
+          placeholder="Which city are you visiting?"
+          className="w-full h-12 rounded-xl border border-border bg-card px-4 text-base font-body text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary transition-shadow"
+        />
+        {open && filtered.length > 0 && (
+          <div className="absolute z-50 mt-1 w-full max-w-md bg-card border border-border rounded-xl shadow-lg max-h-56 overflow-y-auto">
+            {filtered.slice(0, 30).map((city) => (
+              <button
+                key={city.id}
+                onClick={() => selectCity(city)}
+                className="w-full text-left px-4 py-3 text-sm font-body text-foreground hover:bg-secondary transition-colors flex items-center justify-between"
+              >
+                <span>{city.name}</span>
+                <span className="text-xs text-muted-foreground">{city.country}</span>
+              </button>
+            ))}
+          </div>
+        )}
+      </div>
+
+      {/* Stop count */}
+      <AnimatePresence>
+        {selectedCity && (
+          <motion.div
+            initial={{ opacity: 0, y: 12 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: 12 }}
+            className="w-full flex flex-col gap-2"
+          >
+            <label className="font-body text-xs font-medium text-muted-foreground uppercase tracking-wider">
+              How many stops?
+            </label>
+            <div className="grid grid-cols-4 gap-3">
+              {stopOptions.map((n) => (
                 <button
-                  key={c.city_id}
-                  onClick={() => onSelectCity(c)}
-                  className="w-full text-left px-4 py-2.5 text-sm font-body text-foreground hover:bg-secondary transition-colors min-h-[44px]"
+                  key={n}
+                  onClick={() => onSetStopCount(n)}
+                  className={`h-14 rounded-xl border-2 text-lg font-display font-bold transition-all ${
+                    stopCount === n
+                      ? "border-primary bg-primary/10 text-primary"
+                      : "border-border bg-card text-muted-foreground hover:border-primary/40"
+                  }`}
                 >
-                  {c.city_name}
+                  {n}
                 </button>
               ))}
             </div>
-          )}
-        </div>
-      )}
-    </section>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
-    {/* 2. Visit type */}
-    <section className="flex flex-col gap-2">
-      <label className="font-body text-xs font-medium text-muted-foreground uppercase tracking-wider">Visit style</label>
-      <div className="grid grid-cols-2 gap-2">
-        <PillToggle active={visitType === "Quick Smoke"} onClick={() => onSetVisitType("Quick Smoke")} icon={<Clock className="h-4 w-4" />} label="Quick Smoke" />
-        <PillToggle active={visitType === "Full Evening"} onClick={() => onSetVisitType("Full Evening")} icon={<Wine className="h-4 w-4" />} label="Full Evening" />
-      </div>
-    </section>
+      {/* Venue preference */}
+      <AnimatePresence>
+        {selectedCity && stopCount && (
+          <motion.div
+            initial={{ opacity: 0, y: 12 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: 12 }}
+            className="w-full flex flex-col gap-2"
+          >
+            <label className="font-body text-xs font-medium text-muted-foreground uppercase tracking-wider">
+              What are you looking for?
+            </label>
+            <div className="grid grid-cols-3 gap-2">
+              {prefOptions.map((opt) => (
+                <button
+                  key={opt.value}
+                  onClick={() => onSetPreference(opt.value)}
+                  className={`rounded-xl border-2 px-3 py-3 text-sm font-body font-medium transition-all ${
+                    preference === opt.value
+                      ? "border-primary bg-primary/10 text-primary"
+                      : "border-border bg-card text-muted-foreground hover:border-primary/40"
+                  }`}
+                >
+                  {opt.label}
+                </button>
+              ))}
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
-    {/* 3. Venue type */}
-    <section className="flex flex-col gap-2">
-      <label className="font-body text-xs font-medium text-muted-foreground uppercase tracking-wider">Venue type</label>
-      <div className="grid grid-cols-3 gap-2">
-        <PillToggle active={venueType === "All"} onClick={() => onSetVenueType("All")} icon={<Search className="h-4 w-4" />} label="All" />
-        <PillToggle active={venueType === "Lounge"} onClick={() => onSetVenueType("Lounge")} icon={<Armchair className="h-4 w-4" />} label="Lounges" />
-        <PillToggle active={venueType === "Shop"} onClick={() => onSetVenueType("Shop")} icon={<Store className="h-4 w-4" />} label="Shops" />
-      </div>
-    </section>
-
-    {/* Sticky CTA */}
-    <div className="fixed bottom-16 md:bottom-0 left-0 right-0 p-4 bg-background/90 backdrop-blur-sm border-t border-border/30 z-40">
-      <div className="max-w-lg mx-auto">
-        <Button onClick={onFind} disabled={!canSubmit || finding} className="w-full h-12 text-base font-body font-semibold">
-          {finding ? <><Loader2 className="h-4 w-4 animate-spin mr-2" /> Finding…</> : "Find lounges"}
-        </Button>
-      </div>
+      {/* CTA */}
+      <AnimatePresence>
+        {canBuild && selectedCity && stopCount && (
+          <motion.div
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
+            exit={{ opacity: 0, scale: 0.95 }}
+            className="w-full"
+          >
+            <button
+              onClick={onBuild}
+              className="w-full h-[52px] rounded-xl bg-primary text-primary-foreground font-display text-lg font-semibold transition-all hover:brightness-110 active:scale-[0.98] animate-pulse"
+              style={{ animationDuration: "2s", animationIterationCount: "3" }}
+            >
+              Build My Itinerary
+            </button>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
-  </div>
-);
+  );
+};

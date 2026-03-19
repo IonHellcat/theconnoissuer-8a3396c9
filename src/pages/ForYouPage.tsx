@@ -1,261 +1,120 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { Helmet } from "react-helmet-async";
 import { useQuery } from "@tanstack/react-query";
-import Navbar from "@/components/Navbar";
-import Footer from "@/components/Footer";
 import { supabase } from "@/integrations/supabase/client";
-import type { VisitType, VenueType, RecommendedLounge } from "@/lib/recommendations";
-import { ResultsList } from "@/components/for-you/ResultsList";
-import { PillToggle } from "@/components/for-you/PillToggle";
-import { Sparkles, MapPin, ChevronDown, Loader2 } from "lucide-react";
-import { Card } from "@/components/ui/card";
+import { buildItinerary } from "@/lib/recommendations";
+import type { LoungeWithCoords, VenuePreference } from "@/lib/recommendations";
+import { SetupScreen } from "@/components/for-you/IntentScreen";
+import { ItineraryScreen } from "@/components/for-you/ResultsList";
+import { GeneratingScreen } from "@/components/for-you/GeneratingScreen";
 
-interface CityOption {
-  city_id: string;
-  city_name: string;
-  lat: number;
-  lng: number;
+export interface CityOption {
+  id: string;
+  name: string;
+  country: string;
 }
 
 const ForYouPage = () => {
-  const [userLat, setUserLat] = useState<number | null>(null);
-  const [userLng, setUserLng] = useState<number | null>(null);
-  const [locationLabel, setLocationLabel] = useState("");
-  const [geoLoading, setGeoLoading] = useState(true);
-  const [geoAttempted, setGeoAttempted] = useState(false);
-  const [cityQuery, setCityQuery] = useState("");
-  const [showCityDropdown, setShowCityDropdown] = useState(false);
-  const [visitType, setVisitType] = useState<VisitType | "Any">("Any");
-  const [venueType, setVenueType] = useState<VenueType>("All");
-  const [showVisitStyle, setShowVisitStyle] = useState(false);
+  const [phase, setPhase] = useState<"setup" | "generating" | "itinerary">("setup");
+  const [selectedCity, setSelectedCity] = useState<CityOption | null>(null);
+  const [stopCount, setStopCount] = useState<number | null>(null);
+  const [preference, setPreference] = useState<VenuePreference>("both");
+  const [itinerary, setItinerary] = useState<LoungeWithCoords[]>([]);
 
-  // Auto-attempt geolocation on mount
-  useEffect(() => {
-    navigator.geolocation.getCurrentPosition(
-      (pos) => {
-        setUserLat(pos.coords.latitude);
-        setUserLng(pos.coords.longitude);
-        setLocationLabel("Current Location");
-        setGeoLoading(false);
-        setGeoAttempted(true);
-      },
-      () => {
-        setGeoLoading(false);
-        setGeoAttempted(true);
-      },
-      { timeout: 5000 },
-    );
-  }, []);
-
-  // Load city list for search fallback
+  // Cities that have at least one scored lounge
   const { data: cityOptions } = useQuery({
-    queryKey: ["city-options-for-you"],
+    queryKey: ["plan-trip-cities"],
     queryFn: async () => {
       const { data } = await supabase
         .from("lounges")
-        .select("city_id, latitude, longitude, cities(name)")
-        .not("latitude", "is", null)
-        .not("longitude", "is", null);
+        .select("city_id, cities(id, name, country)")
+        .not("connoisseur_score", "is", null);
       if (!data) return [];
-
-      const map = new Map<string, { lats: number[]; lngs: number[]; name: string }>();
-      data.forEach((l: any) => {
-        if (!l.city_id || l.latitude == null || l.longitude == null) return;
-        const existing = map.get(l.city_id);
-        if (existing) {
-          existing.lats.push(l.latitude);
-          existing.lngs.push(l.longitude);
-        } else {
-          map.set(l.city_id, { lats: [l.latitude], lngs: [l.longitude], name: l.cities?.name ?? "" });
-        }
+      const map = new Map<string, CityOption>();
+      data.forEach((row: any) => {
+        if (!row.cities) return;
+        map.set(row.city_id, { id: row.city_id, name: row.cities.name, country: row.cities.country });
       });
-
-      const options: CityOption[] = [];
-      map.forEach((v, k) => {
-        options.push({
-          city_id: k,
-          city_name: v.name,
-          lat: v.lats.reduce((a, b) => a + b, 0) / v.lats.length,
-          lng: v.lngs.reduce((a, b) => a + b, 0) / v.lngs.length,
-        });
-      });
-      options.sort((a, b) => a.city_name.localeCompare(b.city_name));
-      return options;
+      return Array.from(map.values()).sort((a, b) => a.name.localeCompare(b.name));
     },
     staleTime: 30 * 60 * 1000,
   });
 
-  const selectCity = (city: CityOption) => {
-    setUserLat(city.lat); setUserLng(city.lng); setLocationLabel(city.city_name);
-    setShowCityDropdown(false); setCityQuery(city.city_name);
-  };
-
-  const changeLocation = () => {
-    setUserLat(null); setUserLng(null); setLocationLabel(""); setCityQuery("");
-  };
-
-  const effectiveVisitType: VisitType = visitType === "Any" ? "Full Evening" : visitType;
-
-  const { data: results, isLoading: finding } = useQuery({
-    queryKey: ["for-you-results", userLat, userLng, effectiveVisitType, venueType],
+  // Lounges in selected city
+  const { data: cityLounges, isLoading: loungesLoading } = useQuery({
+    queryKey: ["plan-trip-lounges", selectedCity?.id],
     queryFn: async () => {
-      const { data, error } = await supabase.functions.invoke("recommend-lounges", {
-        body: { lat: userLat, lng: userLng, visit_type: effectiveVisitType, venue_type: venueType },
-      });
-      if (error) throw error;
-      return (data || []).map((r: any) => ({
-        ...r,
-        city_name: r.city_name ?? "",
-        city_slug: r.city_slug ?? "",
-        distanceKm: r.distance_km,
-        recommendationScore: r.recommendation_score,
-      })) as RecommendedLounge[];
+      const { data } = await supabase
+        .from("lounges")
+        .select("id, name, slug, latitude, longitude, connoisseur_score, visit_type, type, address, image_url, score_label, score_source, score_summary, rating, city_id")
+        .eq("city_id", selectedCity!.id)
+        .not("connoisseur_score", "is", null);
+      return (data ?? []) as LoungeWithCoords[];
     },
-    enabled: userLat !== null && userLng !== null,
-    staleTime: 5 * 60 * 1000,
+    enabled: !!selectedCity?.id,
+    staleTime: 10 * 60 * 1000,
   });
 
-  const safeCityOptions = cityOptions ?? [];
-  const filteredCities = cityQuery.length > 0
-    ? safeCityOptions.filter((c) => c.city_name.toLowerCase().includes(cityQuery.toLowerCase()))
-    : safeCityOptions;
+  const handleBuild = useCallback(() => {
+    if (!selectedCity || !stopCount || !cityLounges) return;
+    setPhase("generating");
 
-  const hasLocation = userLat !== null && userLng !== null;
+    const result = buildItinerary(cityLounges, stopCount, preference);
+    // Enforce minimum dramatic delay
+    const start = Date.now();
+    const minDelay = 2500;
+    const check = () => {
+      const elapsed = Date.now() - start;
+      if (elapsed >= minDelay) {
+        setItinerary(result);
+        setPhase("itinerary");
+      } else {
+        setTimeout(check, minDelay - elapsed);
+      }
+    };
+    check();
+  }, [selectedCity, stopCount, preference, cityLounges]);
+
+  const handleReset = () => {
+    setPhase("setup");
+    setSelectedCity(null);
+    setStopCount(null);
+    setPreference("both");
+    setItinerary([]);
+  };
 
   return (
     <>
       <Helmet>
-        <title>For You — Personalized Picks | The Connoisseur</title>
-        <meta name="description" content="Get personalized cigar lounge recommendations based on your location and visit style." />
+        <title>Plan Your Trip — Cigar Itinerary | The Connoisseur</title>
+        <meta name="description" content="Plan your cigar trip with a curated itinerary of top-scored lounges and shops." />
       </Helmet>
-      <Navbar />
-      <main className="min-h-screen bg-background pt-24 pb-28 md:pb-10">
-        <div className="container mx-auto px-4 max-w-lg">
-          {/* Header */}
-          <div className="flex items-center gap-2 mb-6">
-            <Sparkles className="h-5 w-5 text-primary" />
-            <h1 className="font-display text-2xl font-bold text-foreground">For You</h1>
-          </div>
-
-          {/* Location bar */}
-          {hasLocation ? (
-            <div className="bg-secondary rounded-xl border border-border/50 p-3 flex items-center gap-2 mb-4">
-              <MapPin className="h-4 w-4 text-primary flex-shrink-0" />
-              <span className="text-sm font-body text-foreground flex-1 truncate">{locationLabel}</span>
-              <button
-                onClick={changeLocation}
-                className="text-xs text-primary hover:underline font-body min-h-[44px] px-2"
-              >
-                Change
-              </button>
-            </div>
-          ) : (
-            <div className="bg-secondary rounded-xl border border-border/50 p-3 mb-4 space-y-3">
-              <div className="relative">
-                <input
-                  type="text"
-                  value={cityQuery}
-                  onChange={(e) => { setCityQuery(e.target.value); setShowCityDropdown(true); }}
-                  onFocus={() => setShowCityDropdown(true)}
-                  placeholder="Search a city..."
-                  className="w-full bg-background border border-border/50 rounded-lg px-3 py-2.5 text-sm font-body text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring"
-                />
-                {showCityDropdown && filteredCities.length > 0 && (
-                  <div className="absolute z-50 top-full mt-1 left-0 right-0 bg-card border border-border/50 rounded-lg shadow-lg max-h-48 overflow-y-auto">
-                    {filteredCities.slice(0, 20).map((city) => (
-                      <button
-                        key={city.city_id}
-                        onClick={() => selectCity(city)}
-                        className="w-full text-left px-3 py-2.5 text-sm font-body text-foreground hover:bg-secondary transition-colors"
-                      >
-                        {city.city_name}
-                      </button>
-                    ))}
-                  </div>
-                )}
-              </div>
-            </div>
-          )}
-
-          {/* Filter pills — only when results exist */}
-          {results && (
-            <div className="mb-4 space-y-2">
-              {/* Venue type — always visible */}
-              <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-hide">
-                {(["All", "Lounge", "Shop"] as VenueType[]).map((vt) => (
-                  <PillToggle
-                    key={vt}
-                    active={venueType === vt}
-                    onClick={() => setVenueType(vt)}
-                    icon={<></>}
-                    label={vt === "All" ? "All" : vt === "Lounge" ? "Lounges" : "Shops"}
-                  />
-                ))}
-                {!showVisitStyle && (
-                  <button
-                    onClick={() => setShowVisitStyle(true)}
-                    className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground font-body px-2 whitespace-nowrap"
-                  >
-                    Refine <ChevronDown className="h-3 w-3" />
-                  </button>
-                )}
-              </div>
-              {/* Visit style — shown on demand */}
-              {showVisitStyle && (
-                <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-hide">
-                  {(["Any", "Quick Smoke", "Full Evening"] as (VisitType | "Any")[]).map((vt) => (
-                    <PillToggle
-                      key={vt}
-                      active={visitType === vt}
-                      onClick={() => setVisitType(vt)}
-                      icon={<></>}
-                      label={vt}
-                    />
-                  ))}
-                </div>
-              )}
-            </div>
-          )}
-
-          {/* Content states */}
-          {geoLoading ? (
-            <div className="text-center py-16">
-              <Loader2 className="h-8 w-8 text-primary mx-auto mb-3 animate-spin" />
-              <p className="text-muted-foreground font-body text-sm">
-                Finding your location…
-              </p>
-            </div>
-          ) : !hasLocation ? (
-            <div className="text-center py-16">
-              <Sparkles className="h-10 w-10 text-muted-foreground/30 mx-auto mb-4" />
-              <p className="text-muted-foreground font-body text-sm">
-                Search for a city to find lounges near you
-              </p>
-            </div>
-          ) : finding ? (
-            <div className="space-y-3">
-              {[1, 2, 3].map((i) => (
-                <Card key={i} className="h-20 animate-pulse bg-secondary border-border/30" />
-              ))}
-            </div>
-          ) : results && results.length > 0 ? (
-            <ResultsList
-              results={results}
-              venueType={venueType}
-              locationLabel={locationLabel}
-              locationMode={locationLabel === "Current Location" ? "here" : "travelling"}
-              onReset={changeLocation}
+      <main className="min-h-screen bg-background flex items-center justify-center px-4 py-12">
+        <div className="w-full max-w-md">
+          {phase === "setup" && (
+            <SetupScreen
+              cityOptions={cityOptions ?? []}
+              selectedCity={selectedCity}
+              stopCount={stopCount}
+              preference={preference}
+              onSelectCity={setSelectedCity}
+              onSetStopCount={setStopCount}
+              onSetPreference={setPreference}
+              onBuild={handleBuild}
+              canBuild={!!selectedCity && !!stopCount && !loungesLoading}
             />
-          ) : results && results.length === 0 ? (
-            <div className="text-center py-12">
-              <p className="text-muted-foreground font-body text-sm">
-                No lounges found within 50 km — try a different city.
-              </p>
-            </div>
-          ) : null}
+          )}
+          {phase === "generating" && <GeneratingScreen />}
+          {phase === "itinerary" && selectedCity && (
+            <ItineraryScreen
+              itinerary={itinerary}
+              cityName={selectedCity.name}
+              requestedStops={stopCount ?? 0}
+              onReset={handleReset}
+            />
+          )}
         </div>
       </main>
-      <Footer />
     </>
   );
 };
