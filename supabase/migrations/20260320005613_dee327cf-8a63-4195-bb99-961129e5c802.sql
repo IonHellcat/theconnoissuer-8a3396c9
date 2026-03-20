@@ -1,0 +1,1 @@
+DROP POLICY "Favorites are publicly readable" ON public.favorites;
