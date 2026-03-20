@@ -2,52 +2,49 @@
 
 ## Problem
 
-**1631 out of 1666 lounges** use direct Google Places API photo URLs with an embedded API key (e.g. `https://places.googleapis.com/v1/.../media?maxWidthPx=800&key=AIza...`). These URLs fail silently in the browser — the HTTP request returns a non-image error response, the browser fires `onLoad` (not `onError`), and the image appears blank/invisible.
+Storing all 1,600+ lounge images in storage is expensive and unnecessary. The real issue is that Google Places API URLs don't work client-side due to API key referrer restrictions — but they work fine server-side.
 
-Zero lounge images are stored in Supabase storage. City images were already migrated (via the existing `fetch-city-images` function), but lounges were not.
+## Better Approach: Server-Side Image Proxy
 
-## Root Cause
+Instead of downloading and storing every image, create a lightweight edge function that acts as a proxy. The client requests `/functions/v1/image-proxy?url=...` and the function fetches the image from Google server-side and streams it back with proper cache headers.
 
-The `search-places` edge function stores raw Google Places API URLs with the API key baked in. These break client-side because:
-- Google Places API has HTTP referrer restrictions — the key works server-side but not from browser origins
-- Photo references can expire
-- The `OptimizedImage` component's `onError` handler doesn't catch this because the HTTP response succeeds (200 with error JSON/HTML), so `onLoad` fires instead
+**Zero storage cost. Same result.**
 
-## Plan
+### Changes
 
-### 1. Fix OptimizedImage to detect broken images (client-side immediate fix)
-Add a `naturalWidth` check in `onLoad` — if the image loaded but has zero natural dimensions, treat it as errored and show the placeholder. This ensures broken Google URLs show a placeholder instead of nothing.
+1. **Create `image-proxy` edge function**
+   - Accepts a `url` query parameter (the Google Places photo URL)
+   - Fetches the image server-side (where the API key works)
+   - Streams the response back with `Cache-Control: public, max-age=86400` (24h browser cache)
+   - Validates the URL starts with `https://places.googleapis.com/` to prevent open proxy abuse
 
-### 2. Create a `fetch-lounge-images` edge function (permanent fix)
-Modeled after the existing `fetch-city-images` function — downloads Google Places photos server-side and uploads them to a new `lounge-images` storage bucket. Updates the `image_url` column with the Supabase storage public URL.
+2. **Update `OptimizedImage` component**
+   - When `src` contains `places.googleapis.com`, rewrite it to go through the proxy: `${SUPABASE_URL}/functions/v1/image-proxy?url=${encodeURIComponent(src)}`
+   - All other URLs (already-stored Supabase URLs, placeholders) pass through unchanged
 
-- Supports `mode: "missing"` (only lounges with Google API URLs) and `mode: "all"` 
-- Processes in batches of 5 with pagination support for the admin UI
-- Uses the existing `google_place_id` and `GOOGLE_PLACES_API_KEY` secret
+3. **Remove the storage migration approach**
+   - Remove `FetchLoungeImagesButton` from admin toolbar
+   - Delete the `fetch-lounge-images` edge function (no longer needed)
+   - Optionally drop the `lounge-images` storage bucket if empty
 
-### 3. Create `lounge-images` storage bucket
-Public bucket for storing downloaded lounge photos, mirroring the `city-images` bucket pattern.
+### Technical Details
 
-### 4. Add admin UI button to trigger the migration
-Add a "Fetch Lounge Images" button to the admin tools bar, reusing the same dropdown pattern as `FetchCityImagesButton` (missing only / all lounges / re-fetch).
+**Edge function** (`image-proxy/index.ts`):
+- No auth required (images are public), but URL validation prevents abuse
+- Strips the API key from the client-visible URL — the proxy adds `GOOGLE_PLACES_API_KEY` server-side
+- Returns proper `Content-Type` from the upstream response
+- `Cache-Control` header means each unique image is only fetched once per user per day
 
-### 5. Update `search-places` to store images in Supabase storage at ingest time
-Modify the `getPhotoUrl` helper to download the photo and upload to the `lounge-images` bucket during discovery, so new lounges get stable Supabase URLs from the start.
-
-## Technical Details
-
-**OptimizedImage fix** — `onLoad` handler:
-```tsx
-onLoad={(e) => {
-  const img = e.currentTarget;
-  if (img.naturalWidth === 0) {
-    if (!errored) { setErrored(true); }
-  }
-  setLoaded(true);
-}}
+**OptimizedImage rewrite logic**:
+```
+if src contains "places.googleapis.com"
+  → use proxy URL
+else
+  → use src as-is
 ```
 
-**Edge function** — `fetch-lounge-images/index.ts`: Same auth/admin check pattern as `fetch-city-images`. Query lounges where `image_url LIKE '%places.googleapis.com%'`, fetch photo via Google Places API server-side, upload to `lounge-images` bucket, update the `image_url` column.
+**Security**: Only allows proxying URLs matching `https://places.googleapis.com/` — not an open proxy.
 
-**search-places change** — Replace `getPhotoUrl` with an async `downloadAndStorePhoto` that fetches the image bytes, uploads to `lounge-images/{lounge_slug}.jpg`, and returns the Supabase public URL.
+### What about the ~35 images already in storage?
+Those keep working as-is (they're already Supabase URLs). This only affects the 1,631 lounges still using Google API URLs.
 
