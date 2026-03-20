@@ -7,13 +7,80 @@ const corsHeaders = {
     "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
+async function processLounge(
+  lounge: { id: string; slug: string; google_place_id: string },
+  apiKey: string,
+  supabase: any,
+  supabaseUrl: string
+): Promise<{ lounge: string; status: string; error?: string }> {
+  try {
+    const detailRes = await fetch(
+      `https://places.googleapis.com/v1/places/${lounge.google_place_id}`,
+      {
+        headers: {
+          "X-Goog-Api-Key": apiKey,
+          "X-Goog-FieldMask": "photos",
+        },
+      }
+    );
+
+    if (!detailRes.ok) {
+      await detailRes.text();
+      return { lounge: lounge.slug, status: "error", error: `Places API: ${detailRes.status}` };
+    }
+
+    const placeData = await detailRes.json();
+    if (!placeData.photos || placeData.photos.length === 0) {
+      return { lounge: lounge.slug, status: "no_photo" };
+    }
+
+    const photoName = placeData.photos[0].name;
+    const photoRes = await fetch(
+      `https://places.googleapis.com/v1/${photoName}/media?maxWidthPx=800&key=${apiKey}`,
+      { redirect: "follow" }
+    );
+
+    if (!photoRes.ok) {
+      await photoRes.text();
+      return { lounge: lounge.slug, status: "error", error: `Photo fetch: ${photoRes.status}` };
+    }
+
+    const imageBytes = new Uint8Array(await photoRes.arrayBuffer());
+    const contentType = photoRes.headers.get("content-type") || "image/jpeg";
+    const ext = contentType.includes("png") ? "png" : "jpg";
+    const filePath = `${lounge.slug}.${ext}`;
+
+    const { error: uploadError } = await supabase.storage
+      .from("lounge-images")
+      .upload(filePath, imageBytes, { contentType, upsert: true });
+
+    if (uploadError) {
+      return { lounge: lounge.slug, status: "error", error: uploadError.message };
+    }
+
+    const publicUrl = `${supabaseUrl}/storage/v1/object/public/lounge-images/${filePath}`;
+
+    const { error: updateError } = await supabase
+      .from("lounges")
+      .update({ image_url: publicUrl })
+      .eq("id", lounge.id);
+
+    if (updateError) {
+      return { lounge: lounge.slug, status: "error", error: updateError.message };
+    }
+
+    return { lounge: lounge.slug, status: "success" };
+  } catch (err: any) {
+    return { lounge: lounge.slug, status: "error", error: err.message };
+  }
+}
+
 serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
   }
 
   try {
-    // Auth check
     const authHeader = req.headers.get("Authorization");
     if (!authHeader?.startsWith("Bearer ")) {
       return new Response(JSON.stringify({ error: "Unauthorized" }), {
@@ -50,7 +117,7 @@ serve(async (req) => {
       });
     }
 
-    const { mode = "missing", limit = 5 } = await req.json();
+    const { mode = "missing", limit = 25 } = await req.json();
 
     const GOOGLE_PLACES_API_KEY = Deno.env.get("GOOGLE_PLACES_API_KEY");
     if (!GOOGLE_PLACES_API_KEY) {
@@ -65,16 +132,16 @@ serve(async (req) => {
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
     );
 
-    // Query lounges that need images
+    const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
+
     let query = supabase
       .from("lounges")
       .select("id, slug, image_url, google_place_id")
       .not("google_place_id", "is", null)
       .order("created_at", { ascending: true })
-      .limit(limit);
+      .limit(Math.min(limit, 50));
 
     if (mode === "missing") {
-      // Only lounges with Google API URLs or null
       query = query.or("image_url.is.null,image_url.like.%places.googleapis.com%");
     }
 
@@ -101,80 +168,17 @@ serve(async (req) => {
     const { count: totalCount } = await countQuery;
     const remaining = Math.max(0, (totalCount || 0) - lounges.length);
 
-    const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
+    // Process in parallel with concurrency limit of 5
+    const CONCURRENCY = 5;
     const results: { lounge: string; status: string; error?: string }[] = [];
 
-    for (const lounge of lounges) {
-      try {
-        // Fetch photo from Google Places API
-        const placeId = lounge.google_place_id;
-        const detailRes = await fetch(
-          `https://places.googleapis.com/v1/places/${placeId}`,
-          {
-            headers: {
-              "X-Goog-Api-Key": GOOGLE_PLACES_API_KEY,
-              "X-Goog-FieldMask": "photos",
-            },
-          }
-        );
-
-        if (!detailRes.ok) {
-          results.push({ lounge: lounge.slug, status: "error", error: `Places API: ${detailRes.status}` });
-          continue;
-        }
-
-        const placeData = await detailRes.json();
-        if (!placeData.photos || placeData.photos.length === 0) {
-          results.push({ lounge: lounge.slug, status: "no_photo" });
-          continue;
-        }
-
-        const photoName = placeData.photos[0].name;
-        const photoRes = await fetch(
-          `https://places.googleapis.com/v1/${photoName}/media?maxWidthPx=800&key=${GOOGLE_PLACES_API_KEY}`,
-          { redirect: "follow" }
-        );
-
-        if (!photoRes.ok) {
-          results.push({ lounge: lounge.slug, status: "error", error: `Photo fetch: ${photoRes.status}` });
-          continue;
-        }
-
-        const imageBytes = new Uint8Array(await photoRes.arrayBuffer());
-        const contentType = photoRes.headers.get("content-type") || "image/jpeg";
-        const ext = contentType.includes("png") ? "png" : "jpg";
-        const filePath = `${lounge.slug}.${ext}`;
-
-        // Upload to storage
-        const { error: uploadError } = await supabase.storage
-          .from("lounge-images")
-          .upload(filePath, imageBytes, {
-            contentType,
-            upsert: true,
-          });
-
-        if (uploadError) {
-          results.push({ lounge: lounge.slug, status: "error", error: uploadError.message });
-          continue;
-        }
-
-        // Get public URL
-        const publicUrl = `${SUPABASE_URL}/storage/v1/object/public/lounge-images/${filePath}`;
-
-        // Update lounge
-        const { error: updateError } = await supabase
-          .from("lounges")
-          .update({ image_url: publicUrl })
-          .eq("id", lounge.id);
-
-        if (updateError) {
-          results.push({ lounge: lounge.slug, status: "error", error: updateError.message });
-          continue;
-        }
-
-        results.push({ lounge: lounge.slug, status: "success" });
-      } catch (err: any) {
-        results.push({ lounge: lounge.slug, status: "error", error: err.message });
+    for (let i = 0; i < lounges.length; i += CONCURRENCY) {
+      const chunk = lounges.slice(i, i + CONCURRENCY);
+      const chunkResults = await Promise.allSettled(
+        chunk.map((l) => processLounge(l, GOOGLE_PLACES_API_KEY, supabase, SUPABASE_URL))
+      );
+      for (const r of chunkResults) {
+        results.push(r.status === "fulfilled" ? r.value : { lounge: "unknown", status: "error", error: String(r.reason) });
       }
     }
 
