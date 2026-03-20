@@ -34,6 +34,7 @@ export const AdminToolsBar = ({
       {backfilling ? backfillProgress : "Backfill Google Types"}
     </Button>
     <FetchCityImagesButton />
+    <FetchLoungeImagesButton />
     <Button variant="outline" onClick={onExportLounges} disabled={exporting}>
       <Download className="h-4 w-4 mr-2" />
       {exporting ? "Exporting..." : "Export Lounges"}
