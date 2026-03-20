@@ -10,6 +10,7 @@ interface OptimizedImageProps {
   sizes?: string;
   className?: string;
   loading?: "lazy" | "eager";
+  fetchPriority?: "high" | "low" | "auto";
   widths?: number[];
   quality?: number;
 }
@@ -22,6 +23,7 @@ const OptimizedImage = forwardRef<HTMLImageElement, OptimizedImageProps>(({
   sizes = "(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw",
   className,
   loading = "lazy",
+  fetchPriority,
   widths = [320, 640, 960],
   quality = 75,
 }, ref) => {
@@ -38,6 +40,7 @@ const OptimizedImage = forwardRef<HTMLImageElement, OptimizedImageProps>(({
       height={height}
       loading={loading}
       decoding="async"
+      {...(fetchPriority ? { fetchPriority } : {})}
       onLoad={() => setLoaded(true)}
       className={cn(
         "transition-opacity duration-300",
