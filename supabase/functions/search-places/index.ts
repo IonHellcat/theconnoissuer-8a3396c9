@@ -267,6 +267,44 @@ function getPhotoUrl(place: PlaceResult, apiKey: string): string | null {
   return `https://places.googleapis.com/v1/${place.photos[0].name}/media?maxWidthPx=800&key=${apiKey}`;
 }
 
+async function downloadAndStorePhoto(
+  place: PlaceResult,
+  slug: string,
+  apiKey: string,
+  supabase: any
+): Promise<string | null> {
+  if (!place.photos || place.photos.length === 0) return null;
+
+  try {
+    const photoUrl = `https://places.googleapis.com/v1/${place.photos[0].name}/media?maxWidthPx=800&key=${apiKey}`;
+    const res = await fetch(photoUrl, { redirect: "follow" });
+    if (!res.ok) {
+      console.warn(`Photo download failed for "${slug}": ${res.status}`);
+      return null;
+    }
+
+    const imageBytes = new Uint8Array(await res.arrayBuffer());
+    const contentType = res.headers.get("content-type") || "image/jpeg";
+    const ext = contentType.includes("png") ? "png" : "jpg";
+    const filePath = `${slug}.${ext}`;
+
+    const { error } = await supabase.storage
+      .from("lounge-images")
+      .upload(filePath, imageBytes, { contentType, upsert: true });
+
+    if (error) {
+      console.warn(`Storage upload failed for "${slug}": ${error.message}`);
+      return null;
+    }
+
+    const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
+    return `${supabaseUrl}/storage/v1/object/public/lounge-images/${filePath}`;
+  } catch (err) {
+    console.warn(`Photo store error for "${slug}":`, err);
+    return null;
+  }
+}
+
 function buildHours(place: PlaceResult): any {
   if (!place.regularOpeningHours) return null;
   return {
