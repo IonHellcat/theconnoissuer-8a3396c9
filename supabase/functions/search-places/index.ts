@@ -583,7 +583,7 @@ serve(async (req) => {
           latitude: place.location?.latitude || null,
           longitude: place.location?.longitude || null,
           hours: buildHours(place),
-          image_url: getPhotoUrl(place, GOOGLE_PLACES_API_KEY),
+          image_url: await downloadAndStorePhoto(place, slug, GOOGLE_PLACES_API_KEY, supabase),
           google_place_id: placeId,
           google_types: googleTypes,
         });
