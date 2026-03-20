@@ -26,6 +26,9 @@ async function processLounge(
 
     if (!detailRes.ok) {
       await detailRes.text();
+      if (detailRes.status === 404) {
+        await supabase.from("lounges").update({ image_url: "not_found" }).eq("id", lounge.id);
+      }
       return { lounge: lounge.slug, status: "error", error: `Places API: ${detailRes.status}` };
     }
 
