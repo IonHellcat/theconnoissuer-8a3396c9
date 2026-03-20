@@ -2,6 +2,15 @@ import { useState, forwardRef } from "react";
 import { getOptimizedImageUrl, getImageSrcSet } from "@/lib/imageUtils";
 import { cn } from "@/lib/utils";
 
+const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL;
+
+function resolveImageSrc(src: string): string {
+  if (src.includes("places.googleapis.com")) {
+    return `${SUPABASE_URL}/functions/v1/image-proxy?url=${encodeURIComponent(src)}`;
+  }
+  return src;
+}
+
 interface OptimizedImageProps {
   src: string;
   alt: string;
@@ -27,12 +36,22 @@ const OptimizedImage = forwardRef<HTMLImageElement, OptimizedImageProps>(({
   widths = [320, 640, 960],
   quality = 75,
 }, ref) => {
+  const resolvedSrc = resolveImageSrc(src);
+  const isProxy = resolvedSrc !== src;
   const isSentinel = src === "no_photo" || src === "not_found";
   const [loaded, setLoaded] = useState(false);
   const [errored, setErrored] = useState(isSentinel);
 
-  const displaySrc = errored || isSentinel ? "/placeholder.svg" : getOptimizedImageUrl(src, width, quality);
-  const srcSet = errored || isSentinel ? undefined : (getImageSrcSet(src, widths, quality) || undefined);
+  // For proxied URLs, use the proxy URL directly (no srcSet optimization)
+  const displaySrc = errored || isSentinel
+    ? "/placeholder.svg"
+    : isProxy
+      ? resolvedSrc
+      : getOptimizedImageUrl(src, width, quality);
+
+  const srcSet = errored || isSentinel || isProxy
+    ? undefined
+    : (getImageSrcSet(src, widths, quality) || undefined);
 
   return (
     <img
