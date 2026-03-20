@@ -26,11 +26,16 @@ async function processLounge(
 
     if (!detailRes.ok) {
       await detailRes.text();
+      if (detailRes.status === 404) {
+        await supabase.from("lounges").update({ image_url: "not_found" }).eq("id", lounge.id);
+      }
       return { lounge: lounge.slug, status: "error", error: `Places API: ${detailRes.status}` };
     }
 
     const placeData = await detailRes.json();
     if (!placeData.photos || placeData.photos.length === 0) {
+      // Mark as "no_photo" so it's excluded from future "missing" queries
+      await supabase.from("lounges").update({ image_url: "no_photo" }).eq("id", lounge.id);
       return { lounge: lounge.slug, status: "no_photo" };
     }
 
@@ -142,7 +147,9 @@ serve(async (req) => {
       .limit(Math.min(limit, 50));
 
     if (mode === "missing") {
-      query = query.or("image_url.is.null,image_url.like.%places.googleapis.com%");
+      query = query.or("image_url.is.null,image_url.like.%places.googleapis.com%")
+        .not("image_url", "eq", "no_photo")
+        .not("image_url", "eq", "not_found");
     }
 
     const { data: lounges, error: queryError } = await query;
@@ -162,7 +169,9 @@ serve(async (req) => {
       .not("google_place_id", "is", null);
 
     if (mode === "missing") {
-      countQuery = countQuery.or("image_url.is.null,image_url.like.%places.googleapis.com%");
+      countQuery = countQuery.or("image_url.is.null,image_url.like.%places.googleapis.com%")
+        .not("image_url", "eq", "no_photo")
+        .not("image_url", "eq", "not_found");
     }
 
     const { count: totalCount } = await countQuery;

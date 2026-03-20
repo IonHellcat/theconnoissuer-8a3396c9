@@ -27,11 +27,12 @@ const OptimizedImage = forwardRef<HTMLImageElement, OptimizedImageProps>(({
   widths = [320, 640, 960],
   quality = 75,
 }, ref) => {
+  const isSentinel = src === "no_photo" || src === "not_found";
   const [loaded, setLoaded] = useState(false);
-  const [errored, setErrored] = useState(false);
+  const [errored, setErrored] = useState(isSentinel);
 
-  const displaySrc = errored ? "/placeholder.svg" : getOptimizedImageUrl(src, width, quality);
-  const srcSet = errored ? undefined : (getImageSrcSet(src, widths, quality) || undefined);
+  const displaySrc = errored || isSentinel ? "/placeholder.svg" : getOptimizedImageUrl(src, width, quality);
+  const srcSet = errored || isSentinel ? undefined : (getImageSrcSet(src, widths, quality) || undefined);
 
   return (
     <img
