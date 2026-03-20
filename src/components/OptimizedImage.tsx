@@ -45,7 +45,13 @@ const OptimizedImage = forwardRef<HTMLImageElement, OptimizedImageProps>(({
       loading={loading}
       decoding="async"
       {...(fetchPriority ? { fetchPriority } : {})}
-      onLoad={() => setLoaded(true)}
+      onLoad={(e) => {
+        const img = e.currentTarget;
+        if (img.naturalWidth === 0) {
+          if (!errored) setErrored(true);
+        }
+        setLoaded(true);
+      }}
       onError={() => {
         if (!errored) {
           setErrored(true);
