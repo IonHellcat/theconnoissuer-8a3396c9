@@ -60,7 +60,12 @@
 </head>
 
   <body>
-    <div id="root"></div>
+    <div id="root">
+      <div id="initial-loader" style="display:flex;align-items:center;justify-content:center;min-height:100vh;background:#09090b;">
+        <div style="width:40px;height:40px;border:3px solid #27272a;border-top-color:#c4973b;border-radius:50%;animation:spin .7s linear infinite;"></div>
+      </div>
+      <style>@keyframes spin{to{transform:rotate(360deg)}}</style>
+    </div>
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>
