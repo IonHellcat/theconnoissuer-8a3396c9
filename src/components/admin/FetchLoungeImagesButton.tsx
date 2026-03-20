@@ -34,7 +34,7 @@ export const FetchLoungeImagesButton = () => {
               "Content-Type": "application/json",
               "Authorization": `Bearer ${session?.access_token}`,
             },
-            body: JSON.stringify({ mode, limit: 5 }),
+            body: JSON.stringify({ mode, limit: 25 }),
           }
         );
 
