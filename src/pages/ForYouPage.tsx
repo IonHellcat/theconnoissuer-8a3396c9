@@ -12,6 +12,7 @@ export interface CityOption {
   id: string;
   name: string;
   country: string;
+  loungeCount: number;
 }
 
 const ForYouPage = () => {
