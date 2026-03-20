@@ -31,6 +31,8 @@ async function processLounge(
 
     const placeData = await detailRes.json();
     if (!placeData.photos || placeData.photos.length === 0) {
+      // Mark as "no_photo" so it's excluded from future "missing" queries
+      await supabase.from("lounges").update({ image_url: "no_photo" }).eq("id", lounge.id);
       return { lounge: lounge.slug, status: "no_photo" };
     }
 
