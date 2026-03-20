@@ -169,7 +169,9 @@ serve(async (req) => {
       .not("google_place_id", "is", null);
 
     if (mode === "missing") {
-      countQuery = countQuery.or("image_url.is.null,image_url.like.%places.googleapis.com%");
+      countQuery = countQuery.or("image_url.is.null,image_url.like.%places.googleapis.com%")
+        .not("image_url", "eq", "no_photo")
+        .not("image_url", "eq", "not_found");
     }
 
     const { count: totalCount } = await countQuery;
