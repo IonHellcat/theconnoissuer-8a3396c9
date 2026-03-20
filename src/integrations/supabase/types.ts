@@ -1013,6 +1013,10 @@ export type Database = {
         }
         Returns: boolean
       }
+      is_following: {
+        Args: { _follower_id: string; _following_id: string }
+        Returns: boolean
+      }
       move_to_dlq: {
         Args: {
           dlq_name: string
@@ -1058,6 +1062,21 @@ export type Database = {
           slug: string
           type: string
           visit_type: string
+        }[]
+      }
+      trending_lounges_this_week: {
+        Args: never
+        Returns: {
+          city_name: string
+          connoisseur_score: number
+          lounge_id: string
+          lounge_image_url: string
+          lounge_name: string
+          lounge_rating: number
+          lounge_slug: string
+          score_label: string
+          score_source: string
+          visit_count: number
         }[]
       }
     }
