@@ -1,6 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { motion } from "framer-motion";
 
 const TrustStats = () => {
   const { data } = useQuery({
@@ -21,17 +20,14 @@ const TrustStats = () => {
   if (!data) return null;
 
   return (
-    <motion.div
-      initial={{ opacity: 0, y: 10 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.5, delay: 0.3 }}
-      className="flex flex-wrap items-center justify-center gap-x-2 gap-y-1 mt-6 text-sm sm:text-base md:text-lg text-muted-foreground px-4">
+    <div
+      className="animate-hero-fade-in-4 flex flex-wrap items-center justify-center gap-x-2 gap-y-1 mt-6 text-sm sm:text-base md:text-lg text-muted-foreground px-4">
       
       <span className="font-display font-bold text-primary text-base sm:text-lg md:text-xl">{data.loungeCount.toLocaleString()}</span>
       <span>lounges across</span>
       <span className="font-display font-bold text-primary text-base sm:text-lg md:text-xl">{data.cityCount.toLocaleString()}</span>
       <span>cities worldwide</span>
-    </motion.div>);
+    </div>);
 
 };
 
