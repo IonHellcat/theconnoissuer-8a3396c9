@@ -147,7 +147,9 @@ serve(async (req) => {
       .limit(Math.min(limit, 50));
 
     if (mode === "missing") {
-      query = query.or("image_url.is.null,image_url.like.%places.googleapis.com%");
+      query = query.or("image_url.is.null,image_url.like.%places.googleapis.com%")
+        .not("image_url", "eq", "no_photo")
+        .not("image_url", "eq", "not_found");
     }
 
     const { data: lounges, error: queryError } = await query;
