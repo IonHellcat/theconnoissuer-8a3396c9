@@ -12,6 +12,7 @@ export interface CityOption {
   id: string;
   name: string;
   country: string;
+  loungeCount: number;
 }
 
 const ForYouPage = () => {
@@ -33,7 +34,12 @@ const ForYouPage = () => {
       const map = new Map<string, CityOption>();
       data.forEach((row: any) => {
         if (!row.cities) return;
-        map.set(row.city_id, { id: row.city_id, name: row.cities.name, country: row.cities.country });
+        const existing = map.get(row.city_id);
+        if (existing) {
+          existing.loungeCount += 1;
+        } else {
+          map.set(row.city_id, { id: row.city_id, name: row.cities.name, country: row.cities.country, loungeCount: 1 });
+        }
       });
       return Array.from(map.values()).sort((a, b) => a.name.localeCompare(b.name));
     },
