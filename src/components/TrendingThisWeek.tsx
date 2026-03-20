@@ -10,41 +10,25 @@ const TrendingThisWeek = () => {
   const { data: trending } = useQuery({
     queryKey: ["trending-this-week"],
     queryFn: async () => {
-      const oneWeekAgo = new Date();
-      oneWeekAgo.setDate(oneWeekAgo.getDate() - 7);
-
-      const { data: visits, error } = await supabase
-        .from("visits_public" as any)
-        .select("lounge_id, lounge_name, lounge_slug, lounge_image_url, connoisseur_score, score_label, score_source, lounge_rating, city_name")
-        .gte("visited_at", oneWeekAgo.toISOString())
-        .limit(500);
+      const { data, error } = await supabase.rpc("trending_lounges_this_week" as any);
 
       if (error) throw error;
-      if (!visits || visits.length < 3) return null;
+      if (!data || (data as any[]).length < 3) return null;
 
-      // Group by lounge
-      const countMap: Record<string, { count: number; lounge: any }> = {};
-      visits.forEach((v: any) => {
-        const lid = v.lounge_id;
-        if (!countMap[lid]) {
-          countMap[lid] = { count: 0, lounge: {
-            id: lid,
-            name: v.lounge_name,
-            slug: v.lounge_slug,
-            image_url: v.lounge_image_url,
-            connoisseur_score: v.connoisseur_score,
-            score_label: v.score_label,
-            score_source: v.score_source,
-            rating: v.lounge_rating,
-            cities: { name: v.city_name },
-          }};
-        }
-        countMap[lid].count++;
-      });
-
-      return Object.values(countMap)
-        .sort((a, b) => b.count - a.count)
-        .slice(0, 6);
+      return (data as any[]).map((row: any) => ({
+        count: Number(row.visit_count),
+        lounge: {
+          id: row.lounge_id,
+          name: row.lounge_name,
+          slug: row.lounge_slug,
+          image_url: row.lounge_image_url,
+          connoisseur_score: row.connoisseur_score,
+          score_label: row.score_label,
+          score_source: row.score_source,
+          rating: row.lounge_rating,
+          cities: { name: row.city_name },
+        },
+      }));
     },
     staleTime: 10 * 60 * 1000,
   });
