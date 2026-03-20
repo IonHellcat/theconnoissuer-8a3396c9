@@ -28,13 +28,17 @@ const OptimizedImage = forwardRef<HTMLImageElement, OptimizedImageProps>(({
   quality = 75,
 }, ref) => {
   const [loaded, setLoaded] = useState(false);
+  const [errored, setErrored] = useState(false);
+
+  const displaySrc = errored ? "/placeholder.svg" : getOptimizedImageUrl(src, width, quality);
+  const srcSet = errored ? undefined : (getImageSrcSet(src, widths, quality) || undefined);
 
   return (
     <img
       ref={ref}
-      src={getOptimizedImageUrl(src, width, quality)}
-      srcSet={getImageSrcSet(src, widths, quality) || undefined}
-      sizes={getImageSrcSet(src, widths, quality) ? sizes : undefined}
+      src={displaySrc}
+      srcSet={srcSet}
+      sizes={srcSet ? sizes : undefined}
       alt={alt}
       width={width}
       height={height}
@@ -42,6 +46,12 @@ const OptimizedImage = forwardRef<HTMLImageElement, OptimizedImageProps>(({
       decoding="async"
       {...(fetchPriority ? { fetchPriority } : {})}
       onLoad={() => setLoaded(true)}
+      onError={() => {
+        if (!errored) {
+          setErrored(true);
+          setLoaded(true);
+        }
+      }}
       className={cn(
         "transition-opacity duration-300",
         loaded ? "opacity-100" : "opacity-0",
