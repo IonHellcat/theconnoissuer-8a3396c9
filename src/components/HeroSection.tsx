@@ -1,7 +1,6 @@
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { Search, MapPin, Trophy, Globe } from "lucide-react";
-import { motion } from "framer-motion";
 import TrustStats from "./TrustStats";
 
 const HeroSection = () => {
@@ -27,33 +26,23 @@ const HeroSection = () => {
       }} />
 
       <div className="relative z-10 container mx-auto px-4 text-center">
-        <motion.div
-          initial={{ opacity: 0, y: 30 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.8, ease: "easeOut" }}
-        >
+        <div className="animate-hero-fade-in-1">
           <h1 className="font-display text-3xl sm:text-5xl md:text-6xl lg:text-7xl font-bold leading-tight">
             <span className="text-foreground">Discover the World's</span>
             <br />
             <span className="text-gradient-gold">Finest Cigar Lounges</span>
           </h1>
-        </motion.div>
+        </div>
 
-        <motion.p
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.8, delay: 0.2, ease: "easeOut" }}
-          className="mt-6 text-lg md:text-xl text-muted-foreground max-w-2xl mx-auto font-body"
+        <p
+          className="animate-hero-fade-in-2 mt-6 text-lg md:text-xl text-muted-foreground max-w-2xl mx-auto font-body"
         >
           The world's most curated guide to cigar lounges.
-        </motion.p>
+        </p>
 
-        <motion.form
+        <form
           onSubmit={handleSearch}
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.8, delay: 0.4, ease: "easeOut" }}
-          className="mt-5 sm:mt-10 max-w-xl mx-auto px-2 sm:px-0"
+          className="animate-hero-fade-in-3 mt-5 sm:mt-10 max-w-xl mx-auto px-2 sm:px-0"
         >
           <div className="relative group">
             <div className="absolute -inset-0.5 bg-gradient-to-r from-primary/50 to-gold-light/50 rounded-lg blur opacity-30 group-hover:opacity-50 transition-opacity" />
@@ -74,13 +63,10 @@ const HeroSection = () => {
               </button>
             </div>
           </div>
-        </motion.form>
+        </form>
 
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.8, delay: 0.6, ease: "easeOut" }}
-          className="mt-6 sm:mt-8 flex flex-wrap items-center justify-center gap-3"
+        <div
+          className="animate-hero-fade-in-4 mt-6 sm:mt-8 flex flex-wrap items-center justify-center gap-3"
         >
           <Link
             to="/for-you"
@@ -100,7 +86,7 @@ const HeroSection = () => {
           >
             <Globe className="h-4 w-4 text-primary" /> Browse Cities
           </Link>
-        </motion.div>
+        </div>
 
         <TrustStats />
       </div>
