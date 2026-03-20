@@ -1,5 +1,6 @@
 import { Button } from "@/components/ui/button";
 import { FetchCityImagesButton } from "@/components/admin/FetchCityImagesButton";
+import { FetchLoungeImagesButton } from "@/components/admin/FetchLoungeImagesButton";
 import { Download, RefreshCw, Database } from "lucide-react";
 
 interface AdminToolsBarProps {
