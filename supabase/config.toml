@@ -35,3 +35,6 @@ verify_jwt = false
 
 [functions.audit-lounges]
 verify_jwt = false
+
+[functions.image-proxy]
+verify_jwt = false
