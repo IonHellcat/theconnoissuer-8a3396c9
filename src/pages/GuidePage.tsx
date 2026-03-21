@@ -9,7 +9,7 @@ import { Breadcrumb, BreadcrumbList, BreadcrumbItem, BreadcrumbLink, BreadcrumbS
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
-import { ArrowRight, MapPin, Building2 } from "lucide-react";
+import { ArrowRight, MapPin, Building2, Sparkles } from "lucide-react";
 
 /* ── types ── */
 interface TextBlock { type: "text"; label?: string; heading?: string; body: string }
@@ -39,12 +39,38 @@ interface CityRow {
 const BASE = "https://theconnoisseur.app";
 
 /* ── helpers ── */
+function nameToSlug(name: string): string {
+  return name
+    .toLowerCase()
+    .replace(/[^a-z0-9\s-]/g, '')
+    .replace(/\s+/g, '-')
+    .replace(/-+/g, '-')
+    .trim();
+}
+
 function renderMarkdown(text: string) {
   const parts = text.split(/(\*\*.*?\*\*)/g);
   return parts.map((p, i) =>
     p.startsWith("**") && p.endsWith("**")
       ? <strong key={i} className="font-semibold text-foreground">{p.slice(2, -2)}</strong>
       : <span key={i}>{p}</span>
+  );
+}
+
+function renderCalloutBody(text: string) {
+  if (!text.includes("theconnoisseur.app")) return <p className="text-muted-foreground leading-relaxed text-sm">{renderMarkdown(text)}</p>;
+  const parts = text.split("theconnoisseur.app");
+  return (
+    <p className="text-muted-foreground leading-relaxed text-sm">
+      {parts.map((part, i) => (
+        <span key={i}>
+          {renderMarkdown(part)}
+          {i < parts.length - 1 && (
+            <Link to="/explore" className="text-primary hover:underline font-medium">theconnoisseur.app</Link>
+          )}
+        </span>
+      ))}
+    </p>
   );
 }
 
@@ -108,7 +134,7 @@ function CalloutRenderer({ block }: { block: CalloutBlock }) {
   return (
     <div className="bg-secondary/60 border border-border/50 rounded-xl p-6 space-y-2">
       {block.label && <p className="text-xs font-semibold tracking-[2px] uppercase text-primary">{block.label}</p>}
-      <p className="text-muted-foreground leading-relaxed text-sm">{renderMarkdown(block.body)}</p>
+      {renderCalloutBody(block.body)}
     </div>
   );
 }
@@ -150,8 +176,13 @@ function RankingTableRenderer({ block }: { block: RankingTableBlock }) {
             <span className="font-display text-xl font-bold text-primary w-8 flex-shrink-0">{item.rank}</span>
             <div className="flex-1 min-w-0 space-y-1.5">
               <div className="flex items-center gap-2 flex-wrap">
-                <span className="font-display font-semibold">{item.name}</span>
-                {item.label && <span className={`text-[10px] font-semibold px-2 py-0.5 rounded ${labelColors[item.label] ?? "bg-secondary text-muted-foreground"}`}>{item.label}</span>}
+                <Link
+                  to={`/lounge/${nameToSlug(item.name)}`}
+                  className="font-display font-semibold hover:text-primary transition-colors"
+                  onClick={(e) => e.stopPropagation()}
+                >
+                  {item.name}
+                </Link>
               </div>
               {item.detail && <p className="text-xs text-muted-foreground">{item.detail}</p>}
               {item.aspects && item.aspects.length > 0 && (
@@ -162,7 +193,16 @@ function RankingTableRenderer({ block }: { block: RankingTableBlock }) {
                 </div>
               )}
             </div>
-            <span className="font-display text-xl font-bold text-primary flex-shrink-0">{item.score}</span>
+            <div className="flex flex-col items-center gap-0.5 flex-shrink-0">
+              <div className="h-10 w-10 rounded-full flex items-center justify-center font-display font-extrabold tracking-tight border-2 border-dashed border-primary/50 bg-primary/5 text-foreground text-[15px]">
+                {item.score}
+              </div>
+              {item.label && (
+                <span className="text-[9px] font-body font-medium leading-none text-muted-foreground">
+                  {item.label}
+                </span>
+              )}
+            </div>
           </div>
         ))}
       </div>
@@ -170,9 +210,15 @@ function RankingTableRenderer({ block }: { block: RankingTableBlock }) {
         <div className="text-center pt-4 space-y-3">
           {block.footer_text && <p className="text-sm text-muted-foreground">{block.footer_text}</p>}
           {block.footer_link_slug && (
-            <Link to={`/city/${block.footer_link_slug}`} className="inline-flex items-center gap-2 text-sm font-semibold text-primary border border-primary/50 rounded-lg px-6 py-3 hover:bg-primary/10 transition-colors">
-              {block.footer_link_text ?? "See All Venues →"}
-            </Link>
+            <>
+              <Link to={`/city/${block.footer_link_slug}`} className="inline-flex items-center gap-2 text-sm font-semibold text-primary border border-primary/50 rounded-lg px-6 py-3 hover:bg-primary/10 transition-colors">
+                {block.footer_link_text ?? "See All Venues →"}
+              </Link>
+              <Link to="/for-you" className="inline-flex items-center gap-2 text-sm font-medium text-muted-foreground hover:text-primary transition-colors ml-4">
+                <Sparkles className="h-3.5 w-3.5" />
+                Find lounges near you →
+              </Link>
+            </>
           )}
         </div>
       )}
@@ -195,6 +241,37 @@ function FactsGridRenderer({ block }: { block: FactsGridBlock }) {
         ))}
       </div>
     </section>
+  );
+}
+
+/* ── Try the app feature card ── */
+function TryTheAppCard({ guide }: { guide: Guide }) {
+  const citySlug = guide.related_city_slugs?.[0];
+  return (
+    <div className="bg-card border border-primary/20 rounded-xl p-6 sm:p-8 space-y-4">
+      <div className="flex items-center gap-3">
+        <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center">
+          <Sparkles className="h-5 w-5 text-primary" />
+        </div>
+        <div>
+          <h3 className="font-display text-lg font-bold">Find your next lounge</h3>
+          <p className="text-xs text-muted-foreground">1,666 venues · 158 cities · Free</p>
+        </div>
+      </div>
+      <p className="text-sm text-muted-foreground leading-relaxed">
+        Every lounge in this guide is ranked and mapped on The Connoisseur. Search by city, filter by score, and track every lounge you visit.
+      </p>
+      <div className="flex flex-wrap gap-3">
+        <Link to={citySlug ? `/city/${citySlug}` : "/explore"} className="inline-flex items-center gap-2 text-sm font-semibold text-primary border border-primary/50 rounded-lg px-5 py-2.5 hover:bg-primary/10 transition-colors">
+          <MapPin className="h-3.5 w-3.5" />
+          Explore the city
+        </Link>
+        <Link to="/for-you" className="inline-flex items-center gap-2 text-sm font-semibold text-foreground border border-border rounded-lg px-5 py-2.5 hover:border-primary/40 transition-colors">
+          <Sparkles className="h-3.5 w-3.5" />
+          Find near me
+        </Link>
+      </div>
+    </div>
   );
 }
 
@@ -289,6 +366,7 @@ export default function GuidePage() {
   }
 
   const canonicalUrl = `${BASE}/guide/${guide.slug}`;
+  const loungesPillLink = guide.related_city_slugs?.[0] ? `/city/${guide.related_city_slugs[0]}` : "/explore";
 
   return (
     <>
@@ -300,7 +378,10 @@ export default function GuidePage() {
         <meta property="og:description" content={guide.meta_description} />
         <meta property="og:type" content="article" />
         <meta property="og:url" content={canonicalUrl} />
+        <meta property="og:site_name" content="The Connoisseur" />
         <meta name="twitter:card" content="summary_large_image" />
+        <meta name="twitter:title" content={guide.title} />
+        <meta name="twitter:description" content={guide.meta_description} />
         <script type="application/ld+json">{JSON.stringify({
           "@context": "https://schema.org",
           "@type": "Article",
@@ -357,19 +438,19 @@ export default function GuidePage() {
               <p className="text-muted-foreground text-lg max-w-xl leading-relaxed">{guide.hero_subtitle}</p>
             )}
 
-            {/* Stats pills */}
+            {/* Stats pills — now clickable */}
             {totalCities > 0 && (
               <div className="flex flex-wrap gap-3 pt-2">
-                <div className="flex items-center gap-2 bg-card border border-border/50 rounded-full px-5 py-2.5">
+                <Link to={loungesPillLink} className="flex items-center gap-2 bg-card border border-border/50 rounded-full px-5 py-2.5 hover:border-primary/40 transition-colors">
                   <Building2 className="h-4 w-4 text-primary" />
                   <span className="font-display text-xl font-bold text-primary">{totalLounges}</span>
                   <span className="text-xs text-muted-foreground">lounges</span>
-                </div>
-                <div className="flex items-center gap-2 bg-card border border-border/50 rounded-full px-5 py-2.5">
+                </Link>
+                <Link to="/explore" className="flex items-center gap-2 bg-card border border-border/50 rounded-full px-5 py-2.5 hover:border-primary/40 transition-colors">
                   <MapPin className="h-4 w-4 text-primary" />
                   <span className="font-display text-xl font-bold text-primary">{totalCities}</span>
                   <span className="text-xs text-muted-foreground">cities</span>
-                </div>
+                </Link>
               </div>
             )}
           </header>
@@ -388,6 +469,11 @@ export default function GuidePage() {
                 default: return null;
               }
             })}
+          </div>
+
+          {/* Try the app card */}
+          <div className="mt-12">
+            <TryTheAppCard guide={guide} />
           </div>
 
           {/* All Cities grid (country guides) */}
