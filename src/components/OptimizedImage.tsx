@@ -24,6 +24,7 @@ interface OptimizedImageProps {
   widths?: number[];
   quality?: number;
   loungeId?: string;
+  cachedSrc?: string | null;
 }
 
 const OptimizedImage = forwardRef<HTMLImageElement, OptimizedImageProps>(({
@@ -38,9 +39,12 @@ const OptimizedImage = forwardRef<HTMLImageElement, OptimizedImageProps>(({
   widths = [320, 640, 960],
   quality = 75,
   loungeId,
+  cachedSrc,
 }, ref) => {
-  const resolvedSrc = resolveImageSrc(src);
-  const isProxy = resolvedSrc !== src;
+  // Prefer cached storage URL over original src
+  const baseSrc = cachedSrc || src;
+  const resolvedSrc = resolveImageSrc(baseSrc);
+  const isProxy = resolvedSrc !== baseSrc;
   const isSentinel = src === "no_photo" || src === "not_found";
 
   const imgRef = useRef<HTMLImageElement | null>(null);
@@ -125,7 +129,7 @@ const OptimizedImage = forwardRef<HTMLImageElement, OptimizedImageProps>(({
     );
   }
 
-  const effectiveSrc = refreshedSrc || src;
+  const effectiveSrc = refreshedSrc || baseSrc;
   const effectiveResolved = refreshedSrc ? resolveImageSrc(refreshedSrc) : resolvedSrc;
   const effectiveIsProxy = effectiveResolved !== effectiveSrc;
 
