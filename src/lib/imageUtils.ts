@@ -1,4 +1,12 @@
 /**
+ * Check if a URL is a Google Places/Maps image URL.
+ */
+export function isGooglePlacesUrl(url: string): boolean {
+  return url.includes('places.googleapis.com') ||
+         url.includes('maps.googleapis.com');
+}
+
+/**
  * Generate an optimized Supabase Storage image URL using render/image transforms.
  * Falls back to original URL for non-Supabase images.
  */
@@ -26,4 +34,17 @@ export function getImageSrcSet(
   return widths
     .map((w) => `${getOptimizedImageUrl(url, w, quality)} ${w}w`)
     .join(", ");
+}
+
+/**
+ * Get the best display URL for an image, handling Google Places, Supabase, and fallback cases.
+ */
+export function getDisplayImageUrl(
+  url: string | null,
+  width: number,
+  quality = 75
+): string {
+  if (!url) return '/placeholder.svg';
+  if (isGooglePlacesUrl(url)) return url;
+  return getOptimizedImageUrl(url, width, quality);
 }
