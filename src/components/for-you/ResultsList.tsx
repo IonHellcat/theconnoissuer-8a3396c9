@@ -183,7 +183,5 @@ export const ItineraryScreen = ({ itinerary, cityName, requestedStops, onReset }
       />
     </div>
     </>
-  );
 };
-  );
-};
+
