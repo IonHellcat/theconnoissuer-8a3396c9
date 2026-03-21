@@ -23,12 +23,19 @@ function getStopLabel(index: number, lounge: LoungeWithCoords): string {
 }
 
 export const ItineraryScreen = ({ itinerary, cityName, requestedStops, onReset }: ItineraryScreenProps) => {
-  const handleShare = () => {
+  const handleShare = async () => {
     const lines = itinerary.map((l, i) => `${i + 1}. ${l.name}`).join("\n");
     const text = `My cigar itinerary in ${cityName}:\n${lines}\nvia The Connoisseur — theconnoisseur.app`;
-    navigator.clipboard.writeText(text).then(() => {
-      toast.success("Itinerary copied to clipboard");
-    });
+    if (navigator.share) {
+      try {
+        await navigator.share({ title: `Cigar Itinerary — ${cityName}`, text });
+        return;
+      } catch {
+        return;
+      }
+    }
+    await navigator.clipboard.writeText(text);
+    toast.success("Itinerary copied to clipboard");
   };
 
   return (
