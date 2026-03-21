@@ -134,17 +134,37 @@ const CityPage = () => {
   return (
     <div className="min-h-screen bg-background">
       <Helmet>
-        <title>{city ? `${city.name} Cigar Lounges — The Connoisseur` : "Loading... — The Connoisseur"}</title>
+        <title>{city ? `Best Cigar Lounges in ${city.name} (${city.country}) — Ranked | The Connoisseur` : "Loading... — The Connoisseur"}</title>
         {city && (
           <>
-            <meta name="description" content={`Discover the best cigar lounges and shops in ${city.name}, ${city.country}. ${city.lounge_count} venues ranked by Connoisseur Score.`} />
-            <meta property="og:title" content={`${city.name} Cigar Lounges — The Connoisseur`} />
+            <meta name="description" content={`Discover the ${city.lounge_count} best cigar lounges in ${city.name}, ${city.country}. Ranked by atmosphere, selection, service and consistency. Find your next smoke.`} />
+            <meta property="og:title" content={`Best Cigar Lounges in ${city.name} (${city.country}) — Ranked | The Connoisseur`} />
             <meta property="og:description" content={`Explore ${city.lounge_count} cigar lounges and shops in ${city.name}, ${city.country}.`} />
             {city.image_url && <meta property="og:image" content={city.image_url} />}
             <meta property="og:type" content="website" />
+            <meta property="og:site_name" content="The Connoisseur" />
             <meta name="twitter:card" content="summary_large_image" />
             <link rel="canonical" href={`https://theconnoisseur.app/city/${city.slug}`} />
           </>
+        )}
+        {city && lounges && lounges.length > 0 && (
+          <script type="application/ld+json">{JSON.stringify({
+            "@context": "https://schema.org",
+            "@type": "ItemList",
+            "name": `Best Cigar Lounges in ${city.name}`,
+            "description": `The top-rated cigar lounges in ${city.name}, ${city.country} ranked by the Connoisseur Score`,
+            "numberOfItems": lounges.length,
+            "itemListElement": lounges
+              .filter(l => l.connoisseur_score)
+              .sort((a, b) => (b.connoisseur_score || 0) - (a.connoisseur_score || 0))
+              .slice(0, 10)
+              .map((lounge, index) => ({
+                "@type": "ListItem",
+                "position": index + 1,
+                "name": lounge.name,
+                "url": `https://theconnoisseur.app/lounge/${lounge.slug}`
+              }))
+          })}</script>
         )}
       </Helmet>
       {city && <CityJsonLd city={city} />}
