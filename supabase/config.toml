@@ -41,3 +41,6 @@ verify_jwt = false
 
 [functions.refresh-lounge-image]
 verify_jwt = false
+
+[functions.batch-refresh-images]
+verify_jwt = false
