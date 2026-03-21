@@ -1,7 +1,7 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
-const BASE_URL = "https://theconnoissuer.lovable.app";
+const BASE_URL = "https://theconnoisseur.app";
 
 serve(async () => {
   const supabase = createClient(
@@ -74,7 +74,7 @@ serve(async () => {
     <loc>${BASE_URL}/guide/${guide.slug}</loc>
     <lastmod>${new Date(guide.updated_at).toISOString().split("T")[0]}</lastmod>
     <changefreq>weekly</changefreq>
-    <priority>0.8</priority>
+      <priority>0.9</priority>
   </url>`;
     }
   }
