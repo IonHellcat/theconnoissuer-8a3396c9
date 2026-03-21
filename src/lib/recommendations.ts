@@ -31,6 +31,7 @@ export interface LoungeWithCoords {
   type: string;
   address: string | null;
   image_url: string | null;
+  image_url_cached?: string | null;
   score_label: string | null;
   score_source: string;
   score_summary?: string | null;

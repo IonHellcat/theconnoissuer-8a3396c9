@@ -23,6 +23,7 @@ interface TopLoungeRow {
     name: string;
     slug: string;
     image_url: string | null;
+    image_url_cached: string | null;
     cities: { name: string } | null;
   };
 }
@@ -47,7 +48,7 @@ const TopFourLounges = ({ userId, editable, displayName, profileUrl }: TopFourLo
     queryFn: async () => {
       const { data } = await supabase
         .from("top_lounges" as any)
-        .select("id, position, lounges(id, name, slug, image_url, cities(name))")
+        .select("id, position, lounges(id, name, slug, image_url, image_url_cached, cities(name))")
         .eq("user_id", userId)
         .order("position");
       return (data || []) as unknown as TopLoungeRow[];
@@ -60,7 +61,7 @@ const TopFourLounges = ({ userId, editable, displayName, profileUrl }: TopFourLo
     queryFn: async () => {
       const { data } = await supabase
         .from("visits")
-        .select("lounge_id, lounges(id, name, slug, image_url, cities(name))")
+        .select("lounge_id, lounges(id, name, slug, image_url, image_url_cached, cities(name))")
         .eq("user_id", userId)
         .order("visited_at", { ascending: false });
       if (!data) return [];
@@ -127,7 +128,7 @@ const TopFourLounges = ({ userId, editable, displayName, profileUrl }: TopFourLo
                 className="group relative aspect-square rounded-xl overflow-hidden bg-card border border-border/50 hover:border-primary/30 transition-colors"
               >
                 <OptimizedImage
-                  src={entry.lounges.image_url || "/placeholder.svg"}
+                  src={entry.lounges.image_url_cached || entry.lounges.image_url || "/placeholder.svg"}
                   alt={entry.lounges.name}
                   width={320}
                   height={320}
@@ -236,9 +237,9 @@ const TopFourLounges = ({ userId, editable, displayName, profileUrl }: TopFourLo
                     )}
                   >
                     <div className="h-10 w-10 rounded-lg overflow-hidden flex-shrink-0 bg-secondary">
-                      {lounge.image_url ? (
+                    {(lounge.image_url_cached || lounge.image_url) ? (
                         <OptimizedImage
-                          src={lounge.image_url}
+                          src={lounge.image_url_cached || lounge.image_url}
                           alt={lounge.name}
                           width={80}
                           height={80}
@@ -281,7 +282,7 @@ const TopFourLounges = ({ userId, editable, displayName, profileUrl }: TopFourLo
             .map((s) => ({
               name: s.entry!.lounges.name,
               cityName: s.entry!.lounges.cities?.name || "",
-              image_url: s.entry!.lounges.image_url,
+              image_url: s.entry!.lounges.image_url_cached || s.entry!.lounges.image_url,
             }))}
           profileUrl={profileUrl || `https://theconnoisseur.app/user/${userId}`}
         />

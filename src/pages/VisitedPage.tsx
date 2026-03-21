@@ -38,7 +38,7 @@ const VisitedPage = () => {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("visits")
-        .select("*, lounges(id, name, slug, image_url, connoisseur_score, score_label, score_source, rating, latitude, longitude, cities(name, country))")
+        .select("*, lounges(id, name, slug, image_url, image_url_cached, connoisseur_score, score_label, score_source, rating, latitude, longitude, cities(name, country))")
         .eq("user_id", user!.id)
         .order("visited_at", { ascending: false });
       if (error) throw error;
@@ -336,7 +336,7 @@ const VisitedPage = () => {
                             </div>
                           )}
                           <OptimizedImage
-                            src={v.image_url || l.image_url || "/placeholder.svg"}
+                            src={v.image_url || l.image_url_cached || l.image_url || "/placeholder.svg"}
                             alt={l.name}
                             width={400}
                             height={225}

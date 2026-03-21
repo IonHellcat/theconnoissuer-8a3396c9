@@ -52,7 +52,7 @@ const ForYouPage = () => {
     queryFn: async () => {
       const { data } = await supabase
         .from("lounges")
-        .select("id, name, slug, latitude, longitude, connoisseur_score, visit_type, type, address, image_url, score_label, score_source, score_summary, rating, city_id")
+        .select("id, name, slug, latitude, longitude, connoisseur_score, visit_type, type, address, image_url, image_url_cached, score_label, score_source, score_summary, rating, city_id")
         .eq("city_id", selectedCity!.id)
         .not("connoisseur_score", "is", null);
       return (data ?? []) as LoungeWithCoords[];

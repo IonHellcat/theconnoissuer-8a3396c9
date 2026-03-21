@@ -133,13 +133,14 @@ const FavoritesPage = () => {
                     className="group block relative rounded-xl overflow-hidden aspect-[4/3] bg-secondary"
                   >
                     <OptimizedImage
-                      src={lounge.image_url || "/placeholder.svg"}
+                      src={lounge.image_url_cached || lounge.image_url || "/placeholder.svg"}
                       alt={lounge.name}
                       width={480}
                       height={360}
                       sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
                       widths={[320, 480]}
                       className="absolute inset-0 w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
+                      loungeId={lounge.id}
                     />
                     <div className="absolute inset-0 bg-gradient-to-t from-background/90 via-background/30 to-transparent" />
                     <div className="absolute top-3 right-3 z-10">
