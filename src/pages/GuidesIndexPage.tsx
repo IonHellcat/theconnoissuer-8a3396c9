@@ -51,24 +51,20 @@ export default function GuidesIndexPage() {
           ) : (
             <div className="grid gap-4">
               {guides.map(g => (
-                <Link key={g.slug} to={`/guide/${g.slug}`}>
-                  <Card className="bg-card border-border/50 rounded-xl hover:border-primary/40 transition-colors">
-                    <CardContent className="p-6 flex items-start justify-between gap-4">
-                      <div className="space-y-2 min-w-0">
-                        <div className="flex items-center gap-2 flex-wrap">
-                          <Badge variant="outline" className="text-primary border-primary/50 text-xs flex-shrink-0">
-                            {g.guide_type === "country" ? "Country Guide" : "City Guide"}
-                          </Badge>
-                          {g.country && <span className="text-xs text-muted-foreground">{g.country}</span>}
-                        </div>
-                        <h2 className="font-display text-lg font-bold leading-snug">{g.title}</h2>
-                        {g.hero_subtitle && (
-                          <p className="text-sm text-muted-foreground line-clamp-2">{g.hero_subtitle}</p>
-                        )}
-                      </div>
-                      <ArrowRight className="h-5 w-5 text-muted-foreground flex-shrink-0 mt-1" />
-                    </CardContent>
-                  </Card>
+                <Link key={g.slug} to={`/guide/${g.slug}`}
+                  className="bg-card border border-border/50 rounded-xl p-6 hover:border-primary/40 transition-colors space-y-3 block">
+                  <div className="flex items-center gap-2">
+                    <span className="text-[10px] font-semibold tracking-[2px] uppercase text-primary border border-primary/40 rounded px-2 py-0.5">
+                      {g.guide_type === "country" ? "Country Guide" : "City Guide"}
+                    </span>
+                    {g.country && (
+                      <span className="text-xs text-muted-foreground">{g.country}</span>
+                    )}
+                  </div>
+                  <h2 className="font-display text-lg font-bold leading-snug">{g.title}</h2>
+                  {g.hero_subtitle && (
+                    <p className="text-sm text-muted-foreground leading-relaxed line-clamp-2">{g.hero_subtitle}</p>
+                  )}
                 </Link>
               ))}
             </div>
