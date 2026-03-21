@@ -517,7 +517,7 @@ const LoungePage = () => {
             {/* Hero */}
             <section className="relative h-72 sm:h-80 md:h-96 overflow-hidden">
               <OptimizedImage
-                src={lounge.image_url || "/placeholder.svg"}
+                src={lounge.image_url_cached || lounge.image_url || "/placeholder.svg"}
                 alt={lounge.name}
                 width={1280}
                 height={480}
@@ -526,7 +526,6 @@ const LoungePage = () => {
                 loading="eager"
                 className="absolute inset-0 w-full h-full object-cover"
                 loungeId={lounge.id}
-                cachedSrc={lounge.image_url_cached}
               />
               <div className="absolute inset-0 bg-gradient-to-t from-background/95 via-background/40 to-transparent" />
               <div className="relative z-10 container mx-auto px-4 h-full flex flex-col justify-end pb-4 sm:pb-8">

@@ -21,7 +21,7 @@ const TrendingThisWeek = () => {
           id: row.lounge_id,
           name: row.lounge_name,
           slug: row.lounge_slug,
-          image_url: row.lounge_image_url,
+          image_url: row.lounge_image_url_cached || row.lounge_image_url,
           connoisseur_score: row.connoisseur_score,
           score_label: row.score_label,
           score_source: row.score_source,

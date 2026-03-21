@@ -85,7 +85,7 @@ export const ItineraryScreen = ({ itinerary, cityName, requestedStops, onReset }
                     <div className="h-24 w-full relative">
                       {lounge.image_url ? (
                         <OptimizedImage
-                          src={lounge.image_url}
+                          src={lounge.image_url_cached || lounge.image_url}
                           alt={lounge.name}
                           width={400}
                           height={192}

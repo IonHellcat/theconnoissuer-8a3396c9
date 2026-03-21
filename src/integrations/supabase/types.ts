@@ -1074,6 +1074,7 @@ export type Database = {
           connoisseur_score: number
           lounge_id: string
           lounge_image_url: string
+          lounge_image_url_cached: string
           lounge_name: string
           lounge_rating: number
           lounge_slug: string
