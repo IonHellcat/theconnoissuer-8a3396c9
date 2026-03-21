@@ -198,7 +198,7 @@ const ActivityFeedPage = () => {
       // visits — use public view to avoid exposing private notes/photos
       const { data: rawVisits } = await supabase
         .from("visits_public" as any)
-        .select("id, user_id, visited_at, lounge_id, lounge_name, lounge_slug, lounge_image_url, connoisseur_score, score_label, score_source, lounge_rating, city_name")
+        .select("id, user_id, visited_at, lounge_id, lounge_name, lounge_slug, lounge_image_url, lounge_image_url_cached, connoisseur_score, score_label, score_source, lounge_rating, city_name")
         .in("user_id", followingIds)
         .order("visited_at", { ascending: false })
         .limit(100);
@@ -210,7 +210,7 @@ const ActivityFeedPage = () => {
         lounges: {
           name: v.lounge_name,
           slug: v.lounge_slug,
-          image_url: v.lounge_image_url,
+          image_url: v.lounge_image_url_cached || v.lounge_image_url,
           connoisseur_score: v.connoisseur_score,
           score_label: v.score_label,
           score_source: v.score_source,
@@ -222,7 +222,7 @@ const ActivityFeedPage = () => {
       // reviews
       const { data: reviews } = await supabase
         .from("reviews")
-        .select("id, user_id, created_at, rating, review_text, cigar_smoked, drink_pairing, lounges!inner(name, slug, image_url, connoisseur_score, score_label, score_source, rating, cities!inner(name))")
+        .select("id, user_id, created_at, rating, review_text, cigar_smoked, drink_pairing, lounges!inner(name, slug, image_url, image_url_cached, connoisseur_score, score_label, score_source, rating, cities!inner(name))")
         .in("user_id", followingIds)
         .order("created_at", { ascending: false })
         .limit(100);
@@ -256,7 +256,7 @@ const ActivityFeedPage = () => {
           actor_avatar_url: profileMap.get(v.user_id)?.avatar_url,
           lounge_name: v.lounges.name,
           lounge_slug: v.lounges.slug,
-          lounge_image_url: v.lounges.image_url,
+          lounge_image_url: v.lounges.image_url_cached || v.lounges.image_url,
           city_name: v.lounges.cities?.name,
           created_at: v.visited_at,
           item_id: v.id,
@@ -272,7 +272,7 @@ const ActivityFeedPage = () => {
           actor_avatar_url: profileMap.get(r.user_id)?.avatar_url,
           lounge_name: r.lounges.name,
           lounge_slug: r.lounges.slug,
-          lounge_image_url: r.lounges.image_url,
+          lounge_image_url: r.lounges.image_url_cached || r.lounges.image_url,
           city_name: r.lounges.cities?.name,
           created_at: r.created_at,
           item_id: r.id,
