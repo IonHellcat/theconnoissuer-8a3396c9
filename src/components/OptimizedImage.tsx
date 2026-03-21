@@ -3,6 +3,7 @@ import { getOptimizedImageUrl, getImageSrcSet } from "@/lib/imageUtils";
 import { cn } from "@/lib/utils";
 
 const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL;
+const SUPABASE_KEY = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
 
 function resolveImageSrc(src: string): string {
   if (src.includes("places.googleapis.com")) {
@@ -22,6 +23,7 @@ interface OptimizedImageProps {
   fetchPriority?: "high" | "low" | "auto";
   widths?: number[];
   quality?: number;
+  loungeId?: string;
 }
 
 const OptimizedImage = forwardRef<HTMLImageElement, OptimizedImageProps>(({
@@ -35,6 +37,7 @@ const OptimizedImage = forwardRef<HTMLImageElement, OptimizedImageProps>(({
   fetchPriority,
   widths = [320, 640, 960],
   quality = 75,
+  loungeId,
 }, ref) => {
   const resolvedSrc = resolveImageSrc(src);
   const isProxy = resolvedSrc !== src;
@@ -43,6 +46,8 @@ const OptimizedImage = forwardRef<HTMLImageElement, OptimizedImageProps>(({
   const imgRef = useRef<HTMLImageElement | null>(null);
   const [loaded, setLoaded] = useState(false);
   const [errored, setErrored] = useState(isSentinel);
+  const [refreshedSrc, setRefreshedSrc] = useState<string | null>(null);
+  const [refreshing, setRefreshing] = useState(false);
 
   // Check if the image is already cached/complete on mount
   useEffect(() => {
@@ -59,6 +64,39 @@ const OptimizedImage = forwardRef<HTMLImageElement, OptimizedImageProps>(({
     } else if (ref) {
       (ref as React.MutableRefObject<HTMLImageElement | null>).current = el;
     }
+  };
+
+  const handleError = async () => {
+    if (loungeId && !refreshedSrc && !refreshing) {
+      setRefreshing(true);
+      try {
+        const res = await fetch(
+          `${SUPABASE_URL}/functions/v1/refresh-lounge-image`,
+          {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              "apikey": SUPABASE_KEY,
+            },
+            body: JSON.stringify({ lounge_id: loungeId }),
+          }
+        );
+        if (res.ok) {
+          const { url } = await res.json();
+          if (url) {
+            setRefreshedSrc(url);
+            setLoaded(false);
+            setRefreshing(false);
+            return;
+          }
+        }
+      } catch {
+        // fall through to error state
+      }
+      setRefreshing(false);
+    }
+    setErrored(true);
+    setLoaded(true);
   };
 
   if (errored) {
@@ -87,13 +125,17 @@ const OptimizedImage = forwardRef<HTMLImageElement, OptimizedImageProps>(({
     );
   }
 
-  const displaySrc = isProxy
-    ? resolvedSrc
-    : getOptimizedImageUrl(src, width, quality);
+  const effectiveSrc = refreshedSrc || src;
+  const effectiveResolved = refreshedSrc ? resolveImageSrc(refreshedSrc) : resolvedSrc;
+  const effectiveIsProxy = effectiveResolved !== effectiveSrc;
 
-  const srcSet = isProxy
+  const displaySrc = effectiveIsProxy
+    ? effectiveResolved
+    : getOptimizedImageUrl(effectiveSrc, width, quality);
+
+  const srcSet = effectiveIsProxy
     ? undefined
-    : (getImageSrcSet(src, widths, quality) || undefined);
+    : (getImageSrcSet(effectiveSrc, widths, quality) || undefined);
 
   return (
     <img
@@ -110,14 +152,12 @@ const OptimizedImage = forwardRef<HTMLImageElement, OptimizedImageProps>(({
       onLoad={(e) => {
         const img = e.currentTarget;
         if (img.naturalWidth === 0) {
-          setErrored(true);
+          handleError();
+          return;
         }
         setLoaded(true);
       }}
-      onError={() => {
-        setErrored(true);
-        setLoaded(true);
-      }}
+      onError={() => handleError()}
       className={cn(
         "transition-opacity duration-300",
         loaded ? "opacity-100" : "opacity-0",
