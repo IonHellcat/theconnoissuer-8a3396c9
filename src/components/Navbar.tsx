@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { Link, useNavigate, useLocation } from "react-router-dom";
 import logo from "@/assets/logo-64.png";
 import { Search, Menu, X, User, LogOut, Heart, Sparkles, MapPinCheck, ShieldCheck } from "lucide-react";
 import NotificationBell from "@/components/NotificationBell";
@@ -12,6 +12,7 @@ const Navbar = () => {
   const [isOpen, setIsOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const navigate = useNavigate();
+  const location = useLocation();
   const { user, signOut } = useAuth();
   const { data: isAdmin } = useAdminRole();
 
@@ -56,7 +57,7 @@ const Navbar = () => {
             <Link to="/for-you" className="text-sm text-muted-foreground hover:text-foreground transition-colors">
               Plan Trip
             </Link>
-            <Link to="/guides" className="text-sm text-muted-foreground hover:text-foreground transition-colors">
+            <Link to="/guides" className={`text-sm font-body transition-colors hover:text-foreground ${location.pathname.startsWith("/guide") ? "text-foreground" : "text-muted-foreground"}`}>
               Guides
             </Link>
             <Link to="/leaderboard" className="text-sm text-muted-foreground hover:text-foreground transition-colors">
