@@ -92,6 +92,7 @@ export const ItineraryScreen = ({ itinerary, cityName, requestedStops, onReset }
                           sizes="(max-width: 448px) calc(100vw - 72px), 376px"
                           widths={[376, 752]}
                           className="h-full w-full object-cover"
+                          loungeId={lounge.id}
                         />
                       ) : (
                         <div className="h-full w-full bg-secondary flex items-center justify-center">

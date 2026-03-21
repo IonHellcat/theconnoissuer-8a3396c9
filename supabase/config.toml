@@ -38,3 +38,6 @@ verify_jwt = false
 
 [functions.image-proxy]
 verify_jwt = false
+
+[functions.refresh-lounge-image]
+verify_jwt = false
