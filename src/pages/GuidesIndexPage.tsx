@@ -42,9 +42,10 @@ export default function GuidesIndexPage() {
   return (
     <>
       <Helmet>
-        <title>Cigar Lounge Guides — The Connoisseur</title>
-        <meta name="description" content="In-depth guides to the world's best cigar lounges, by country and city. Rankings, reviews, and insider tips." />
+        <title>Cigar Lounge Guides — Best Cigar Lounges by City & Country | The Connoisseur</title>
+        <meta name="description" content="Expert guides to the world's best cigar lounges. Rankings, Connoisseur Scores, and insider tips for London, Dubai, New York, Miami, and 158 cities worldwide." />
         <link rel="canonical" href="https://theconnoisseur.app/guides" />
+        <meta property="og:site_name" content="The Connoisseur" />
       </Helmet>
 
       <Navbar />
