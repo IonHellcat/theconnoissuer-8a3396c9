@@ -45,6 +45,7 @@ const RankedLoungeCard = ({ lounge, rank, dimmed }: { lounge: any; rank: number;
           widths={[240, 480]}
           className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
           loungeId={lounge.id}
+          cachedSrc={lounge.image_url_cached}
         />
         <div className="absolute top-2 left-2 z-10 flex items-center gap-1 bg-background/90 backdrop-blur-sm rounded-full px-2 py-0.5">
           {rank <= 3 && <Crown className={`h-3 w-3 ${rankColors[rank]}`} />}
