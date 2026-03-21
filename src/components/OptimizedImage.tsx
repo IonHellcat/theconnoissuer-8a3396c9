@@ -1,4 +1,4 @@
-import { useState, forwardRef } from "react";
+import { useState, useEffect, useRef, forwardRef } from "react";
 import { getOptimizedImageUrl, getImageSrcSet } from "@/lib/imageUtils";
 import { cn } from "@/lib/utils";
 
@@ -39,23 +39,65 @@ const OptimizedImage = forwardRef<HTMLImageElement, OptimizedImageProps>(({
   const resolvedSrc = resolveImageSrc(src);
   const isProxy = resolvedSrc !== src;
   const isSentinel = src === "no_photo" || src === "not_found";
+
+  const imgRef = useRef<HTMLImageElement | null>(null);
   const [loaded, setLoaded] = useState(false);
   const [errored, setErrored] = useState(isSentinel);
 
-  // For proxied URLs, use the proxy URL directly (no srcSet optimization)
-  const displaySrc = errored || isSentinel
-    ? "/placeholder.svg"
-    : isProxy
-      ? resolvedSrc
-      : getOptimizedImageUrl(src, width, quality);
+  // Check if the image is already cached/complete on mount
+  useEffect(() => {
+    if (imgRef.current?.complete && imgRef.current.naturalWidth > 0) {
+      setLoaded(true);
+    }
+  }, []);
 
-  const srcSet = errored || isSentinel || isProxy
+  // Merge forwarded ref with internal ref
+  const setRefs = (el: HTMLImageElement | null) => {
+    imgRef.current = el;
+    if (typeof ref === "function") {
+      ref(el);
+    } else if (ref) {
+      (ref as React.MutableRefObject<HTMLImageElement | null>).current = el;
+    }
+  };
+
+  if (errored) {
+    return (
+      <div
+        className={cn(
+          "bg-secondary flex items-center justify-center",
+          className
+        )}
+        style={{ width, height }}
+      >
+        <svg
+          className="h-8 w-8 text-muted-foreground/30"
+          fill="none"
+          viewBox="0 0 24 24"
+          stroke="currentColor"
+        >
+          <path
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            strokeWidth={1}
+            d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"
+          />
+        </svg>
+      </div>
+    );
+  }
+
+  const displaySrc = isProxy
+    ? resolvedSrc
+    : getOptimizedImageUrl(src, width, quality);
+
+  const srcSet = isProxy
     ? undefined
     : (getImageSrcSet(src, widths, quality) || undefined);
 
   return (
     <img
-      ref={ref}
+      ref={setRefs}
       src={displaySrc}
       srcSet={srcSet}
       sizes={srcSet ? sizes : undefined}
@@ -68,15 +110,13 @@ const OptimizedImage = forwardRef<HTMLImageElement, OptimizedImageProps>(({
       onLoad={(e) => {
         const img = e.currentTarget;
         if (img.naturalWidth === 0) {
-          if (!errored) setErrored(true);
+          setErrored(true);
         }
         setLoaded(true);
       }}
       onError={() => {
-        if (!errored) {
-          setErrored(true);
-          setLoaded(true);
-        }
+        setErrored(true);
+        setLoaded(true);
       }}
       className={cn(
         "transition-opacity duration-300",
