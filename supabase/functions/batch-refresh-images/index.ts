@@ -68,7 +68,11 @@ serve(async (req) => {
 
           const placeData = await placeRes.json();
           const photos = placeData.photos;
-          if (!photos?.length) return { id: lounge.id, status: "no_photos" };
+          if (!photos?.length) {
+            // Mark as no_photo so it's excluded from future batches
+            await client.from("lounges").update({ image_url_cached: "no_photo" }).eq("id", lounge.id);
+            return { id: lounge.id, status: "no_photos" };
+          }
 
           const photoName = photos[0].name;
           const freshUrl = `https://places.googleapis.com/v1/${photoName}/media?maxWidthPx=800&key=${googleKey}`;
