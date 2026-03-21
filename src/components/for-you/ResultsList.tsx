@@ -1,11 +1,12 @@
+import { useState } from "react";
 import { Link } from "react-router-dom";
 import { Badge } from "@/components/ui/badge";
 import { Cigarette, MapPin, RotateCcw, Share2 } from "lucide-react";
 import { motion } from "framer-motion";
-import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import ConnoisseurScoreBadge from "@/components/ConnoisseurScoreBadge";
 import OptimizedImage from "@/components/OptimizedImage";
+import ItineraryShareModal from "./ItineraryShareModal";
 import type { LoungeWithCoords } from "@/lib/recommendations";
 
 interface ItineraryScreenProps {
@@ -23,22 +24,10 @@ function getStopLabel(index: number, lounge: LoungeWithCoords): string {
 }
 
 export const ItineraryScreen = ({ itinerary, cityName, requestedStops, onReset }: ItineraryScreenProps) => {
-  const handleShare = async () => {
-    const lines = itinerary.map((l, i) => `${i + 1}. ${l.name}`).join("\n");
-    const text = `My cigar itinerary in ${cityName}:\n${lines}\nvia The Connoisseur — theconnoisseur.app`;
-    if (navigator.share) {
-      try {
-        await navigator.share({ title: `Cigar Itinerary — ${cityName}`, text });
-        return;
-      } catch {
-        return;
-      }
-    }
-    await navigator.clipboard.writeText(text);
-    toast.success("Itinerary copied to clipboard");
-  };
+  const [shareOpen, setShareOpen] = useState(false);
 
   return (
+    <>
     <div className="flex flex-col gap-5">
       {/* Header */}
       <motion.div
@@ -179,12 +168,21 @@ export const ItineraryScreen = ({ itinerary, cityName, requestedStops, onReset }
         </Button>
         <Button
           className="flex-1 h-11 font-body text-sm gap-2 bg-primary text-primary-foreground hover:brightness-110"
-          onClick={handleShare}
+          onClick={() => setShareOpen(true)}
         >
           <Share2 className="h-3.5 w-3.5" />
           Share
         </Button>
       </motion.div>
+
+      <ItineraryShareModal
+        open={shareOpen}
+        onOpenChange={setShareOpen}
+        cityName={cityName}
+        itinerary={itinerary}
+      />
     </div>
+    </>
   );
 };
+
