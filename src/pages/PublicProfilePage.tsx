@@ -54,7 +54,7 @@ const PublicProfilePage = () => {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("reviews")
-        .select("*, lounges!inner(name, slug, image_url, cities!inner(name))")
+        .select("*, lounges!inner(name, slug, image_url, image_url_cached, cities!inner(name))")
         .eq("user_id", userId!)
         .order("created_at", { ascending: false });
       if (error) throw error;
@@ -68,7 +68,7 @@ const PublicProfilePage = () => {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("favorites")
-        .select("*, lounges!inner(name, slug, image_url, rating, cities!inner(name))")
+        .select("*, lounges!inner(name, slug, image_url, image_url_cached, rating, cities!inner(name))")
         .eq("user_id", userId!)
         .order("created_at", { ascending: false });
       if (error) throw error;
@@ -82,7 +82,7 @@ const PublicProfilePage = () => {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("visits_public" as any)
-        .select("id, user_id, lounge_id, visited_at, lounge_name, lounge_slug, lounge_image_url, city_name")
+        .select("id, user_id, lounge_id, visited_at, lounge_name, lounge_slug, lounge_image_url, lounge_image_url_cached, city_name")
         .eq("user_id", userId!)
         .order("visited_at", { ascending: false })
         .limit(4);
@@ -93,7 +93,7 @@ const PublicProfilePage = () => {
         lounges: {
           name: v.lounge_name,
           slug: v.lounge_slug,
-          image_url: v.lounge_image_url,
+          image_url: v.lounge_image_url_cached || v.lounge_image_url,
           cities: { name: v.city_name },
         },
       }));
@@ -251,7 +251,7 @@ const PublicProfilePage = () => {
                       >
                         <div className="aspect-[4/3] overflow-hidden">
                           <OptimizedImage
-                            src={v.lounges.image_url || "/placeholder.svg"}
+                            src={v.lounges.image_url_cached || v.lounges.image_url || "/placeholder.svg"}
                             alt={v.lounges.name}
                             width={320}
                             height={240}
@@ -290,7 +290,7 @@ const PublicProfilePage = () => {
                       >
                         <div className="aspect-[4/3] overflow-hidden">
                           <OptimizedImage
-                            src={fav.lounges.image_url || "/placeholder.svg"}
+                            src={fav.lounges.image_url_cached || fav.lounges.image_url || "/placeholder.svg"}
                             alt={fav.lounges.name}
                             width={320}
                             height={240}
@@ -346,7 +346,7 @@ const PublicProfilePage = () => {
                             className="hidden sm:block w-20 h-20 rounded-lg overflow-hidden flex-shrink-0"
                           >
                             <OptimizedImage
-                              src={review.lounges.image_url || "/placeholder.svg"}
+                              src={review.lounges.image_url_cached || review.lounges.image_url || "/placeholder.svg"}
                               alt={review.lounges.name}
                               width={160}
                               height={160}
