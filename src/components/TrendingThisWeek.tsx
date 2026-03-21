@@ -68,6 +68,7 @@ const TrendingThisWeek = () => {
                     sizes="(max-width: 640px) 200px, (max-width: 1024px) 33vw, 16vw"
                     widths={[160, 320]}
                     className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
+                    loungeId={item.lounge.id}
                   />
                   <div className="absolute top-2 right-2">
                     <ConnoisseurScoreBadge
