@@ -1,16 +1,5 @@
-User-agent: Googlebot
-Allow: /
-
-User-agent: Bingbot
-Allow: /
-
-User-agent: Twitterbot
-Allow: /
-
-User-agent: facebookexternalhit
-Allow: /
-
 User-agent: *
+
 Allow: /
 
-Sitemap: https://wgnbrncyobrkbkndqzcv.supabase.co/functions/v1/sitemap
+Sitemap: https://theconnoisseur.app/sitemap.xml
