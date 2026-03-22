@@ -87,6 +87,7 @@ const App = () => (
               <Route path="/suggest" element={<LazyRoute skeleton={<GenericSkeleton />}><SuggestLoungePage /></LazyRoute>} />
               <Route path="/guides" element={<LazyRoute skeleton={<GenericSkeleton />}><GuidesIndexPage /></LazyRoute>} />
               <Route path="/guide/:slug" element={<LazyRoute skeleton={<GenericSkeleton />}><GuidePage /></LazyRoute>} />
+              <Route path="/sitemap" element={<LazyRoute skeleton={<GenericSkeleton />}><SitemapPage /></LazyRoute>} />
               <Route path="/admin/pending" element={<LazyRoute skeleton={<AdminSkeleton />}><AdminRoute><AdminPendingPage /></AdminRoute></LazyRoute>} />
               <Route path="/admin/generate-descriptions" element={<LazyRoute skeleton={<AdminSkeleton />}><AdminRoute><GenerateDescriptionsPage /></AdminRoute></LazyRoute>} />
               <Route path="/admin/generate-features" element={<LazyRoute skeleton={<AdminSkeleton />}><AdminRoute><GenerateFeaturesPage /></AdminRoute></LazyRoute>} />
