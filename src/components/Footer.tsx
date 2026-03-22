@@ -41,8 +41,9 @@ const Footer = () => {
           </div>
         </div>
 
-        <div className="mt-12 pt-6 border-t border-border/30 text-center text-xs text-muted-foreground">
-          © {new Date().getFullYear()} The Connoisseur. All rights reserved.
+        <div className="mt-12 pt-6 border-t border-border/30 flex items-center justify-between text-xs text-muted-foreground">
+          <span>© {new Date().getFullYear()} The Connoisseur. All rights reserved.</span>
+          <Link to="/sitemap" className="hover:text-foreground transition-colors">Sitemap</Link>
         </div>
       </div>
     </footer>
