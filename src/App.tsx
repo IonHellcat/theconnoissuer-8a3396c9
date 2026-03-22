@@ -37,6 +37,7 @@ const LeaderboardPage = lazy(() => import("./pages/LeaderboardPage"));
 const VisitedPage = lazy(() => import("./pages/VisitedPage"));
 const GuidePage = lazy(() => import("./pages/GuidePage"));
 const GuidesIndexPage = lazy(() => import("./pages/GuidesIndexPage"));
+const SitemapPage = lazy(() => import("./pages/SitemapPage"));
 const ActivityFeedPage = lazy(() => import("./pages/ActivityFeedPage"));
 const NotFound = lazy(() => import("./pages/NotFound"));
 
